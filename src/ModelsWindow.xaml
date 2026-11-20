@@ -30,8 +30,9 @@
           <Button x:Name="MeasureSpeed" Content="Измерить скорость на этом ПК" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="8,4"/>
         <Separator Margin="0,16,0,8"/>
         <TextBlock Text="Поблагодарить разработчика" FontWeight="SemiBold"/>
-        <TextBlock Text="Если OSTUM помогает вам в работе, можно подписаться на канал Раниса Галиаскарова." TextWrapping="Wrap" Margin="0,4,0,5"/>
+        <TextBlock Text="Подписка на канал Раниса Галиаскарова открывает рабочие пространства Pro после проверки в Telegram. Базовым чатом можно пользоваться сразу." TextWrapping="Wrap" Margin="0,4,0,5"/>
         <Button x:Name="DeveloperChannel" Content="Открыть канал в Telegram ↗" HorizontalAlignment="Left" Padding="8,4"/>
+        <Button x:Name="ProSubscription" Content="Проверить или продлить доступ к Pro" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="8,4"/>
       </StackPanel>
     </ScrollViewer>
     <StackPanel Grid.Row="2" Margin="0,8,0,0">

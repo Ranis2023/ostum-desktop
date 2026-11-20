@@ -13,74 +13,72 @@ using Microsoft.Win32;
 using Forms=System.Windows.Forms;
 
 namespace Sfera {
-    public sealed class ProjectWindow:Window {
+    public sealed partial class ProjectWindow:Window {
         readonly Preferences prefs;
         readonly Engine engine;
-        readonly ComboBox projects=new ComboBox{MinWidth=205},sheets=new ComboBox{MinWidth=115};
-        readonly ListBox files=new ListBox{MinWidth=150};
-        readonly TextBox filter=new TextBox{MinWidth=160,Margin=new Thickness(4),ToolTip="Поиск по адресу, значению, формуле и комментарию"};
-        readonly TextBlock status=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new Thickness(5,7,5,4)};
+        readonly Grid view;
+        readonly ComboBox projects,sheets;
+        readonly ListBox files;
+        readonly TextBox filter;
+        readonly TextBlock status;
         readonly DataGrid grid=GridView(),changes=GridView();
         readonly ObservableCollection<OfficePatch> patches=new ObservableCollection<OfficePatch>();
-        readonly TabControl tabs=new TabControl();
-        readonly ContentControl live=new ContentControl{VerticalAlignment=VerticalAlignment.Center};
-        readonly ContentControl page=new ContentControl();
+        readonly TabControl tabs;
+        readonly ContentControl live,page;
         OfficeRow previewSelection;
-        readonly CancellationTokenSource lifetime=new CancellationTokenSource();
+        CancellationTokenSource lifetime=new CancellationTokenSource();
         ProjectRule project;
         OfficeResult opened;
         string file,folder;
         bool busy,updating;
         static readonly Thickness gap=new Thickness(3);
         public ProjectWindow(Window owner,Preferences p,Engine local){
-            Owner=owner;Icon=owner.Icon;Title="OSTUM Pro · Рабочие пространства";Width=1090;Height=750;MinWidth=690;MinHeight=460;WindowStartupLocation=WindowStartupLocation.CenterOwner;FontFamily=owner.FontFamily;
-            prefs=p;engine=local;
-            var root=new DockPanel{Margin=new Thickness(15)};Content=root;
-            var top=new WrapPanel();DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
-            top.Children.Add(projects);Action(top,"Папка проекта",Register);
-            Action(top,"Обучение Zarum",()=>{RequireProject();engine.StopChat();new TrainingWindow(this,project,prefs).ShowDialog();engine.StopChat();});
-            Action(top,"Примеры и шаблоны",()=>Run(Demos));
-            var footer=new DockPanel();DockPanel.SetDock(footer,Dock.Bottom);root.Children.Add(footer);DockPanel.SetDock(live,Dock.Left);footer.Children.Add(live);footer.Children.Add(status);
-            var left=new DockPanel{Width=225,Margin=new Thickness(0,4,12,0)};DockPanel.SetDock(left,Dock.Left);root.Children.Add(left);
-            var nav=new WrapPanel();DockPanel.SetDock(nav,Dock.Top);left.Children.Add(nav);
-            Action(nav,"Вверх",()=>{RequireProject();var up=Directory.GetParent(folder);if(up!=null&&WorkPolicy.Within(up.FullName,project.Root)){folder=up.FullName;ListFiles();}});
-            Action(nav,"Файлы…",FileActions);
-            Action(nav,"Поиск по проекту",()=>Run(SearchProject));
-            left.Children.Add(files);
-            var right=new DockPanel();root.Children.Add(right);
-            var bar=new WrapPanel{Margin=gap};DockPanel.SetDock(bar,Dock.Top);right.Children.Add(bar);
-            bar.Children.Add(sheets);bar.Children.Add(new TextBlock{Text="Найти",VerticalAlignment=VerticalAlignment.Center,Margin=gap});bar.Children.Add(filter);
-            Action(bar,"Изменить",()=>Edit(false));Action(bar,"Комментарий",()=>Edit(true));
-            Action(bar,"Формат",Format);
-            Action(bar,"Сравнить DOCX",()=>Run(Compare));Action(bar,"Версии",()=>Run(Restore));Action(bar,"Спросить Zarum",()=>Run(Analyze));
-            right.Children.Add(tabs);tabs.Items.Add(new TabItem{Header="Страница / лист",Content=page});
-            var revisions=new DockPanel();var actions=new WrapPanel();DockPanel.SetDock(actions,Dock.Top);revisions.Children.Add(actions);
-            Action(actions,"Сохранить выбранные",()=>Run(Save));Action(actions,"Снять все",()=>{foreach(var row in patches)row.Selected=false;changes.Items.Refresh();});
-            revisions.Children.Add(changes);tabs.Items.Add(new TabItem{Header="Предлагаемые изменения",Content=revisions});
-            tabs.Items.Add(new TabItem{Header="Абзацы и ячейки",Content=grid});
+            ProAccess.Require();
+            Owner=owner;Icon=owner.Icon;Title="OSTUM Pro · Рабочее пространство";
+            Width=Math.Min(1130,SystemParameters.WorkArea.Width);Height=Math.Min(760,SystemParameters.WorkArea.Height);
+            MinWidth=640;MinHeight=430;WindowStartupLocation=WindowStartupLocation.CenterOwner;
+            prefs=p;engine=local;WorkspaceUi.Skin(this);
+            view=WorkspaceUi.View("WorkspaceView.xaml");Content=view;
+            projects=Get<ComboBox>("Projects");sheets=Get<ComboBox>("Sheets");files=Get<ListBox>("Files");
+            filter=Get<TextBox>("Filter");status=Get<TextBlock>("Status");tabs=Get<TabControl>("Tabs");live=Get<ContentControl>("Live");page=Get<ContentControl>("Page");
+            Get<ContentControl>("RowsHost").Content=grid;Get<ContentControl>("ChangeHost").Content=changes;
+            InitializeWorkspace();
             Col(grid,"Адрес","key",75);Col(grid,"Текст / формула","value",3,true);Col(grid,"Значение","display",2,true);Col(grid,"Стиль / формат","style",118);Col(grid,"Комментарий","comment",130);
             changes.IsReadOnly=false;changes.Columns.Add(new DataGridCheckBoxColumn{Header="Принять",Binding=new Binding("Selected"){Mode=BindingMode.TwoWay,UpdateSourceTrigger=UpdateSourceTrigger.PropertyChanged}});
             Col(changes,"Адрес","key",70);Col(changes,"Было","old",2,true);Col(changes,"Предложение","value",3,true);Col(changes,"Операция","operation",75);Col(changes,"Источник","Source",120);changes.ItemsSource=patches;
-            projects.SelectionChanged+=(s,e)=>{if(updating||busy)return;var next=projects.SelectedItem as ProjectRule;if(next==null)return;if(!Discard()){updating=true;projects.SelectedItem=project;updating=false;return;}project=next;folder=project.Root;Clear();Try(ListFiles);};
+            projects.SelectionChanged+=(s,e)=>{
+                if(updating||busy)return;var next=projects.SelectedItem as ProjectRule;if(next==null)return;
+                if(!Discard()){updating=true;projects.SelectedItem=project;updating=false;return;}Try(()=>SwitchProject(next));
+            };
             sheets.SelectionChanged+=(s,e)=>{string target=sheets.SelectedItem as string;if(updating||busy||opened==null||target==null||target==opened.sheet)return;if(!Discard()){updating=true;sheets.SelectedItem=opened.sheet;updating=false;return;}Run(()=>Open(file,target));};
-            files.MouseDoubleClick+=(s,e)=>ActivateFile();files.KeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Enter)ActivateFile();};
+            files.MouseDoubleClick+=(s,e)=>{if(ItemsControl.ContainerFromElement(files,e.OriginalSource as System.Windows.DependencyObject)!=null)ActivateFile();};files.KeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Enter)ActivateFile();};
             grid.MouseDoubleClick+=(s,e)=>Try(()=>Edit(false));filter.TextChanged+=(s,e)=>Filter();
             Closed+=(s,e)=>{lifetime.Cancel();engine.StopChat();};
-            Closing+=(s,e)=>{if(busy){lifetime.Cancel();}else if(!Discard())e.Cancel=true;};
-            RefreshProjects(null);if(project==null)status.Text=WorkPolicy.Rules.Managed?"Папки задаёт администратор в корпоративной политике.":"Выберите «Папка проекта» и укажите доступ к локальному ИИ.";
+            Closing+=(s,e)=>{if(busy){lifetime.Cancel();}else if(!closingForExpiry&&!Discard())e.Cancel=true;};
+            RefreshProjects(null);RefreshView();
         }
         internal static DataGrid GridView(){return new DataGrid{AutoGenerateColumns=false,CanUserAddRows=false,CanUserDeleteRows=false,IsReadOnly=true,EnableRowVirtualization=true,HeadersVisibility=DataGridHeadersVisibility.Column,SelectionMode=DataGridSelectionMode.Single,GridLinesVisibility=DataGridGridLinesVisibility.Horizontal,RowHeight=32,Margin=new Thickness(2)};}
         internal static void Col(DataGrid g,string label,string prop,int size,bool star=false){g.Columns.Add(new DataGridTextColumn{Header=label,Binding=new Binding(prop),IsReadOnly=true,Width=new DataGridLength(size,star?DataGridLengthUnitType.Star:DataGridLengthUnitType.Pixel)});}
-        void Action(Panel parent,string label,Action fn){var b=new Button{Content=label,Margin=gap,Padding=new Thickness(8,5,8,5)};b.Click+=(s,e)=>{if(!busy)Try(fn);};parent.Children.Add(b);}
-        void Try(Action fn){try{fn();}catch(Exception ex){status.Text=ex.Message;}}
-        async void Run(Func<Task> work){if(busy)return;busy=true;projects.IsEnabled=sheets.IsEnabled=false;try{await work();}catch(OperationCanceledException){status.Text="Операция остановлена.";}catch(Exception ex){status.Text=ex.Message;}finally{busy=false;projects.IsEnabled=sheets.IsEnabled=true;}}
-        void RequireProject(){if(project==null)throw new InvalidOperationException("Сначала выберите рабочее пространство.");}
-        bool Discard(){return patches.Count==0||MessageBox.Show(this,"Закрыть несохранённые предложения?","Рабочее пространство",MessageBoxButton.YesNo)==MessageBoxResult.Yes;}
-        void Clear(){opened=null;file=null;grid.ItemsSource=null;page.Content=null;previewSelection=null;patches.Clear();updating=true;sheets.ItemsSource=null;updating=false;}
-        void RefreshProjects(string selected){var all=WorkPolicy.Projects();projects.ItemsSource=all;projects.SelectedItem=all.FirstOrDefault(p=>p.Root==selected)??all.FirstOrDefault();}
+        void Try(Action fn){try{ProAccess.Require();fn();}catch(Exception ex){status.Text=ex.Message;}}
+        async void Run(Func<Task> work){
+            if(busy)return;busy=true;RefreshView();
+            try{ProAccess.Require();await work();}
+            catch(OperationCanceledException){status.Text="Операция остановлена.";}
+            catch(Exception ex){status.Text=ex.Message;}
+            finally{busy=false;RefreshView();}
+        }
+        void RequireProject(){if(project==null)throw new InvalidOperationException("Сначала подключите папку проекта.");}
+        bool Discard(){return patches.Count==0||MessageBox.Show(this,"Закрыть файл и отбросить несохранённые правки?","Рабочее пространство",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)==MessageBoxResult.Yes;}
+        void Clear(){opened=null;file=null;grid.ItemsSource=null;page.Content=null;previewSelection=null;patches.Clear();updating=true;sheets.ItemsSource=null;sheets.SelectedItem=null;filter.Clear();updating=false;Title="OSTUM Pro · Рабочее пространство";RefreshView();}
+        void SwitchProject(ProjectRule next){project=next;folder=next.Root;Clear();ListFiles();}
+        void RefreshProjects(string selected){
+            var all=WorkPolicy.Projects();var chosen=all.FirstOrDefault(p=>selected!=null&&string.Equals(WorkPolicy.Full(p.Root),WorkPolicy.Full(selected),StringComparison.OrdinalIgnoreCase))??all.FirstOrDefault();
+            updating=true;projects.ItemsSource=all;projects.SelectedItem=chosen;updating=false;
+            if(chosen!=null)SwitchProject(chosen);else{project=null;folder=null;Clear();}
+        }
         internal static string Ask(Window host,string title,string label,string value="",bool multi=false){
             var panel=new DockPanel{Margin=new Thickness(14)};
-            var window=new Window{Title=title,Content=panel,Width=500,Height=multi?330:180,Owner=host,WindowStartupLocation=WindowStartupLocation.CenterOwner,Icon=host.Icon};
+            var window=WorkspaceUi.Dialog(host,title,510,multi?350:210);window.Content=panel;
             var caption=new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,Margin=gap};DockPanel.SetDock(caption,Dock.Top);panel.Children.Add(caption);
             var ok=new Button{Content="Продолжить",IsDefault=!multi,HorizontalAlignment=HorizontalAlignment.Right,Padding=new Thickness(12,4,12,4),Margin=gap};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);
             var input=new TextBox{Text=value,TextWrapping=TextWrapping.Wrap,AcceptsReturn=multi,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};panel.Children.Add(input);
@@ -88,20 +86,20 @@ namespace Sfera {
         }
         internal static int Choose(Window host,string title,string[] choices){
             var list=new ListBox{ItemsSource=choices,SelectedIndex=choices.Length>0?0:-1,Margin=gap};var panel=new DockPanel{Margin=new Thickness(12)};
-            var win=new Window{Title=title,Owner=host,Content=panel,Width=580,Height=310,WindowStartupLocation=WindowStartupLocation.CenterOwner,Icon=host.Icon};
+            var win=WorkspaceUi.Dialog(host,title,590,360);win.Content=panel;
             var ok=new Button{Content="Выбрать",IsDefault=true,HorizontalAlignment=HorizontalAlignment.Right,Margin=gap,Padding=new Thickness(12,4,12,4)};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);panel.Children.Add(list);ok.Click+=(s,e)=>win.DialogResult=true;list.MouseDoubleClick+=(s,e)=>win.DialogResult=true;
             return win.ShowDialog()==true?list.SelectedIndex:-1;
         }
-        void Register(){
-            if(WorkPolicy.Rules.Managed)throw new UnauthorizedAccessException("Расположение и доступ задаёт администратор.");
-            using(var dlg=new Forms.FolderBrowserDialog{Description="Выберите папку рабочего пространства"}){
-                if(dlg.ShowDialog()!=Forms.DialogResult.OK)return;
-                int mode=Choose(this,"Доступ к выбранной папке",new[]{"Только редактор · содержимое не передаётся модели","Локальный анализ выбранных фрагментов","Локальный анализ и обучение на утверждённых парах"});if(mode<0)return;
-                if(!Discard())return;patches.Clear();WorkPolicy.Register(dlg.SelectedPath,mode>=1,mode==2);RefreshProjects(dlg.SelectedPath);
-            }
-        }
         static bool OfficeFile(string path){var e=Path.GetExtension(path).ToLowerInvariant();return e==".docx"||e==".xlsx";}
-        sealed class Entry{public string Path;public bool Folder;public override string ToString(){return (Folder?"▸  ":"")+System.IO.Path.GetFileName(Path);}}
+        sealed class Entry{
+            public string Path {get;set;} public bool Folder {get;set;}
+            public string Name {get{return System.IO.Path.GetFileName(Path);}}
+            string Extension {get{return System.IO.Path.GetExtension(Path).ToLowerInvariant();}}
+            public string Mark {get{return Folder?"▸":Extension==".docx"?"W":Extension==".xlsx"?"X":"·";}}
+            public string Tint {get{return Folder?"#FFE1B7":Extension==".docx"?"#DFEBFF":Extension==".xlsx"?"#DDF2DF":"#EAEDE7";}}
+            public string Ink {get{return Folder?"#81531B":Extension==".docx"?"#264D88":Extension==".xlsx"?"#26613A":"#4A544C";}}
+            public override string ToString(){return Name;}
+        }
         IEnumerable<Entry> Entries(string dir){
             ProTools.UnderProject(project,dir);
             foreach(var p in Directory.EnumerateFileSystemEntries(dir)){
@@ -110,22 +108,23 @@ namespace Sfera {
                 yield return new Entry{Path=p,Folder=Directory.Exists(p)};
             }
         }
-        void ListFiles(){RequireProject();files.ItemsSource=Entries(folder).OrderByDescending(p=>p.Folder).ThenBy(p=>p.ToString()).ToList();status.Text=folder+"  ·  "+project;}
-        void ActivateFile(){if(busy)return;var row=files.SelectedItem as Entry;if(row==null)return;if(row.Folder){folder=row.Path;Try(ListFiles);}else if(OfficeFile(row.Path)&&Discard())Run(()=>Open(row.Path,null));else if(!OfficeFile(row.Path))status.Text="Встроенный редактор открывает DOCX и XLSX. Операции с этим файлом доступны в меню «Файлы…».";}
+        void ListFiles(){RequireProject();files.ItemsSource=Entries(folder).OrderByDescending(p=>p.Folder).ThenBy(p=>p.Name).ToList();RefreshView();}
+        void ActivateFile(){if(busy)return;var row=files.SelectedItem as Entry;if(row==null)return;if(row.Folder){if(!Discard())return;folder=row.Path;Clear();Try(ListFiles);}else if(OfficeFile(row.Path)&&Discard())Run(()=>Open(row.Path,null));else if(!OfficeFile(row.Path))status.Text="Встроенный редактор открывает DOCX и XLSX. Операции с этим файлом доступны в меню «Файлы…».";}
         async Task Open(string path,string sheet){
             var result=await ProTools.Office(project,path,"read",new Dictionary<string,object>{{"sheet",sheet}},lifetime.Token);
+            CloseDrawer();
             file=path;opened=result;patches.Clear();previewSelection=null;grid.ItemsSource=opened.rows;
-            Action<OfficeRow> select=r=>{previewSelection=r;grid.SelectedItem=r;status.Text=Path.GetFileName(path)+" · "+r.key+(string.IsNullOrEmpty(r.style)?"":" · "+r.style);};
+            Action<OfficeRow> select=r=>{previewSelection=r;grid.SelectedItem=r;RefreshView();status.Text=Path.GetFileName(path)+" · "+r.key+(string.IsNullOrEmpty(r.style)?"":" · "+r.style);};
             page.Content=result.kind=="word"?OfficePreview.Word(result.rows,select):OfficePreview.Sheet(result.rows,select);Filter();tabs.SelectedIndex=filter.Text.Length==0?0:2;
             updating=true;sheets.ItemsSource=opened.sheets;sheets.SelectedItem=opened.sheet;updating=false;
-            status.Text=Path.GetFileName(file)+" · "+opened.rows.Length+(opened.kind=="word"?" абз.":" яч.")+(opened.readOnly?" · только чтение":"");Title="OSTUM Pro · "+Path.GetFileName(file);
+            status.Text=Path.GetFileName(file)+" · "+opened.rows.Length+(opened.kind=="word"?" абз.":" яч.")+(opened.readOnly?" · только чтение":"");Title="OSTUM Pro · "+Path.GetFileName(file);RefreshView();
         }
         void Filter(){
-            if(grid.ItemsSource==null)return;string q=filter.Text.Trim();
+            if(grid.ItemsSource==null||updating)return;string q=filter.Text.Trim();
             if(q.Length>0)tabs.SelectedIndex=2;
             CollectionViewSource.GetDefaultView(grid.ItemsSource).Filter=x=>{var r=(OfficeRow)x;return q.Length==0||string.Join(" ",r.key,r.value,r.display,r.style,r.comment).IndexOf(q,StringComparison.OrdinalIgnoreCase)>=0;};
         }
-        void Editable(){if(opened==null||opened.readOnly)throw new InvalidOperationException("Откройте редактируемый DOCX или XLSX.");}
+        void Editable(){ProAccess.Require();if(opened==null||opened.readOnly)throw new InvalidOperationException("Откройте редактируемый DOCX или XLSX.");}
         void AddPatch(string k,string before,string v,string op,string source){if(op=="replace"){var existing=patches.FirstOrDefault(x=>x.key==k&&x.operation==op);if(existing!=null)patches.Remove(existing);}patches.Add(new OfficePatch{key=k,old=before,value=v,operation=op,Source=source,Selected=true});tabs.SelectedIndex=1;}
         void Edit(bool comment){
             Editable();var row=SelectedRow();string k=row==null?null:row.key;
@@ -205,7 +204,7 @@ namespace Sfera {
                 if(i==2)File.Copy(item.Path,dest,false);else{File.Move(item.Path,dest);if(file==item.Path)Clear();}
             }else{
                 if(!dest.EndsWith(i==4?".docx":".xlsx",StringComparison.OrdinalIgnoreCase))throw new IOException("Сохраните файл с выбранным расширением.");
-                Run(async()=>{await Create(dest,i==4?(object)new[]{"Новый документ"}:new[]{new[]{"Наименование","Значение"}});ListFiles();await Open(dest,null);});return;
+                if(!Discard())return;Run(async()=>{await Create(dest,i==4?(object)new[]{"Новый документ"}:new[]{new[]{"Наименование","Значение"}});ListFiles();await Open(dest,null);});return;
             }
             WorkPolicy.Audit("file."+i,dest);ListFiles();
         }

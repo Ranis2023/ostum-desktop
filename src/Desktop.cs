@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("5.0.0.0")]
+[assembly: AssemblyVersion("5.1.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -86,7 +86,7 @@ namespace Sfera {
                 active = (Conversation)list.SelectedItem; ClearDraft(); ShowChat();
             };
             Find<Button>("NewChat").Click += (s,e) => NewChat();
-            Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;prepareDraft.Stop();engine.StopChat();new ProjectWindow(Window,prefs,engine).ShowDialog();};
+            Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;if(!ProAccessWindow.Ensure(Window))return;prepareDraft.Stop();engine.StopChat();new ProjectWindow(Window,prefs,engine).ShowDialog();};
             Find<Button>("Models").Click += (s,e) => Settings();
             Find<Button>("ChatMode").Click += (s,e) => SetMode(false);
             Find<Button>("AgentMode").Click += (s,e) => SetMode(false,true);

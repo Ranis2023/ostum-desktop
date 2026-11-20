@@ -26,6 +26,7 @@ namespace Sfera {
             window = (Window)XamlReader.Parse(Store.Resource("ModelsWindow.xaml"));
             window.Resources.MergedDictionaries.Add(owner.Resources); window.Owner = owner;
             Find<Button>("DeveloperChannel").Click+=(s,e)=>Brand.OpenChannel(window);
+            Find<Button>("ProSubscription").Click+=(s,e)=>ProAccessWindow.Manage(window);
             art = Find<CheckBox>("ArtChoice"); voice=Find<CheckBox>("VoiceChoice");
             thinking = Find<CheckBox>("Thinking"); folder = Find<TextBox>("Folder");
             browse = Find<Button>("Browse"); apply = Find<Button>("Apply"); dismiss = Find<Button>("Dismiss");

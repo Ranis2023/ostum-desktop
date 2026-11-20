@@ -8,6 +8,7 @@ using System.Windows.Controls;
 namespace Sfera {
     public static class Brand {
         public const string DeveloperChannel="https://t.me/ranisgaliaskarov";
+        public const string SubscriptionBot="rangoostum_bot";
         public static void OpenChannel(Window owner){
             try{WorkPolicy.RequireNetwork();Process.Start(new ProcessStartInfo(DeveloperChannel){UseShellExecute=true});}
             catch(Exception){MessageBox.Show(owner,DeveloperChannel,"Канал разработчика",MessageBoxButton.OK,MessageBoxImage.Information);}

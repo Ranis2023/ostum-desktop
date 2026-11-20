@@ -13,12 +13,14 @@ $refs = @('System.dll','System.Core.dll','System.Net.Http.dll','System.Web.Exten
 $options = @('/nologo','/target:winexe','/platform:x64','/optimize+','/codepage:65001',('/out:'+(Join-Path $build 'OstumDesktop.exe')),('/win32icon:'+(Join-Path $build 'ostum.ico')),('/win32manifest:'+(Join-Path $root 'packaging\app.manifest')))
 foreach ($ref in $refs) { $options += '/r:'+(Join-Path $fx $ref) }
 $options += '/r:'+(Join-Path $fx 'System.Drawing.dll')
+$options += '/r:'+(Join-Path $fx 'System.Security.dll')
 $options += '/r:'+(Join-Path $fx 'netstandard.dll')
 $speech=Get-ChildItem (Join-Path $env:WINDIR 'Microsoft.NET\assembly\GAC_MSIL\System.Speech') -Recurse -Filter 'System.Speech.dll' | Select-Object -First 1
 $options += '/r:'+$speech.FullName
 $libraries=@(& (Join-Path $root 'packaging\Libraries.ps1') -Build $build)
 foreach ($file in $libraries) { $options += '/r:'+$file }
-foreach ($item in @('MainWindow.xaml','ModelsWindow.xaml','catalog.json','model-catalog.json','RoutePrompt.txt','AgentLights.png')) { $options += '/resource:'+(Join-Path $src $item)+','+$item }
+foreach ($item in @('MainWindow.xaml','ModelsWindow.xaml','WorkspaceView.xaml','WorkspaceTheme.xaml','ProAccessView.xaml','catalog.json','model-catalog.json','RoutePrompt.txt','AgentLights.png')) { $options += '/resource:'+(Join-Path $src $item)+','+$item }
+$options += '/resource:'+(Join-Path $root 'subscription/issuer-public.xml')+',issuer-public.xml'
 $options += '/resource:'+(Join-Path $build 'icon.b64')+',icon.b64'
 $files = @(Get-ChildItem -LiteralPath $src -Filter '*.cs' | ForEach-Object FullName)
 & (Join-Path $fx 'csc.exe') @options @files

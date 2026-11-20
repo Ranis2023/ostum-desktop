@@ -16,7 +16,7 @@ using Sfera;
 
 [assembly: AssemblyTitle("Установить Ostum Desktop")]
 [assembly: AssemblyProduct("Ostum Desktop")]
-[assembly: AssemblyVersion("5.0.0.0")]
+[assembly: AssemblyVersion("5.1.0.0")]
 
 namespace SferaSetup {
     sealed class Bundle : IDisposable {

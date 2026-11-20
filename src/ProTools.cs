@@ -38,16 +38,26 @@ namespace Sfera {
                         }
                     }
                     File.WriteAllText(Path.Combine(temp,"ready"),sha);
-                    try{Directory.Move(temp,dir);}catch(IOException){if(!File.Exists(Path.Combine(dir,"ready")))throw;}
+                    for(int attempt=0;;attempt++){
+                        try{Directory.Move(temp,dir);break;}
+                        catch(IOException ex){
+                            if(File.Exists(Path.Combine(dir,"ready")))break;
+                            int error=ex.HResult&65535;
+                            if(attempt>=5||(error!=5&&error!=32&&error!=33))throw;
+                        }catch(UnauthorizedAccessException){if(attempt>=5)throw;}
+                        Thread.Sleep(100<<attempt);
+                    }
                 }finally{if(Directory.Exists(temp))Directory.Delete(temp,true);}
                 return ready=dir;
             }
         }
         public static string UnderProject(ProjectRule project,string path,bool analysis=false,bool training=false){
+            ProAccess.Require();
             if(project==null||!WorkPolicy.Projects().Any(p=>string.Equals(WorkPolicy.Full(p.Root),WorkPolicy.Full(project.Root),StringComparison.OrdinalIgnoreCase))||!WorkPolicy.Within(path,project.Root))throw new UnauthorizedAccessException("Выберите файл активного рабочего пространства.");
             WorkPolicy.CheckFile(path,analysis,training);return Path.GetFullPath(path);
         }
         public static async Task<string> Python(string script,string[] args,string input,CancellationToken ct,Action<string> progress=null){
+            ProAccess.Require();
             string root=await Task.Run((Func<string>)Root,ct).ConfigureAwait(false);
             string exe=Path.Combine(root,@"python\python.exe");
             var options=new[]{"-B","-X","utf8",Path.Combine(root,script)}.Concat(args??new string[0]);

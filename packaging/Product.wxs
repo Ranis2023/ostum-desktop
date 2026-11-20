@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="Ostum Desktop" Manufacturer="OSTUM" Version="5.0.0" Language="1049" Codepage="1251" UpgradeCode="04C666A8-5F46-44A7-BC04-19100F94AF39">
+  <Product Id="*" Name="Ostum Desktop" Manufacturer="OSTUM" Version="5.1.0" Language="1049" Codepage="1251" UpgradeCode="04C666A8-5F46-44A7-BC04-19100F94AF39">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited" Platform="x64" SummaryCodepage="1251"/>
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="На компьютере уже установлена более новая версия Ostum Desktop."/>
     <MediaTemplate EmbedCab="yes" CompressionLevel="high"/>

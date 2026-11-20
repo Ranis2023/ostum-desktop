@@ -205,7 +205,9 @@ namespace Sfera {
         }
         async Task EnsureLoaded(Preferences prefs,bool vision,Action<string> status,CancellationToken ct) {
             WorkPolicy.RequireAI();
-            privateSession=!string.IsNullOrEmpty(prefs.ProjectScope);Model model = Store.Chat(prefs);
+            privateSession=!string.IsNullOrEmpty(prefs.ProjectScope);
+            if(privateSession)ProAccess.Require();
+            Model model = Store.Chat(prefs);
             if(model.Imported!=null){foreach(var part in model.Imported.Parts)WorkPolicy.CheckImport(part);if(!string.IsNullOrEmpty(model.Imported.Projector))WorkPolicy.CheckImport(model.Imported.Projector);}
             if(vision&&string.IsNullOrEmpty(model.Projector(prefs.Models)))throw new IOException("Для выбранной модели не подключено зрение. Выберите Zarum или добавьте совместимый проектор.");
             int count=slots;

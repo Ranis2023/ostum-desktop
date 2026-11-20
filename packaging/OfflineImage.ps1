@@ -2,11 +2,13 @@ param([string]$Kit,[string]$Image)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 if(!$Kit){$Kit=Join-Path $root 'dist/Ostum-Pro-Offline'}
-if(!$Image){$Image=Join-Path $root 'dist/OSTUM-Desktop-5.0.0-Offline.iso'}
-$Kit=[IO.Path]::GetFullPath($Kit);$Image=[IO.Path]::GetFullPath($Image)
+$Kit=[IO.Path]::GetFullPath($Kit)
+$setup=Get-Item -LiteralPath (Join-Path $Kit 'Ostum-Desktop-Setup.exe')
+$kitVersion=([version]$setup.VersionInfo.FileVersion).ToString(3)
+if(!$Image){$Image=Join-Path $root ('dist/OSTUM-Desktop-'+$kitVersion+'-Offline.iso')}
+$Image=[IO.Path]::GetFullPath($Image)
 if($Image.StartsWith($Kit.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Place the image outside the source tree.'}
 $cat=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'src/catalog.json')|ConvertFrom-Json
-$setup=Get-Item -LiteralPath (Join-Path $Kit 'Ostum-Desktop-Setup.exe')
 $all=@($setup)+@($cat.files|ForEach-Object {Get-Item -LiteralPath (Join-Path $Kit ('Models/'+$_.name))})+@($cat.acceleration.libraries|ForEach-Object {Get-Item -LiteralPath (Join-Path $Kit ('Acceleration/'+$_.name))})
 $lines=@()
 foreach($file in $all){
@@ -16,7 +18,7 @@ foreach($file in $all){
     $lines+="$hash  "+$file.FullName.Substring($Kit.Length+1).Replace('\','/')
 }
 [IO.File]::WriteAllLines((Join-Path $Kit 'SHA256SUMS.txt'),[string[]]$lines)
-[IO.File]::WriteAllText((Join-Path $Kit 'OSTUM-OFFLINE.txt'),"OSTUM Desktop 5.0.0 · Запустите Ostum-Desktop-Setup.exe. Установка с этого носителя работает без сети.",[Text.UTF8Encoding]::new($true))
+[IO.File]::WriteAllText((Join-Path $Kit 'OSTUM-OFFLINE.txt'),"OSTUM Desktop $kitVersion · Запустите Ostum-Desktop-Setup.exe. Установка с этого носителя работает без сети.",[Text.UTF8Encoding]::new($true))
 $fs=New-Object -ComObject IMAPI2FS.MsftFileSystemImage
 $fs.FileSystemsToCreate=4
 $fs.FreeMediaBlocks=21000000

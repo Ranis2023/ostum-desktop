@@ -11,12 +11,12 @@ using System.Windows.Media;
 namespace Sfera {
     internal static class OfficePreview {
         static readonly Brush ink=new SolidColorBrush(Color.FromRgb(42,37,53)),lavender=new SolidColorBrush(Color.FromRgb(225,220,236));
-        static Paragraph ParagraphFor(OfficeRow row,Action<OfficeRow> select){
+        static Paragraph ParagraphFor(OfficeRow row,Action<OfficeRow,Hyperlink> select){
             var span=new Hyperlink{Foreground=ink,TextDecorations=null,ToolTip="Выбрать абзац "+row.key};
             if(row.runs!=null&&row.runs.Any(t=>!string.IsNullOrEmpty(t.value))){
                 foreach(var t in row.runs){var run=new Run(t.value);if(t.bold)run.FontWeight=FontWeights.Bold;if(t.italic)run.FontStyle=FontStyles.Italic;span.Inlines.Add(run);}
             }else span.Inlines.Add(new Run(string.IsNullOrEmpty(row.value)?" ":row.value));
-            span.Click+=(s,e)=>select(row);
+            span.Click+=(s,e)=>select(row,span);
             var p=new Paragraph(span){Margin=new Thickness(0,1,0,8),LineHeight=22};
             if(Regex.IsMatch(row.style??"","Heading|Заголовок|Title",RegexOptions.IgnoreCase)){p.FontSize=20;p.FontWeight=FontWeights.SemiBold;p.Margin=new Thickness(0,14,0,8);}
             if(!string.IsNullOrWhiteSpace(row.comment))p.ToolTip=row.comment;
@@ -24,16 +24,18 @@ namespace Sfera {
         }
         public static FrameworkElement Word(OfficeRow[] rows,Action<OfficeRow> select){
             var doc=new FlowDocument{FontFamily=new FontFamily("Segoe UI"),FontSize=15,PagePadding=new Thickness(38,26,38,26),Background=Brushes.White,Foreground=ink};
+            Hyperlink previous=null;var highlight=new SolidColorBrush(Color.FromRgb(255,232,209));
+            Action<OfficeRow,Hyperlink> pick=(row,link)=>{if(previous!=null)previous.ClearValue(TextElement.BackgroundProperty);link.Background=highlight;previous=link;select(row);};
             Table table=null;TableRow tr=null;TableCell cell=null;int oldTable=0,oldRow=0,oldColumn=0;
             foreach(var r in rows){
-                if(r.table==0){doc.Blocks.Add(ParagraphFor(r,select));oldTable=0;continue;}
+                if(r.table==0){doc.Blocks.Add(ParagraphFor(r,pick));oldTable=0;continue;}
                 if(oldTable!=r.table){
                     table=new Table{CellSpacing=0,Margin=new Thickness(0,8,0,14)};table.RowGroups.Add(new TableRowGroup());doc.Blocks.Add(table);
                     oldTable=r.table;oldRow=oldColumn=0;
                 }
                 if(oldRow!=r.tableRow){tr=new TableRow();table.RowGroups[0].Rows.Add(tr);oldRow=r.tableRow;oldColumn=0;}
                 if(oldColumn!=r.tableColumn){cell=new TableCell{BorderBrush=lavender,BorderThickness=new Thickness(.5),Padding=new Thickness(7,4,7,2)};tr.Cells.Add(cell);oldColumn=r.tableColumn;}
-                cell.Blocks.Add(ParagraphFor(r,select));
+                cell.Blocks.Add(ParagraphFor(r,pick));
             }
             return new FlowDocumentScrollViewer{Document=doc,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,IsToolBarVisible=false};
         }

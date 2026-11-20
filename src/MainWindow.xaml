@@ -54,7 +54,7 @@
           <TextBlock x:Name="HistoryHeading" Text="История" VerticalAlignment="Center" FontSize="12" Foreground="#B9B5CA"/>
         </DockPanel>
         <ListBox x:Name="HistoryList" Grid.Row="3" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
-        <StackPanel Grid.Row="4"><Button x:Name="Projects" Content="Рабочие пространства" Style="{StaticResource SidebarAction}" Margin="0,8,0,0" Background="#494059" Foreground="White"/>
+        <StackPanel Grid.Row="4"><Button x:Name="Projects" Content="Рабочие пространства Pro" ToolTip="Документы, таблицы и локальное обучение для подписчиков канала" Style="{StaticResource SidebarAction}" Padding="9,10" FontSize="12" Margin="0,8,0,0" Background="#494059" Foreground="White"/>
         <Button x:Name="Models" Style="{StaticResource SidebarAction}" Margin="0,12,0,0">
           <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" Margin="0,1,9,0"/><TextBlock Text="Модели и настройки"/></StackPanel>
         </Button></StackPanel>
