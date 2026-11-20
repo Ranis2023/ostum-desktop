@@ -80,7 +80,7 @@ namespace Sfera {
         public static void CheckFile(string file,bool analysis=false,bool training=false){
             var matches=Matching(file);var r=Rules;
             if(analysis){RequireAI();if(matches.Any(p=>!p.Analysis))throw new UnauthorizedAccessException("Для этого файла разрешён только редактор.");}
-            if(training){RequireAI();if((r.Managed&&!r.Training)||matches.Any(p=>!p.Training))throw new UnauthorizedAccessException("Обучение на этом файле запрещено.");}
+            if(training){RequireAI();if((r.Managed&&!r.Training)||matches.Any(p=>!p.Analysis||!p.Training))throw new UnauthorizedAccessException("Обучение на этом файле запрещено.");}
         }
         public static void CheckImport(string file){
             LocalPath(file);var r=Rules;

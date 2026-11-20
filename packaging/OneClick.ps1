@@ -6,7 +6,7 @@ $dist=Join-Path $root 'dist'
 if(!$Output){$Output=Join-Path $dist 'Ostum-Desktop-Setup.exe'}
 $msi=Get-Item -LiteralPath (Join-Path $dist 'OstumDesktop.msi')
 $app=Get-Item -LiteralPath (Join-Path $build 'OstumDesktop.exe')
-$meta='namespace SferaSetup { static class Payload { public const long MsiBytes='+$msi.Length+'L; public const string MsiHash="'+(Get-FileHash -LiteralPath $msi.FullName).Hash+'"; public const string AppVersion="'+$app.VersionInfo.FileVersion+'"; } }'
+$meta='namespace SferaSetup { static class Payload { public const long MsiBytes='+$msi.Length+'L; public const string MsiHash="'+(Get-FileHash -LiteralPath $msi.FullName).Hash+'"; public const string AppVersion="'+$app.VersionInfo.FileVersion+'"; public const string AppHash="'+(Get-FileHash -LiteralPath $app.FullName).Hash+'"; public const string ToolsHash="'+([IO.File]::ReadAllText((Join-Path $build 'OstumTools.zip.sha256'))).Trim()+'"; } }'
 $generated=Join-Path $build 'OstumPayload.cs'
 [IO.File]::WriteAllText($generated,$meta)
 $fx=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'

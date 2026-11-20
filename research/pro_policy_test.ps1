@@ -29,6 +29,7 @@ public static class PolicyProbe {
         WorkPolicy.CheckFile(Path.Combine(root,"approved.docx"),true,true);
         string classified=Path.Combine(strict,"x.docx");WorkPolicy.CheckFile(classified);
         Deny(()=>WorkPolicy.CheckFile(classified,true));Deny(()=>WorkPolicy.CheckFile(classified,false,true));
+        p.Projects[1].Training=true;Store.Write(WorkPolicy.PolicyPath,p);Deny(()=>WorkPolicy.CheckFile(classified,false,true));
         Deny(()=>WorkPolicy.CheckFile(other));Deny(WorkPolicy.RequireNetwork);Deny(()=>WorkPolicy.CheckImport(other));
         Deny(()=>WorkPolicy.LocalPath(@"\\localhost\unauthorized\probe"));
         if(WorkPolicy.CaptureAllowed||WorkPolicy.History||WorkPolicy.GlobalFile(classified))throw new Exception("Restricted surface enabled");

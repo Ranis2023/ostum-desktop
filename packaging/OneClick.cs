@@ -41,7 +41,11 @@ namespace SferaSetup {
             return Path.Combine(string.IsNullOrWhiteSpace(dir)?fallback:dir,"OstumDesktop.exe");
         }}
         static bool MatchingVersion(string file){
-            return File.Exists(file) && FileVersionInfo.GetVersionInfo(file).FileVersion==Payload.AppVersion &&
+            string digest=Path.Combine(Path.GetDirectoryName(file),"OstumTools.zip.sha256");
+            if(!File.Exists(file)||FileVersionInfo.GetVersionInfo(file).FileVersion!=Payload.AppVersion||!File.Exists(digest)||!File.ReadAllText(digest).Trim().Equals(Payload.ToolsHash,StringComparison.OrdinalIgnoreCase))return false;
+            using(var input=File.OpenRead(file))using(var hash=SHA256.Create())
+                if(!BitConverter.ToString(hash.ComputeHash(input)).Replace("-","").Equals(Payload.AppHash,StringComparison.OrdinalIgnoreCase))return false;
+            return
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"engines","llama-b12547","llama-server.exe")) &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"OstumTools.zip")) &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"UglyToad.PdfPig.dll")) &&
