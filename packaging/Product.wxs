@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="Ostum Desktop" Manufacturer="OSTUM" Version="4.0.0" Language="1049" Codepage="1251" UpgradeCode="04C666A8-5F46-44A7-BC04-19100F94AF39">
+  <Product Id="*" Name="Ostum Desktop" Manufacturer="OSTUM" Version="5.0.0" Language="1049" Codepage="1251" UpgradeCode="04C666A8-5F46-44A7-BC04-19100F94AF39">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited" Platform="x64" SummaryCodepage="1251"/>
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="На компьютере уже установлена более новая версия Ostum Desktop."/>
     <MediaTemplate EmbedCab="yes" CompressionLevel="high"/>
@@ -15,6 +15,8 @@
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="Main" Guid="47EC0175-2533-4841-B317-0A41E3C911C1" Win64="yes">
         <File Id="SferaExecutable" Source="$(var.Build)\OstumDesktop.exe"/>
+        <File Id="OstumTools" Source="$(var.Build)\OstumTools.zip"/>
+        <File Id="OstumToolsDigest" Source="$(var.Build)\OstumTools.zip.sha256"/>
         <File Id="SferaConfig" Source="$(var.Src)\OstumDesktop.exe.config"/>
         <File Id="OstumLicense" Name="LICENSE.txt" Source="$(var.Src)\..\LICENSE"/>
         <File Id="AudioCore" Source="$(var.Build)\NAudio.Core.dll"/>

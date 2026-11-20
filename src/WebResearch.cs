@@ -58,6 +58,7 @@ namespace Sfera {
             }
         }
         static async Task<Page> Get(string address,CancellationToken ct) {
+            WorkPolicy.RequireNetwork();
             Uri uri;
             for(int r=0;r<4;r++) {
                 ct.ThrowIfCancellationRequested();
@@ -170,6 +171,7 @@ namespace Sfera {
             } catch(Exception ex){if(!Recover(ex,ct))throw;}
         }
         public static async Task<List<Source>> Search(string query,CancellationToken ct) {
+            WorkPolicy.RequireNetwork();
             query=ResearchText.Clip(ResearchText.Plain(query),240);if(query.Length==0)return new List<Source>();
             Uri named;
             var direct=Regex.Match(query,@"https?://[^\s<>""']+",RegexOptions.IgnoreCase);

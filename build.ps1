@@ -9,7 +9,7 @@ foreach ($dir in @($build,$dist)) { [void][IO.Directory]::CreateDirectory($dir) 
 if (!$RuntimeCache) { $RuntimeCache = Join-Path $build 'runtime' }
 & (Join-Path $root 'packaging\Icon.ps1') -OutputFolder $build
 $fx = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
-$refs = @('System.dll','System.Core.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Web.dll','System.Data.dll','System.Xml.dll','System.Xml.Linq.dll','System.IO.Compression.dll','System.Windows.Forms.dll','System.Xaml.dll','WPF\PresentationCore.dll','WPF\PresentationFramework.dll','WPF\WindowsBase.dll')
+$refs = @('System.dll','System.Core.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Web.dll','System.Data.dll','System.Management.dll','System.Xml.dll','System.Xml.Linq.dll','System.IO.Compression.dll','System.Windows.Forms.dll','System.Xaml.dll','WPF\PresentationCore.dll','WPF\PresentationFramework.dll','WPF\WindowsBase.dll')
 $options = @('/nologo','/target:winexe','/platform:x64','/optimize+','/codepage:65001',('/out:'+(Join-Path $build 'OstumDesktop.exe')),('/win32icon:'+(Join-Path $build 'ostum.ico')),('/win32manifest:'+(Join-Path $root 'packaging\app.manifest')))
 foreach ($ref in $refs) { $options += '/r:'+(Join-Path $fx $ref) }
 $options += '/r:'+(Join-Path $fx 'System.Drawing.dll')
@@ -18,7 +18,7 @@ $speech=Get-ChildItem (Join-Path $env:WINDIR 'Microsoft.NET\assembly\GAC_MSIL\Sy
 $options += '/r:'+$speech.FullName
 $libraries=@(& (Join-Path $root 'packaging\Libraries.ps1') -Build $build)
 foreach ($file in $libraries) { $options += '/r:'+$file }
-foreach ($item in @('MainWindow.xaml','ModelsWindow.xaml','catalog.json','RoutePrompt.txt','AgentLights.png')) { $options += '/resource:'+(Join-Path $src $item)+','+$item }
+foreach ($item in @('MainWindow.xaml','ModelsWindow.xaml','catalog.json','model-catalog.json','RoutePrompt.txt','AgentLights.png')) { $options += '/resource:'+(Join-Path $src $item)+','+$item }
 $options += '/resource:'+(Join-Path $build 'icon.b64')+',icon.b64'
 $files = @(Get-ChildItem -LiteralPath $src -Filter '*.cs' | ForEach-Object FullName)
 & (Join-Path $fx 'csc.exe') @options @files
@@ -26,6 +26,7 @@ if ($LASTEXITCODE -ne 0) { throw 'C# compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $src 'OstumDesktop.exe.config') -Destination $build -Force
 if ($AppOnly) { return }
 & (Join-Path $root 'packaging\VoiceRuntime.ps1') -Build $build
+& (Join-Path $root 'packaging\ProRuntime.ps1') -Build $build
 
 function Download-File([string]$url,[string]$path,[string]$sha) {
     if (Test-Path -LiteralPath $path) {

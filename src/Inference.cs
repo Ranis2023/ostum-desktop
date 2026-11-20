@@ -47,17 +47,18 @@ namespace Sfera {
         readonly string secret = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
         Process server, painter;
         string baseUrl, loaded, lastError;
-        bool closing, hasVision, cudaFailed;
+        bool closing, hasVision, cudaFailed,privateSession;
         public string Backend {get;private set;}
-        static bool HasAdapter(Preferences p) {return p.Personalize && Store.Chat(p).Id=="quality" && File.Exists(Personal.Adapter);}
+        static bool HasAdapter(Preferences p) {return !WorkPolicy.Rules.Managed && p.Personalize && Store.Chat(p).Id=="quality" && File.Exists(Personal.Adapter);}
         string EvidenceAdapter {get{return Path.Combine(Path.GetDirectoryName(binaries),"adapters","source-check.gguf");}}
         string RoutingAdapter {get{return Path.Combine(Path.GetDirectoryName(binaries),"adapters","tool-routing.gguf");}}
         List<string> Adapters(Preferences p) {
             var list=new List<string>();
-            if(HasAdapter(p))list.Add(Personal.Adapter);
+            if(HasAdapter(p)&&string.IsNullOrEmpty(p.ProjectScope))list.Add(Personal.Adapter);
             if(Store.Chat(p).Id=="quality"){
                 if(File.Exists(EvidenceAdapter))list.Add(EvidenceAdapter);
                 if(File.Exists(RoutingAdapter))list.Add(RoutingAdapter);
+                var learned=ProjectTraining.Resolve(p);if(learned!=null)list.Add(learned);
             }
             return list;
         }
@@ -75,6 +76,29 @@ namespace Sfera {
             binaries = engineDirectory;
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secret);
         }
+        public async Task<string> Measure(Preferences p,CancellationToken ct){
+            var timer=Stopwatch.StartNew();await EnsureChat(p,false,x=>{},ct).ConfigureAwait(false);double load=timer.Elapsed.TotalSeconds;
+            var body=new Dictionary<string,object>{{"prompt","Перечисли времена года."},{"temperature",0},{"n_predict",32},{"ignore_eos",true},{"cache_prompt",false},{"stream",true}};
+            SetRequestAdapters(body,-1);timer.Restart();double first=0,tokensPerSecond=0;
+            using(var req=new HttpRequestMessage(HttpMethod.Post,baseUrl+"/completion")){
+                req.Content=new StringContent(Store.Json().Serialize(body),Encoding.UTF8,"application/json");
+                using(var reply=await http.SendAsync(req,HttpCompletionOption.ResponseHeadersRead,ct).ConfigureAwait(false)){
+                    reply.EnsureSuccessStatusCode();using(var stream=await reply.Content.ReadAsStreamAsync().ConfigureAwait(false))using(ct.Register(()=>stream.Dispose()))using(var reader=new StreamReader(stream)){
+                        string line;while((line=await reader.ReadLineAsync().ConfigureAwait(false))!=null){
+                            ct.ThrowIfCancellationRequested();if(!line.StartsWith("data: "))continue;
+                            var json=line.Substring(6).Trim();if(json=="[DONE]")break;
+                            var packet=Store.Json().Deserialize<PerfPacket>(json);
+                            if(first==0&&!string.IsNullOrEmpty(packet.content))first=timer.Elapsed.TotalSeconds;
+                            if(packet.timings!=null)tokensPerSecond=packet.timings.predicted_per_second;
+                        }
+                    }
+                }
+            }
+            if(first<=0||tokensPerSecond<=0)throw new IOException("Движок не вернул замер скорости.");
+            return string.Format("{0} · {1} · загрузка {2:0.0} с · первый токен после загрузки {3:0.00} с · {4:0.0} токенов/с",Store.Chat(p).Name,Backend,load,first,tokensPerSecond);
+        }
+        sealed class PerfPacket {public string content{get;set;}public PerfTimings timings{get;set;}}
+        sealed class PerfTimings {public double predicted_per_second{get;set;}}
         internal static string Quote(string value) {
             if (value.Length > 0 && !value.Any(c => char.IsWhiteSpace(c) || c == '"')) return value;
             var b = new StringBuilder("\""); int slashes = 0;
@@ -101,13 +125,14 @@ namespace Sfera {
             si.EnvironmentVariables["HF_HUB_OFFLINE"] = "1";
             si.EnvironmentVariables.Remove("GGML_BACKEND_PATH");
             var logs = Directory.CreateDirectory(Path.Combine(Store.Home, "logs"));
-            var log = new StreamWriter(Path.Combine(logs.FullName, logName), false, new UTF8Encoding(false)) { AutoFlush = true };
+            bool restricted=privateSession||WorkPolicy.Rules.Managed;
+            TextWriter log = restricted ? TextWriter.Null : new StreamWriter(Path.Combine(logs.FullName, logName), false, new UTF8Encoding(false)) { AutoFlush = true };
             var process = new Process { StartInfo = si, EnableRaisingEvents = true };
             int streams = 2; long written = 0;
             DataReceivedEventHandler receive = (s,e) => {
                 lock (log) {
                     if (e.Data == null) { if (--streams == 0) log.Dispose(); return; }
-                    if (written >= 1024*1024) return;
+                    if (restricted || written >= 1024*1024) return;
                     try { log.WriteLine(e.Data); written += e.Data.Length + 1; } catch (IOException) {}
                     if (Regex.IsMatch(e.Data, "error|failed|out of memory", RegexOptions.IgnoreCase)) lastError = e.Data;
                 }
@@ -138,7 +163,7 @@ namespace Sfera {
             contextSize = requestedSlots==2 ? 4096 : larger ? 8192 : 4096;
             baseUrl = "http://127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture);
             var args = new List<string> {
-                "-m", Store.Files[model.Files[0]].PathIn(prefs.Models),
+                "-m", model.Weights(prefs.Models),
                 "--host", "127.0.0.1", "--port", port.ToString(CultureInfo.InvariantCulture), "--api-key", secret,
                 "--offline", "--no-ui", "--no-ui-mcp-proxy", "--parallel", requestedSlots.ToString(), "--ctx-size", (contextSize*requestedSlots).ToString(), "--ctx-checkpoints", "0",
                 "--fit-target", model.Id == "quality" ? "1024" : "768", "--cache-ram", "0", "--no-cache-idle-slots", "--no-warmup", "--batch-size", "512", "--ubatch-size", "128",
@@ -150,7 +175,7 @@ namespace Sfera {
             if (cpu) args.AddRange(new [] { "--device", "none", "-ngl", "0" });
             if (cuda) args.AddRange(new [] {"--device","CUDA0"});
             if (vision) {
-                args.AddRange(new [] { "--mmproj", Store.Files[model.Files[1]].PathIn(prefs.Models), "--image-max-tokens", larger ? "1536" : "768" });
+                args.AddRange(new [] { "--mmproj", model.Projector(prefs.Models), "--image-max-tokens", larger ? "1536" : "768" });
                 if (cpu || model.Id == "quality") args.Add("--no-mmproj-offload");
             } else args.Add("--no-mmproj");
             Process current;
@@ -179,9 +204,12 @@ namespace Sfera {
             return EnsureChat(prefs,vision,s=>{},token);
         }
         async Task EnsureLoaded(Preferences prefs,bool vision,Action<string> status,CancellationToken ct) {
-            Model model = Store.Chat(prefs);
+            WorkPolicy.RequireAI();
+            privateSession=!string.IsNullOrEmpty(prefs.ProjectScope);Model model = Store.Chat(prefs);
+            if(model.Imported!=null){foreach(var part in model.Imported.Parts)WorkPolicy.CheckImport(part);if(!string.IsNullOrEmpty(model.Imported.Projector))WorkPolicy.CheckImport(model.Imported.Projector);}
+            if(vision&&string.IsNullOrEmpty(model.Projector(prefs.Models)))throw new IOException("Для выбранной модели не подключено зрение. Выберите Zarum или добавьте совместимый проектор.");
             int count=slots;
-            string key = prefs.Models + "|" + model.Id + "|" + string.Join("|",Adapters(prefs)) + "|" + count;
+            string key = prefs.ProjectScope+"|"+WorkPolicy.Rules.Managed+"|"+prefs.Models + "|" + model.Id + "|" + string.Join("|",Adapters(prefs)) + "|" + count;
             lock (gate) { if (server != null && !server.HasExited && loaded == key && (!vision || hasVision)) return; }
             if (!Store.Ready(model, prefs.Models)) throw new IOException("Для чата нужны файлы модели. Откройте «Модели».");
             StopChat();
@@ -283,7 +311,9 @@ namespace Sfera {
             var turn=new Turn {Role="user",Text=task,Image=image};
             bool vision=!string.IsNullOrEmpty(image) && File.Exists(image);
             await EnsureChat(p,vision,status,ct).ConfigureAwait(false);
-            return await StreamReply(Messages(new List<Turn>{turn},vision ? turn : null,system),think,limit,0.2,delta,ct,schema).ConfigureAwait(false);
+            string learned=ProjectTraining.Resolve(p);
+            int adapter=learned==null?-1:Adapters(p).IndexOf(learned);
+            return await StreamReply(Messages(new List<Turn>{turn},vision ? turn : null,system),think,limit,0.2,delta,ct,schema,adapter).ConfigureAwait(false);
         }
         public async Task<string> VerifyClaim(Preferences p,string material,string claim,int limit,Action<string> stream,Action<string> status,CancellationToken ct) {
             if(string.IsNullOrWhiteSpace(material))return "Недостаточно данных. В прикреплённом материале не нашлось выдержки для проверки.";
@@ -312,6 +342,7 @@ namespace Sfera {
                 string notes=Personal.DirectNotes(p);
                 return notes.Length>0?"\nУчти записанные пользователем предпочтения, если они относятся к запросу.\n"+notes:"";
             }
+            if(WorkPolicy.Rules.Managed||!string.IsNullOrEmpty(p.ProjectScope))return "";
             string profile=Personal.Get(p);if(profile.Length==0)return "";
             string context="\nРабочие предпочтения пользователя. Применяй только относящиеся к запросу, явные указания важнее.\n"+profile;
             if(!HasAdapter(p))return context;
@@ -324,7 +355,7 @@ namespace Sfera {
             var image = history.LastOrDefault(t => !string.IsNullOrEmpty(t.Image) && File.Exists(t.Image));
             await EnsureChat(p, image != null, status, ct).ConfigureAwait(false);
             status(think ? "Обдумываю ответ…" : "Отвечаю…");
-            var messages = Messages(history, image, "Ты — Zarum, локальный ИИ-помощник в Ostum Desktop на основе Qwen3.5-9B. Отвечай на языке пользователя. Обычно это русский. Будь точным, учитывай предыдущие сообщения. Если данных недостаточно, скажи об этом. В обычных ответах записывай вычисления читаемыми символами ×, ÷ и =. Используй LaTeX, если пользователь об этом попросит.");
+            var messages = Messages(history, image, "Ты — локальный ИИ-помощник в Ostum Desktop. Текущая модель: "+Store.Chat(p).Name+". Отвечай на языке пользователя. Обычно это русский. Будь точным, учитывай предыдущие сообщения. Если данных недостаточно, скажи об этом. В обычных ответах записывай вычисления читаемыми символами ×, ÷ и =. Используй LaTeX, если пользователь об этом попросит.");
             string task=history.Last().Text??"";
             bool json=ReplyFormat.Object(task),field=ReplyFormat.Field(task),recall=ChatContext.IsRecall(task);
             bool shortForm=!think&&task.Length<380&&Regex.IsMatch(task,@"одним предложением|одной фразой|(?:три|два|два-три|[23]) коротких варианта|только название|ответь одним словом",RegexOptions.IgnoreCase);
@@ -358,6 +389,7 @@ namespace Sfera {
             return args;
         }
         public async Task<string> Paint(Preferences p, string prompt, string initialImage, int width, int height, Action<string> status, CancellationToken ct) {
+            WorkPolicy.RequireAI();
             var model = Store.Art(p);
             if (!Store.Ready(model, p.Models)) throw new IOException("Для рисования нужны файлы модели. Откройте «Модели».");
             string english = await Prompt(p, prompt, status, ct).ConfigureAwait(false);

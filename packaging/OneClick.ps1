@@ -13,7 +13,7 @@ $fx=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Net.Http.dll','System.IO.Compression.dll','System.Web.Extensions.dll','System.Drawing.dll','System.Windows.Forms.dll','WPF\WindowsBase.dll','WPF\UIAutomationClient.dll','WPF\UIAutomationTypes.dll')|ForEach-Object {'/r:'+(Join-Path $fx $_)}
 & (Join-Path $PSScriptRoot 'Icon.ps1') -OutputFolder $build -Installer
 $staged=Join-Path $build 'Ostum-Desktop-Setup.exe'
-$sources=@('src/Library.cs','src/InstallModels.cs','src/Acceleration.cs','packaging/OneClick.cs')|ForEach-Object {Join-Path $root $_}
+$sources=@('src/Library.cs','src/LocalModels.cs','src/WorkPolicy.cs','src/InstallModels.cs','src/Acceleration.cs','packaging/OneClick.cs')|ForEach-Object {Join-Path $root $_}
 & (Join-Path $fx 'csc.exe') /nologo /optimize+ /codepage:65001 /target:winexe /platform:x64 @refs ('/out:'+$staged) ('/win32icon:'+(Join-Path $build 'setup.ico')) ('/win32manifest:'+(Join-Path $PSScriptRoot 'app.manifest')) ('/resource:'+(Join-Path $root 'src/catalog.json')+',catalog.json') ('/resource:'+$msi.FullName+',OstumDesktop.msi') $generated @sources
 if($LASTEXITCODE){throw 'Installer compilation failed'}
 $check=Start-Process -FilePath $staged -ArgumentList '--verify' -PassThru -WindowStyle Hidden

@@ -16,7 +16,7 @@ using Sfera;
 
 [assembly: AssemblyTitle("Установить Ostum Desktop")]
 [assembly: AssemblyProduct("Ostum Desktop")]
-[assembly: AssemblyVersion("4.0.0.0")]
+[assembly: AssemblyVersion("5.0.0.0")]
 
 namespace SferaSetup {
     sealed class Bundle : IDisposable {
@@ -43,6 +43,7 @@ namespace SferaSetup {
         static bool MatchingVersion(string file){
             return File.Exists(file) && FileVersionInfo.GetVersionInfo(file).FileVersion==Payload.AppVersion &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"engines","llama-b12547","llama-server.exe")) &&
+                File.Exists(Path.Combine(Path.GetDirectoryName(file),"OstumTools.zip")) &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"UglyToad.PdfPig.dll")) &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"NAudio.Core.dll")) &&
                 File.Exists(Path.Combine(Path.GetDirectoryName(file),"NAudio.Wasapi.dll")) &&
@@ -53,6 +54,7 @@ namespace SferaSetup {
         static bool IdleWindow(Process p) {
             try {
                 var wnd=AutomationElement.FromHandle(p.MainWindowHandle);
+                if(!wnd.Current.IsEnabled)return false;
                 var input=wnd.FindFirst(TreeScope.Descendants,new PropertyCondition(AutomationElement.AutomationIdProperty,"Input"));
                 var send=wnd.FindFirst(TreeScope.Descendants,new PropertyCondition(AutomationElement.AutomationIdProperty,"Send"));
                 object val;
@@ -80,39 +82,38 @@ namespace SferaSetup {
                 }
             }
         }
-        static bool CanDownload(ModelFile file,CancellationToken token) {
-            using(var handler=new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false})
-            using(var client=new HttpClient(handler){Timeout=TimeSpan.FromSeconds(6)})
-            using(var req=new HttpRequestMessage(HttpMethod.Head,file.url+"?download=true")){
-                try{using(var reply=client.SendAsync(req,HttpCompletionOption.ResponseHeadersRead,token).GetAwaiter().GetResult()){
-                    int code=(int)reply.StatusCode;return code>=200&&code<400;
-                }}catch(HttpRequestException){return false;}catch(OperationCanceledException){token.ThrowIfCancellationRequested();return false;}
-            }
-        }
         public static void Maximum(string dest,bool offline,CancellationToken stop,CancellationToken skip,Action<string,int> report,Action<bool> offerBase) {
-            var strongest=Store.ChatModels[0].Files.Select(id=>Store.Files[id]).ToArray();
-            var missing=strongest.Where(f=>!f.Present(dest)).ToArray();if(offline||missing.Length==0)return;
+            var strongest=Store.Files.Values.OrderBy(f=>f.id=="q9"?0:f.id=="v9"?1:f.id=="voice"?2:3).ToArray();
+            var missing=strongest.Where(f=>!f.Present(dest)).ToArray();
+            if(missing.Length==0){
+                foreach(var f in strongest){report("Проверяю "+f.name,-1);
+                    try{Downloads.Verify(f.PathIn(dest),f,stop);}
+                    catch(InvalidDataException){if(offline)throw;Downloads.Prepare(new[]{f},dest,(s,v)=>report(s,(int)(v*100)),stop).GetAwaiter().GetResult();}
+                }
+                return;
+            }
+            if(offline)throw new IOException("В автономном комплекте отсутствуют компоненты: "+string.Join(", ",missing.Select(f=>f.name)));
             Func<long> remaining=()=>missing.Where(f=>!f.Present(dest)).Sum(f=>{
                 var part=new FileInfo(f.PathIn(dest)+".part");return f.bytes-(part.Exists&&part.Length<=f.bytes?part.Length:0);
             });
             long needed=remaining();
-            if(new DriveInfo(Path.GetPathRoot(dest)).AvailableFreeSpace<needed+256L*1024*1024){report("Приложение установлено. Для Zarum нужно ещё "+Store.Size(needed),-1);return;}
+            if(new DriveInfo(Path.GetPathRoot(dest)).AvailableFreeSpace<needed+256L*1024*1024)throw new IOException("Для установки моделей требуется "+Store.Size(needed+256L*1024*1024)+" свободного места.");
             using(var transfer=CancellationTokenSource.CreateLinkedTokenSource(stop,skip)){
                 offerBase(true);
                 try{
-                    report("Проверяю доступность Zarum 9B · "+Store.Size(needed),-1);
-                    if(!CanDownload(missing[0],transfer.Token)){report("Для первого запуска добавьте файлы Zarum через настройки или папку Models",-1);return;}
+                    report("Первый запуск · текст, фото, диктовка и рисование · "+Store.Size(needed),-1);
+                    WorkPolicy.RequireNetwork();
                     for(int i=0;i<5;i++){
                         long before=remaining();int lastPercent=-2;string lastLabel=null;
                         try{
                             Downloads.Prepare(strongest,dest,(s,f)=>{
                                 int n=(int)(100*f);
-                                if(s!=lastLabel||n!=lastPercent){report(s+" · Zarum 9B",n);lastLabel=s;lastPercent=n;}
+                                if(s!=lastLabel||n!=lastPercent){report(s,n);lastLabel=s;lastPercent=n;}
                             },transfer.Token).GetAwaiter().GetResult();return;
                         }catch(Exception ex){
                             transfer.Token.ThrowIfCancellationRequested();
                             if(!(ex is IOException||ex is HttpRequestException||ex is TaskCanceledException))throw;
-                            if(remaining()>=before||i==4){report("Загрузку Zarum можно продолжить в настройках приложения",-1);return;}
+                            if(remaining()>=before||i==4)throw new IOException("Загрузка прервана. Запустите этот установщик ещё раз для продолжения.",ex);
                         }
                     }
                 }catch(OperationCanceledException){stop.ThrowIfCancellationRequested();report("Открываю версию с установленными моделями",-1);}
@@ -120,6 +121,7 @@ namespace SferaSetup {
             }
         }
         public static void Run(string self,bool check,bool launch,bool offline,CancellationToken stop,CancellationToken skip,Action<string,int> report,Action<bool> offerBase) {
+            offline=offline||!WorkPolicy.Network||File.Exists(Path.Combine(Path.GetDirectoryName(self),"OSTUM-OFFLINE.txt"));
             string home=Store.Home,logs=Directory.CreateDirectory(Path.Combine(home,"logs")).FullName;
             using(var bundle=new Bundle()){
 
@@ -170,9 +172,10 @@ namespace SferaSetup {
                     }
                     stop.ThrowIfCancellationRequested();
                     Registry.SetValue(@"HKEY_CURRENT_USER\Software\SferaAI\Setup","ModelSource",dest);
-                    prefs.Chat=Store.ChatModels[0].Id;prefs.Art=Store.ArtModels[0].Id;
+                    if(!prefs.Drawing.HasValue)prefs.Drawing=Store.Ready(Store.Art(prefs),dest);
+                    if(!prefs.Dictation.HasValue)prefs.Dictation=Store.Files["voice"].Present(dest);
                     Store.Save(prefs);
-                    report(Store.Ready(Store.Chat(prefs),dest)?"Ostum Desktop и Zarum готовы":"Ostum Desktop установлен. Добавьте Zarum в настройках.",100);
+                    report(Store.Files.Values.All(f=>f.Present(dest))?"Ostum Desktop готов. Текст, фото, диктовка и рисование установлены.":"Установлена часть компонентов. Загрузку можно продолжить в настройках.",100);
                     if(launch)Process.Start(new ProcessStartInfo(app){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(app)});
                 }finally{if(File.Exists(preparing))File.Delete(preparing);}
             }

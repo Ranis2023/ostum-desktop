@@ -26,11 +26,11 @@ namespace Sfera {
             }
             engine.SelectSlots(agents||Orchestrator.WantsTeam(request),turns.Sum(t=>(long)(t.Text??"").Length));
             bool field=ReplyFormat.Field(request);
-            var local=field?null:Computer.WindowRequest(request,new System.Windows.Interop.WindowInteropHelper(Window).Handle);
+            var local=field||!WorkPolicy.CaptureAllowed?null:Computer.WindowRequest(request,new System.Windows.Interop.WindowInteropHelper(Window).Handle);
             if(local!=null){Progress("Компьютер обрабатывает окно");reply.Text=local;reply.Steps=new List<string>{"Оркестратор · окна Windows"};return;}
-            string launch=field?null:Computer.LaunchIntent(request);
+            string launch=field||!WorkPolicy.CaptureAllowed?null:Computer.LaunchIntent(request);
             if(launch!=null){Progress("Компьютер открывает приложение");reply.Text=Computer.Launch(launch);reply.Steps=new List<string>{"Оркестратор · запуск приложения Windows"};return;}
-            bool permitted=Find<CheckBox>("WebSearch").IsChecked==true;
+            bool permitted=WorkPolicy.Network&&Find<CheckBox>("WebSearch").IsChecked==true;
             var verification=SourceCheck.Read(turns);
             if(verification!=null&&!art&&!agents&&!Orchestrator.WantsTeam(request)){
                 Progress("Проверяющий сверяет утверждение с материалом");

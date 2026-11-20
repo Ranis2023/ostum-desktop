@@ -38,6 +38,10 @@ namespace Sfera {
     public sealed class Model {
         public readonly string Id, Name, Description;
         public readonly string[] Files;
+        public LocalModel Imported {get;private set;}
+        public Model(LocalModel item):this(item.Id,item.Name,item.Architecture+" · GGUF · "+Store.Size(item.Bytes)){Imported=item;}
+        public string Weights(string folder){return Imported==null?Store.Files[Files[0]].PathIn(folder):Imported.Path;}
+        public string Projector(string folder){return Imported==null?(Files.Length>1?Store.Files[Files[1]].PathIn(folder):null):Imported.Projector;}
         public Model(string id, string name, string description, params string[] files) {
             Id = id; Name = name; Description = description; Files = files;
         }
@@ -55,6 +59,8 @@ namespace Sfera {
         public string MicrophoneId { get; set; }
         public bool? Drawing { get; set; }
         public bool? Dictation { get; set; }
+        public List<LocalModel> ImportedModels {get;set;}
+        [System.Web.Script.Serialization.ScriptIgnore] public string ProjectScope {get;set;}
         public Preferences() {
             Models = Path.Combine(Store.Home, "library", "models");
             Chat = "quality"; Art = "studio"; Personalize=true; AllowWeb=false;
@@ -120,11 +126,12 @@ namespace Sfera {
         public static string Resource(string name) {
             using (var reader = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(name), Encoding.UTF8)) return reader.ReadToEnd();
         }
-        public static Model Chat(Preferences p) { return ChatModels.FirstOrDefault(m => m.Id == p.Chat) ?? ChatModels[0]; }
+        public static IEnumerable<Model> Available(Preferences p){return ChatModels.Concat((p.ImportedModels??new List<LocalModel>()).Where(x=>x!=null&&x.Id!=null).Select(x=>new Model(x)));}
+        public static Model Chat(Preferences p) { return Available(p).FirstOrDefault(m => m.Id == p.Chat) ?? ChatModels[0]; }
         public static Model Art(Preferences p) { return ArtModels.FirstOrDefault(m => m.Id == p.Art) ?? ArtModels[0]; }
         public static bool DrawingOn(Preferences p) {return p.Drawing??Ready(Art(p),p.Models);}
         public static bool DictationOn(Preferences p) {return p.Dictation??Files["voice"].Present(p.Models);}
-        public static bool Ready(Model m, string dir) { return m.Files.All(id => Files[id].Present(dir)); }
+        public static bool Ready(Model m, string dir) { return m.Imported!=null?m.Imported.Available():m.Files.All(id => Files[id].Present(dir)); }
         public static string Size(long bytes) { return (bytes / 1000000000.0).ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("ru-RU")) + " ГБ"; }
         public static void Write(string path, object value) {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -138,7 +145,7 @@ namespace Sfera {
             string path = Path.Combine(Home, "preferences.json");
             if (File.Exists(path)) {
                 var existing=Json().Deserialize<Preferences>(File.ReadAllText(path));
-                existing.Chat=ChatModels[0].Id;existing.Art=ArtModels[0].Id;
+                existing.Chat=Chat(existing).Id;existing.Art=ArtModels[0].Id;
                 return existing;
             }
             var p = new Preferences();
@@ -152,7 +159,7 @@ namespace Sfera {
             return p;
         }
         public static void Save(Preferences p) { Write(Path.Combine(Home, "preferences.json"), p); }
-        public static void Save(Conversation c) { c.Updated = DateTime.Now; Write(Path.Combine(Chats, c.Id + ".json"), c); }
+        public static void Save(Conversation c) { c.Updated = DateTime.Now; if(WorkPolicy.History)Write(Path.Combine(Chats, c.Id + ".json"), c); }
         static string SavedChatPath(Conversation c) {
             Guid id;
             if(c==null||!Guid.TryParseExact(c.Id,"N",out id))throw new InvalidDataException("Неизвестный идентификатор диалога.");
@@ -189,6 +196,7 @@ namespace Sfera {
             return complete;
         }
         public static List<Conversation> History() {
+            if(!WorkPolicy.History)return new List<Conversation>();
             Directory.CreateDirectory(Chats);
             var result = new List<Conversation>();
             foreach (string path in Directory.EnumerateFiles(Chats, "*.json")) {
@@ -204,6 +212,7 @@ namespace Sfera {
     public static class Downloads {
         static readonly HttpClient Client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
         static async Task Fetch(ModelFile f, string partial, Action<long> progress, CancellationToken token) {
+            WorkPolicy.RequireNetwork();
             using (var target = new FileStream(partial, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, 131072, true)) {
                 long start = target.Length;
                 if (start > f.bytes) { target.SetLength(0); start = 0; }
@@ -269,6 +278,15 @@ namespace Sfera {
                 token.ThrowIfCancellationRequested();
                 string final = file.PathIn(directory), partial = final + ".part";
                 bool existing = file.Present(directory);
+                if(existing){
+                    update("Проверка "+file.name,(double)done/total);
+                    try{await Task.Run(()=>Verify(final,file,token),token).ConfigureAwait(false);done+=file.bytes;continue;}
+                    catch(InvalidDataException){
+                        WorkPolicy.RequireNetwork();
+                        if(!root.StartsWith(@"\\")&&new DriveInfo(root).AvailableFreeSpace<file.bytes+reserve)throw new IOException("Для восстановления модели нужно "+Store.Size(file.bytes+reserve)+" свободного места.");
+                        existing=false;
+                    }
+                }
                 if (!existing) {
                     for (int attempt = 0; ; attempt++) {
                         try {
@@ -283,10 +301,9 @@ namespace Sfera {
                     }
                 }
                 update("Проверка " + file.name, (double)(done + file.bytes) / total);
-                try { await Task.Run(() => Verify(existing ? final : partial, file, token), token).ConfigureAwait(false); }
+                try { await Task.Run(() => Verify(partial, file, token), token).ConfigureAwait(false); }
                 catch (InvalidDataException) {
-                    if (!existing) File.Delete(partial);
-                    else throw new InvalidDataException("Файл " + file.name + " повреждён. Переименуйте его в выбранной папке и повторите загрузку.");
+                    File.Delete(partial);
                     throw;
                 }
                 if (!existing) { if (File.Exists(final)) File.Replace(partial, final, null); else File.Move(partial, final); }

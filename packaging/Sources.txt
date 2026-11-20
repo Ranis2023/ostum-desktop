@@ -21,3 +21,10 @@ whisper.cpp b5454 и модель Whisper base multilingual Q8_0 для дикт
 https://github.com/ggml-org/whisper.cpp/releases/tag/b5454
 https://huggingface.co/ggerganov/whisper.cpp
 https://github.com/naudio/NAudio/tree/v2.2.1
+
+Переносимый CPython 3.14.10, PSF License; NumPy 2.5.5, BSD-3-Clause и лицензии включённых библиотек. Лицензии находятся рядом с модулями внутри OstumTools.zip.
+https://www.python.org/downloads/release/python-31410/
+https://pypi.org/project/numpy/2.5.5/
+
+eSpeak NG 1.52.0, GPL-3.0-or-later. Используется отдельным процессом. Архив исходного кода этой версии, включая файл лицензии, поставляется внутри OstumTools.zip в speech/corresponding-source.zip.
+https://github.com/espeak-ng/espeak-ng/releases/tag/1.52.0

@@ -8,7 +8,7 @@ using System.Windows.Input;
 namespace Sfera {
     public sealed partial class Desktop {
         bool archiveView;
-        bool CanManageHistory {get{return work==null&&speechWork==null&&!voice.Recording;}}
+        bool CanManageHistory {get{return WorkPolicy.History&&work==null&&speechWork==null&&!voice.Recording;}}
         void SetupHistory() {
             var switcher=Find<Button>("ArchiveSwitch");
             switcher.Click+=(s,e)=>{if(!CanManageHistory)return;archiveView=!archiveView;RefreshList();};

@@ -1,0 +1,14 @@
+{
+  "Managed": true,
+  "LocalAI": true,
+  "Training": true,
+  "ChatHistory": false,
+  "InternalShares": false,
+  "ImportedModels": false,
+  "ModelFolders": [],
+  "Projects": [
+    {"Root":"C:\\Company\\Contracts","Analysis":false,"Training":false,"Groups":[]},
+    {"Root":"C:\\Company\\Procurement","Analysis":true,"Training":false,"Groups":[]},
+    {"Root":"C:\\Company\\Training","Analysis":true,"Training":true,"Groups":[]}
+  ]
+}

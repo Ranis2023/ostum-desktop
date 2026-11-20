@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("4.0.0.0")]
+[assembly: AssemblyVersion("5.0.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -86,6 +86,7 @@ namespace Sfera {
                 active = (Conversation)list.SelectedItem; ClearDraft(); ShowChat();
             };
             Find<Button>("NewChat").Click += (s,e) => NewChat();
+            Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;prepareDraft.Stop();engine.StopChat();new ProjectWindow(Window,prefs,engine).ShowDialog();};
             Find<Button>("Models").Click += (s,e) => Settings();
             Find<Button>("ChatMode").Click += (s,e) => SetMode(false);
             Find<Button>("AgentMode").Click += (s,e) => SetMode(false,true);
@@ -102,12 +103,13 @@ namespace Sfera {
                 if(input.Text.Trim().Length<3)prepareDraft.Stop();
                 else if(work==null&&!closing&&!preparingDraft&&engine.Backend==null&&!prepareDraft.IsEnabled)prepareDraft.Start();
             };
+            DataObject.AddPastingHandler(input,(s,e)=>{if(!WorkPolicy.CaptureAllowed){e.CancelCommand();status.Text="Буфер обмена отключён для защищённых проектов.";}});
             input.PreviewKeyDown += async (s,e) => {
                 if ((e.Key == Key.Return || e.Key == Key.Enter) && (Keyboard.Modifiers & ModifierKeys.Shift) == 0) {
                     e.Handled = true; if (work == null) await Send();
                 } else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && work == null) {
                     try {
-                        if (Clipboard.ContainsImage()) { var img = Clipboard.GetImage(); if (img != null) { e.Handled=true; SetAttachment(Scale(img), "Из буфера обмена"); } }
+                        if (Clipboard.ContainsImage()) {e.Handled=true;if(!WorkPolicy.CaptureAllowed){status.Text="Изображения из буфера заблокированы политикой проекта.";return;}var img = Clipboard.GetImage(); if (img != null) SetAttachment(Scale(img), "Из буфера обмена");}
                     } catch (Exception ex) { status.Text=ex.Message; }
                 }
             };
@@ -150,6 +152,7 @@ namespace Sfera {
         }
         void Settings() {
             if (work != null) return;
+            prepareDraft.Stop();engine.StopChat();
             if (new ModelSettings(Window, prefs,art).Show()) { engine.StopChat(); status.Text = "Настройки сохранены."; Labels(); }
             input.Focus();
         }
@@ -224,7 +227,7 @@ namespace Sfera {
                 document!=null ? "Что узнать из документа?" : agents ? "Какую задачу поручить агентам?" : "Напишите сообщение…";
         }
         void LoadPhoto(string path) {
-            try { var img=OpenImage(path,1440); SetAttachment(img,Path.GetFileName(path)); input.Focus(); }
+            try { WorkPolicy.CheckFile(path,true);if(!WorkPolicy.GlobalFile(path))throw new UnauthorizedAccessException("Для файлов проекта используйте его редактор.");var img=OpenImage(path,1440); SetAttachment(img,Path.GetFileName(path)); input.Focus(); }
             catch (Exception ex) { status.Text="Не удалось открыть изображение. " + ex.Message; }
         }
         void ChoosePhoto() {
@@ -261,6 +264,7 @@ namespace Sfera {
         }
         async Task Send() {
             if (work != null || reading || speechWork!=null || voice.Recording) return;
+            try{WorkPolicy.RequireAI();}catch(UnauthorizedAccessException ex){status.Text=ex.Message;return;}
             string typed=input.Text.Trim(),request=KeyboardLayout.Decode(typed);
             if (request.Length==0 && attached==null && document==null) { input.Focus(); return; }
             if (request.Length==0) request=document!=null ? "Кратко изложи содержание документа." : art ? "Создай иллюстрацию по этому изображению, сохрани композицию и цвета." : "Опиши это изображение.";

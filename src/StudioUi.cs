@@ -23,7 +23,7 @@ namespace Sfera {
         bool recordingFlow;
         void SetupStudio(string engines) {
             voice=new Voice(engines);
-            var net=Find<CheckBox>("WebSearch");net.IsChecked=prefs.AllowWeb;
+            var net=Find<CheckBox>("WebSearch");net.IsChecked=prefs.AllowWeb&&WorkPolicy.Network;net.IsEnabled=WorkPolicy.Network;
             RoutedEventHandler saveNet=(s,e)=>{prefs.AllowWeb=net.IsChecked==true;Store.Save(prefs);};
             net.Checked+=saveNet;net.Unchecked+=saveNet;
             Find<Button>("Microphone").Click+=async(s,e)=>await Dictate();
@@ -79,13 +79,13 @@ namespace Sfera {
                 var chosen=monitor;string label=chosen.DeviceName.Substring(chosen.DeviceName.LastIndexOf('\\')+1)+" · "+chosen.Bounds.Width+" × "+chosen.Bounds.Height;
                 Item(screens,label,async()=>await CaptureScreen(chosen));
             }
-            Item(menu,"Окна и приложения…",ShowComputer);
+            Item(menu,"Окна и приложения…",ShowComputer).IsEnabled=WorkPolicy.CaptureAllowed;screens.IsEnabled=WorkPolicy.CaptureAllowed;
             menu.Items.Add(new Separator());
             var dialog=new MenuItem{Header="Голосовой диалог",IsCheckable=true,IsChecked=prefs.ConversationVoice,ToolTip="После записи отправлять фразу и читать ответ вслух"};
             dialog.Click+=(s,e)=>{prefs.ConversationVoice=dialog.IsChecked;Store.Save(prefs);if(!dialog.IsChecked)voice.StopSpeech();};
             menu.Items.Add(dialog); Item(menu,"Остановить озвучивание",()=>voice.StopSpeech());
             if(!Store.DictationOn(prefs)||!Store.Files["voice"].Present(prefs.Models))Item(menu,"Подключить диктовку…",async()=>await PrepareVoice());
-            menu.Items.Add(new Separator());Item(menu,"Мой рабочий профиль…",ShowProfile);
+            menu.Items.Add(new Separator());Item(menu,"Мой рабочий профиль…",ShowProfile).IsEnabled=!WorkPolicy.Rules.Managed;
             Item(menu,"О программе и обновлениях…",About);
             menu.IsOpen=true;
         }
@@ -148,6 +148,7 @@ namespace Sfera {
             catch(Exception ex){status.Text="Не удалось получить снимок. "+ex.Message;}
         }
         async Task CaptureIntoDraft(Forms.Screen monitor) {
+            if(!WorkPolicy.CaptureAllowed)throw new UnauthorizedAccessException("В защищённом пространстве снимки экрана отключены.");
             var state=Window.WindowState;Window.Hide();
             try{await Task.Delay(330);var shot=await Task.Run(()=>Computer.Capture(monitor));SetAttachment(Scale(shot),"Снимок экрана");}
             finally{if(!closing){Window.Show();Window.WindowState=state;Window.Activate();input.Focus();}}

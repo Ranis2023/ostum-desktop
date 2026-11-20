@@ -17,6 +17,8 @@ namespace Sfera {
             if(dlg.ShowDialog(Window)==true)LoadFile(dlg.FileName);
         }
         async void LoadFile(string path) {
+            try{WorkPolicy.CheckFile(path,true);if(!WorkPolicy.GlobalFile(path)){status.Text="Откройте документ в рабочем пространстве и явно выберите фрагмент для анализа.";return;}}
+            catch(Exception ex){status.Text=ex.Message;return;}
             if(!Documents.Supported(path)){LoadPhoto(path);return;}
             if(art)SetMode(false);
             SetAttachment(null,null);int ticket=attachmentVersion;reading=true;
@@ -43,7 +45,7 @@ namespace Sfera {
                         var u=link;
                         var b=new Button{Content=new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap},ToolTip=u.AbsoluteUri,HorizontalAlignment=HorizontalAlignment.Left,
                             HorizontalContentAlignment=HorizontalAlignment.Left,Padding=new Thickness(6,3,6,3),FontSize=12,Foreground=Color("#285843"),Background=Color("#EDF2EA")};
-                        b.Click+=(s,e)=>{try{Process.Start(new ProcessStartInfo(u.AbsoluteUri){UseShellExecute=true});}catch(Exception ex){status.Text=ex.Message;}};
+                        b.Click+=(s,e)=>{try{WorkPolicy.RequireNetwork();Process.Start(new ProcessStartInfo(u.AbsoluteUri){UseShellExecute=true});}catch(Exception ex){status.Text=ex.Message;}};
                         entries.Children.Add(b);
                     } else entries.Children.Add(new TextBlock{Text=label,FontWeight=FontWeights.SemiBold,TextWrapping=TextWrapping.Wrap});
                     entries.Children.Add(new TextBlock{Text=(link==null?"":link.Host+" · ")+source.Location,FontSize=11,Foreground=Color("#57665C"),Margin=new Thickness(5,1,0,2)});
