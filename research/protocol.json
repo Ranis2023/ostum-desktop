@@ -1,0 +1,16 @@
+{
+  "release_before": "3.2.1.0",
+  "seed": 20261120,
+  "language": ["ru", "en"],
+  "budget": {"paid_services": 0, "training": "One local GPU, frozen 9B transformer and output-head LoRA; no new base weights required."},
+  "comparators": ["Unmodified Qwen3.5-9B Q4_K_M", "Installed Sfera 3.2.1", "Selected candidate with the same base GGUF"],
+  "metrics": ["accuracy", "macro-F1", "paired wins/losses and exact McNemar p", "TTFT and full latency p50/p95", "tokens/s", "parallel throughput", "peak process working set", "board memory", "sampled board energy", "errors"],
+  "hypotheses": [
+    {"id":"evidence", "problem":"Weak generic three-way source verification outside the business domain", "method":"One specialized low-rank output update on externally annotated Russian text; compare with unchanged model on a fresh premise-disjoint split", "accept":"At least five additional correct held-out predictions and improved macro-F1, with zero changes in business routing or ordinary generation. Report statistical uncertainty regardless of acceptance.", "rollback":"Remove the new head and use original text verification outside the business domain."},
+    {"id":"arithmetic", "problem":"A closed numeric expression enters model planning and generation", "method":"Use the existing local arithmetic parser directly for a complete, explicitly numeric question only", "accept":"Correct values on all supported held-out expressions, no false tool dispatch on mixed tasks and at least a twofold reduction in median end-to-end latency.", "rollback":"Restore the 3.2.1 entry path; stored conversations remain compatible."},
+    {"id":"history", "problem":"Text preceding the most recent twenty turns disappears even when referenced by a later question", "method":"Retrieve bounded earlier turns using distinctive terms in the current task", "accept":"Recover at least three additional exact held-out facts, keep ordinary unrelated turns out, and stay inside the production context budget.", "rollback":"Restore the capped history builder."},
+    {"id":"kv", "problem":"Six GiB of GPU memory limits parallel inference", "method":"Compare the default KV cache with Q8 on identical prompts and three concurrency levels", "accept":"At least 10 percent better throughput or materially lower memory without loss on the control tasks; retain the default when inconclusive.", "rollback":"Remove KV flags, restore the verified CUDA settings."}
+  ],
+  "selection":"Use training and development for choices. Freeze candidate and intervention before running the closed evaluation. One final evaluation per chosen candidate. Histories from the same chat and paraphrases from the same source passage stay together.",
+  "limitations":"Diagnostic requests authored for this audit establish engineering behavior. Real held-out user requests and independently annotated public data are reported separately. Board energy excludes the CPU and the rest of the laptop."
+}

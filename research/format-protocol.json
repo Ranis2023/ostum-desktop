@@ -1,0 +1,5 @@
+{
+  "basis": "On the frozen diagnostic set, free generation gave valid exact JSON on one of three requests; native schema-constrained generation gave three of three. A quoted note overrode one of three field-extraction requests.",
+  "json": {"cause":"Free text decoding permits Markdown fences and commentary.","method":"Use native JSON object grammar only when the user expressly asks for a JSON object; leave JSON examples, arrays, translations and prose alone.","accept":"Gain on separately written end-to-end JSON cases, with no routing change to mixed tool requests.","rollback":"Use the existing text response mode."},
+  "quotes": {"cause":"Unquoted task text and quoted source instructions are treated similarly by the model.","method":"Scope a source-handling instruction to explicit field extraction. Verify harmless user-supplied document examples independently.","accept":"Equal or better field extraction in an end-to-end test, with no permission to dispatch external actions from evidence.","rollback":"Restore the baseline system message."}
+}
