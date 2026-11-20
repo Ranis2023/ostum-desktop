@@ -66,7 +66,7 @@ namespace Sfera {
         }
         void ToggleSidebar(){
             var col=Find<Grid>("Layout").ColumnDefinitions[0];bool open=col.Width.Value>40;
-            col.Width=new GridLength(open?0:204);Find<Button>("ExpandSidebar").Visibility=open?Visibility.Visible:Visibility.Collapsed;
+            col.Width=new GridLength(open?0:215);Find<Button>("ExpandSidebar").Visibility=open?Visibility.Visible:Visibility.Collapsed;
         }
         static MenuItem Item(ItemsControl menu,string text,Action run) {
             var item=new MenuItem{Header=text};item.Click+=(s,e)=>run();menu.Items.Add(item);return item;

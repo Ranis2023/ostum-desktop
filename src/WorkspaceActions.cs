@@ -12,17 +12,17 @@ using Forms=System.Windows.Forms;
 
 namespace Sfera {
     public sealed partial class ProjectWindow {
-        readonly DispatcherTimer expiryTimer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(10)};
-        bool expiring,closingForExpiry,drawerOpen;
+        bool drawerOpen;
         T Get<T>(string name) where T:FrameworkElement {return (T)view.FindName(name);}
         void Click(string name,Action fn){Get<Button>(name).Click+=(s,e)=>{if(!busy)Try(fn);};}
         void InitializeWorkspace(){
-            Click("Help",()=>WorkspaceUi.Guide(this));Click("AddFolder",PickFolder);Click("PickFolder",PickFolder);Click("PickFile",PickOffice);
+            PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.F1){e.Handled=true;WorkspaceUi.Help(this,"projects");}};
+            Click("Help",()=>WorkspaceUi.Help(this,"projects"));Click("AddFolder",PickFolder);Click("PickFolder",PickFolder);Click("PickFile",PickOffice);
             Click("FolderAccess",()=>{RequireProject();if(WorkPolicy.Rules.Managed)return;int mode=WorkspaceUi.Permission(this,project.Root,project.Training?2:project.Analysis?1:0);if(mode<0||!Discard())return;WorkPolicy.Register(project.Root,mode>=1,mode==2);RefreshProjects(project.Root);status.Text="Доступ к папке обновлён.";});
             Click("ToggleFiles",()=>{drawerOpen=!drawerOpen;LayoutPanels();});Get<Border>("Shade").MouseLeftButtonDown+=(s,e)=>CloseDrawer();
             PreviewKeyDown+=(s,e)=>{if(drawerOpen&&e.Key==System.Windows.Input.Key.Escape){CloseDrawer();e.Handled=true;}};
             Click("Up",()=>{RequireProject();var parent=Directory.GetParent(folder);if(parent!=null&&WorkPolicy.Within(parent.FullName,project.Root)&&Discard()){folder=parent.FullName;Clear();ListFiles();}});
-            Click("FileMenu",FileActions);Click("SearchProject",()=>Run(SearchProject));Click("Templates",()=>Run(Demos));
+            Click("FileMenu",FileActions);Click("SearchProject",()=>Run(SearchProject));Click("Templates",CompanyTools);
             Click("Train",()=>{RequireProject();engine.StopChat();new TrainingWindow(this,project,prefs).ShowDialog();engine.StopChat();});
             Click("Sample",()=>Run(Example));Click("Home",()=>{if(Discard()){Clear();status.Text="Выберите другой файл или перетащите его из Проводника.";}});
             Click("Edit",()=>Edit(false));Click("Ask",()=>Run(Analyze));Click("More",More);Click("Save",()=>Run(Save));
@@ -31,20 +31,6 @@ namespace Sfera {
             AllowDrop=true;PreviewDragOver+=DragOverFile;PreviewDrop+=DropFiles;
             PreviewDragLeave+=(s,e)=>{var position=e.GetPosition(this);if(position.X<=1||position.Y<=1||position.X>=ActualWidth-1||position.Y>=ActualHeight-1)Get<Border>("DropOverlay").Visibility=Visibility.Collapsed;};
             SizeChanged+=(s,e)=>LayoutPanels();
-            expiryTimer.Tick+=(s,e)=>{
-                if(expiring||!IsVisible)return;
-                try{if(ProAccess.Active)return;}catch{}
-                expiring=true;expiryTimer.Stop();lifetime.Cancel();engine.StopChat();
-                foreach(Window child in OwnedWindows.Cast<Window>().ToArray()){child.Close();if(child.IsVisible)child.Hide();}
-                view.Visibility=Visibility.Hidden;
-                do {
-                    if(ProAccessWindow.Ensure(this)){
-                        lifetime=new System.Threading.CancellationTokenSource();view.Visibility=Visibility.Visible;expiring=false;expiryTimer.Start();RefreshView();return;
-                    }
-                }while(!Discard());
-                closingForExpiry=true;Close();
-            };
-            Loaded+=(s,e)=>expiryTimer.Start();Closed+=(s,e)=>expiryTimer.Stop();
         }
         void CloseDrawer(){drawerOpen=false;LayoutPanels();}
         void LayoutPanels(){
@@ -65,7 +51,7 @@ namespace Sfera {
             var empty=Get<TextBlock>("EmptyFiles");empty.Text=has?"В этой папке пока нет файлов. Через «Файлы…» можно создать документ.":"Здесь появятся файлы подключённой папки.";empty.Visibility=files.Items.Count==0?Visibility.Visible:Visibility.Collapsed;
             Get<TextBlock>("WelcomeTitle").Text=has?"Откройте первый файл":"С чего начать?";
             Get<TextBlock>("WelcomeHint").Text=has?"Дважды щёлкните документ в списке слева или перетащите его из Проводника.":rules.Managed?"Выберите разрешённую папку в списке слева. Доступ к папкам назначает администратор.":"Подключите папку, чтобы открыть документы и таблицы прямо в OSTUM.";
-            Get<TextBlock>("HeadHint").ToolTip="Подписка подтверждена до "+ProAccess.Expires.ToString("dd.MM.yyyy HH:mm");
+            Get<TextBlock>("HeadHint").ToolTip="Бессрочный Pro активен на этом компьютере";
             projects.IsEnabled=has&&!busy;sheets.IsEnabled=!busy;Get<Button>("AddFolder").Visibility=rules.Managed?Visibility.Collapsed:Visibility.Visible;
             projects.Visibility=has?Visibility.Visible:Visibility.Collapsed;
             Get<Button>("FolderAccess").Visibility=has&&!rules.Managed?Visibility.Visible:Visibility.Collapsed;
@@ -86,6 +72,8 @@ namespace Sfera {
             var host=Get<Button>("More");var menu=new ContextMenu {PlacementTarget=host,Placement=PlacementMode.Bottom};
             Action<string,bool,Action> item=(name,enabled,fn)=>{var mi=new MenuItem{Header=name,IsEnabled=enabled};mi.Click+=(s,e)=>Try(fn);menu.Items.Add(mi);};
             bool edit=opened!=null&&!opened.readOnly,word=opened!=null&&opened.kind=="word";
+            item("Создать поручение из фрагмента…",!InRegister&&SelectedRow()!=null,()=>Run(AddTask));
+            if(InRegister){item("Открыть источник поручения",SelectedRow()!=null,()=>Run(TaskSource));item("Отметить выполненным",edit&&SelectedRow()!=null,CompleteTask);}
             item("Добавить комментарий",edit&&word&&SelectedRow()!=null,()=>Edit(true));item("Изменить формат",edit&&SelectedRow()!=null,Format);
             item("Сравнить с другим DOCX",edit&&word,()=>Run(Compare));item("Версии файла",edit,()=>Run(Restore));host.ContextMenu=menu;menu.IsOpen=true;
         }
@@ -104,6 +92,7 @@ namespace Sfera {
             }
             ProTools.UnderProject(project,dir);folder=dir;Clear();ListFiles();return true;
         }
+        internal void OpenOnLoad(string path){ContentRendered+=(s,e)=>Run(()=>OpenPaths(new[]{path},false));}
         void PickFolder(){
             using(var dialog=new Forms.FolderBrowserDialog{Description="Выберите папку с рабочими документами",SelectedPath=folder??""}){
                 if(dialog.ShowDialog()==Forms.DialogResult.OK)Run(()=>OpenPaths(new[]{dialog.SelectedPath},true));

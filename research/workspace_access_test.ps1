@@ -3,7 +3,7 @@ param()
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $build=Join-Path $root '.build'
-$test=Join-Path $build ('qa51/'+[Guid]::NewGuid().ToString('N'))
+$test=Join-Path $build ('qa52/'+[Guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($test)
 Add-Type -AssemblyName System.Security
 $fx=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319'
@@ -19,7 +19,8 @@ foreach($file in @('Library.cs','WorkPolicy.cs')){
     [IO.File]::WriteAllText((Join-Path $test $file),$source)
 }
 $resources=@('/resource:'+$public+',issuer-public.xml')
-foreach($file in @('WorkspaceView.xaml','WorkspaceTheme.xaml','ProAccessView.xaml','catalog.json','model-catalog.json')){$resources+=('/resource:'+(Join-Path $root ('src/'+$file))+','+$file)}
+foreach($file in @('WorkspaceView.xaml','WorkspaceTheme.xaml','ProAccessView.xaml','catalog.json','model-catalog.json','MainWindow.xaml','ModelsWindow.xaml','AgentLights.png','RoutePrompt.txt')){$resources+=('/resource:'+(Join-Path $root ('src/'+$file))+','+$file)}
+$resources+=('/resource:'+(Join-Path $build 'icon.b64')+',icon.b64')
 $refs=@('System.dll','System.Core.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Web.dll','System.Security.dll','System.Data.dll','System.Management.dll','System.Xml.dll','System.Xml.Linq.dll','System.IO.Compression.dll','System.Windows.Forms.dll','System.Xaml.dll','WPF/PresentationCore.dll','WPF/PresentationFramework.dll','WPF/WindowsBase.dll','System.Drawing.dll','netstandard.dll')|ForEach-Object {'/r:'+(Join-Path $fx $_)}
 $refs+='/r:'+(Get-ChildItem (Join-Path $env:WINDIR 'Microsoft.NET/assembly/GAC_MSIL/System.Speech') -Recurse -Filter System.Speech.dll|Select-Object -First 1).FullName
 foreach($dll in @(& (Join-Path $root 'packaging/Libraries.ps1') -Build $build)){$refs+='/r:'+$dll;New-Item -ItemType HardLink -Path (Join-Path $test ([IO.Path]::GetFileName($dll))) -Target $dll|Out-Null}
@@ -32,8 +33,10 @@ function Sign-Fixture([string]$Body){$sig=$testKey.SignData([Text.Encoding]::ASC
 try{
     $device=(& $exe device).Trim();if($device -cnotmatch '^[a-zA-Z0-9_-]{24}$'){throw "Invalid fixture device."}
     $now=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();$body='OP1.'+$device+'.'+$now+'.'+($now+604800)
-    $fixtures=@((Sign-Fixture $body),(Sign-Fixture ('OP1.'+$device+'.'+($now-604801)+'.'+($now-1))),(Sign-Fixture ('OP1.'+$device+'.'+$now+'.'+($now+604801))),(Sign-Fixture ('OP1.'+$device+'.'+($now+600)+'.'+($now+900))))
+    $fixtures=@((Sign-Fixture $body),(Sign-Fixture ('OP1.'+$device+'.'+($now-604801)+'.'+($now-1))),(Sign-Fixture ('OP1.'+$device+'.'+$now+'.'+($now+604801))),(Sign-Fixture ('OP2.'+$device+'.'+$now+'.permanent')))
+    $fixtures+=(Sign-Fixture ('OP2.'+$device+'.'+$now+'.temporary'))
     [IO.File]::WriteAllLines((Join-Path $test 'fixtures.txt'),[string[]]$fixtures)
+    & $exe migrate; if($LASTEXITCODE){throw 'Offline legacy activation migration failed.'}
     & $exe verify; if($LASTEXITCODE){throw 'Workspace acceptance checks failed.'}
     & $exe restart; if($LASTEXITCODE){throw 'Offline restart failed.'}
     Write-Output ('Verified UI renders: '+$test)

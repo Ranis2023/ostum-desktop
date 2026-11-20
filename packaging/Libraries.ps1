@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$Build)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $packages=@(
+    @('qrcoder','1.6.0','net40','D84BFFE9DECF1FA2B8755610407959F998209029C3B6B95A1B282CEB9983A36F'),
     @('naudio.core','2.2.1','netstandard2.0','794645DBFD30E4880663D52D9D9224D55C301FA54228FF623C95D572C7887347'),
     @('naudio.wasapi','2.2.1','netstandard2.0','C8396B8DBAB86A2619EDFD9158BEAF18C21CB86677099B5594950FD8651B9D1A'),
     @('pdfpig','0.1.16','net471','D67171846EA8C28F50359137065FEC4514266D7A32B23EAE6C5F2EBED8FFCFC4'),

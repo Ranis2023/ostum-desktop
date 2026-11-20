@@ -33,19 +33,44 @@ public static class WorkspaceChecks {
         var actual=element.RenderSize;var bmp=new RenderTargetBitmap((int)Math.Floor(actual.Width),(int)Math.Floor(actual.Height),96,96,PixelFormats.Pbgra32);bmp.Render(element);
         var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bmp));using(var file=File.Create(Path.Combine(root,filename)))png.Save(file);
     }
+    static async Task ChatUi(){
+        var app=new Desktop("test");var window=app.Window;window.WindowStartupLocation=WindowStartupLocation.Manual;
+        window.Left=-8000;window.Top=-8000;window.ShowActivated=false;window.ShowInTaskbar=false;window.Show();
+        try {
+            Render(window,"home.png",1100,702);
+            foreach(string name in new[]{"QuickDocument","QuickPhoto","QuickArt","QuickAgents","FullHelp"})
+                Check(((Button)window.FindName(name)).IsVisible,"Missing home action "+name);
+            Render(window,"home-compact.png",780,550);
+            ((StackPanel)window.FindName("Welcome")).Visibility=Visibility.Collapsed;
+            Invoke(app,"AddTurn",new Turn{Role="user",Text="Сверь сроки в двух предложениях и перечисли вопросы для поставщиков."},null);
+            var host=(StackPanel)window.FindName("Transcript");host.Children.Add(new TextBlock{Text="Zarum",FontWeight=FontWeights.SemiBold});
+            Invoke(app,"BeginWorkers",host);
+            var first=new TaskCompletionSource<int>();var second=new TaskCompletionSource<int>();
+            Action<WorkerEvent> update=evt=>window.Dispatcher.Invoke(()=>Invoke(app,"WorkerUpdate",evt));
+            var read=Workers.Track(update,"analyst","Аналитик","Разбирает условия предложений",()=>first.Task);
+            var check=Workers.Track(update,"facts","Проверка фактов","Сопоставляет сроки с источником",()=>second.Task);
+            await Task.Delay(300);Render(window,"agents.png",1000,615);
+            var panel=(WrapPanel)host.Children[host.Children.Count-1];Check(panel.Children.Count==2&&panel.IsVisible,"Concurrent agents missing");
+            first.SetResult(1);second.SetResult(1);await Task.WhenAll(read,check);
+            var turn=new Turn{Role="assistant",Text="Проверка завершена."};Invoke(app,"FinishWorkers",turn);
+            Check(turn.Workers.Count==2&&turn.Workers.All(x=>x.State=="done"),"Concurrent work history incorrect");
+            Console.WriteLine("PASS home, compact, two concurrently active agents and completion history");
+        } finally{window.Close();}
+    }
     static async Task Exercise(Window owner){
-        var f=File.ReadAllLines(Path.Combine(root,"fixtures.txt"));var code=ProAccess.Device;long now=DateTimeOffset.UtcNow.ToUnixTimeSeconds(),end;
+        var f=File.ReadAllLines(Path.Combine(root,"fixtures.txt"));var code=ProAccess.Device;
         Check(!ProAccess.Active,"Empty installation unlocked");
         string dir=Directory.CreateDirectory(Path.Combine(Store.Home,"Учебная папка")).FullName;
         var policy=new ProjectRule{Root=dir,Analysis=false,Training=false};
         Denied(()=>ProTools.UnderProject(policy,dir));Denied(()=>new ProjectWindow(owner,new Preferences(),null));
-        Check(ProAccess.Verify(f[0],code,now,out end),"Valid subscription rejected");
-        Check(!ProAccess.Verify(f[0],"AAAAAAAAAAAAAAAAAAAAAAAA",now,out end),"Foreign device unlocked");
-        foreach(var bad in new[]{f[0].Replace("OP1.","OP2."),f[0]+"x",f[1],f[2],f[3],"yes"})Check(!ProAccess.Verify(bad,code,now,out end),"Invalid receipt accepted");
+        Check(ProAccess.Verify(f[0],code)&&ProAccess.Verify(f[1],code)&&ProAccess.Verify(f[3],code),"Signed legacy or permanent receipt rejected");
+        Check(!ProAccess.Verify(f[3],"AAAAAAAAAAAAAAAAAAAAAAAA"),"Foreign device unlocked");
+        foreach(var bad in new[]{f[3].Replace("OP2.","OP1."),f[0]+"x",f[2],f[4],"yes"})Check(!ProAccess.Verify(bad,code),"Invalid receipt accepted");
         Check(Brand.SubscriptionBot=="rangoostum_bot","Wrong official Telegram bot");
         var gate=(Window)Activator.CreateInstance(typeof(ProAccessWindow),BindingFlags.Instance|BindingFlags.NonPublic,null,new object[]{owner},null);
-        Render(gate,"gate.png",604,626);Check(Find<TextBox>(gate,"Request").Text=="p_"+code,"Gate request mismatch");gate.Close();
-        ProAccess.Import(f[0]);Check(ProAccess.Active,"Activation failed");
+        Render(gate,"gate.png",604,626);Check(Find<TextBox>(gate,"Request").Text=="p2_"+code,"Gate request mismatch");var qr=(BitmapSource)Find<Image>(gate,"Qr").Source;Check(qr.PixelWidth>=150,"QR missing");
+        var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(qr));using(var stream=File.Create(Path.Combine(root,"qr-test.png")))encoder.Save(stream);gate.Close();
+        ProAccess.Import(f[3]);Check(ProAccess.Active,"Activation failed");await ChatUi();
         using(var engine=new Engine("test")){
             var w=new ProjectWindow(owner,new Preferences(),engine);w.Left=-8000;w.Top=-8000;w.WindowStartupLocation=WindowStartupLocation.Manual;w.ShowInTaskbar=false;w.ShowActivated=false;w.Show();
             Render(w,"workspace.png",1040,650);Render(w,"compact.png",665,455);
@@ -68,6 +93,17 @@ public static class WorkspaceChecks {
             Find<Button>(w,"Save").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await Idle(w);
             Check((await ProTools.Office(policy,file,"read",null,CancellationToken.None)).rows[1].value=="Встреча в 14:00.","Word edit/save");
             Render(w,"editor.png",1040,650);
+            preview=(FlowDocumentScrollViewer)Find<ContentControl>(w,"Page").Content;
+            preview.Document.Blocks.OfType<Paragraph>().ElementAt(1).Inlines.OfType<Hyperlink>().Single().RaiseEvent(new RoutedEventArgs(Hyperlink.ClickEvent));
+            var confirm=w.Dispatcher.BeginInvoke(new Action(()=>{var d=w.OwnedWindows.Cast<Window>().Single(x=>x.Title=="Поручение из документа");d.DialogResult=true;}));
+            await (Task)Invoke(w,"AddTask");await confirm.Task;
+            var register=Path.Combine(dir,"Поручения OSTUM.xlsx");Check(File.Exists(register),"No register created from a selected paragraph");
+            await (Task)Invoke(w,"OpenRegister");
+            var rg=(DataGrid)Find<ContentControl>(w,"RowsHost").Content;Find<TabControl>(w,"Tabs").SelectedIndex=2;
+            rg.SelectedItem=rg.Items.Cast<OfficeRow>().First(r=>r.key=="A2");Invoke(w,"CompleteTask");Find<Button>(w,"Save").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await Idle(w);
+            Check((await ProTools.Office(policy,register,"read",null,CancellationToken.None)).rows.Any(r=>r.key=="D2"&&r.value=="Готово"),"Task completion failed");
+            Find<TabControl>(w,"Tabs").SelectedIndex=2;rg.SelectedItem=rg.Items.Cast<OfficeRow>().First(r=>r.key=="A2");await(Task)Invoke(w,"TaskSource");
+            Check(w.Title.Contains(Path.GetFileName(file))&&((OfficeRow)rg.SelectedItem).key=="2","Task failed to reopen its source paragraph");
             var book=Path.Combine(dir,"Смета.xlsx");await ProTools.Office(policy,book,"create",new System.Collections.Generic.Dictionary<string,object>{{"data",new[]{new[]{"Позиция","Сумма"},new[]{"Бумага","120"}}}},CancellationToken.None);
             Drag(w,DragDrop.PreviewDropEvent,book,DragDropEffects.Copy);await Idle(w);Check(Find<ComboBox>(w,"Sheets").Visibility==Visibility.Visible,"Dropped Excel did not open");
             Check(Drag(w,DragDrop.PreviewDropEvent,file,DragDropEffects.Move).Effects==DragDropEffects.None&&Find<ComboBox>(w,"Sheets").Visibility==Visibility.Visible,"Move-only operation accepted");
@@ -77,12 +113,22 @@ public static class WorkspaceChecks {
             Check(Find<Button>(locked,"Verify").Visibility==Visibility.Collapsed&&Find<Button>(locked,"Channel").Visibility==Visibility.Collapsed,"Managed offline verification opened external controls");locked.Close();
             w.Close();
         }
-        Console.WriteLine("PASS gate, signature, expiry, device, official bot, empty workspace, compact layout, routed drag and drop, DOCX/XLSX, manual proposal/save, managed folders and offline activation UI");
+        Console.WriteLine("PASS gate, signature, perpetual grant, device, official bot, empty workspace, compact layout, routed drag and drop, DOCX/XLSX, manual proposal/save, managed folders and offline activation UI");
     }
     [STAThread] public static int Main(string[] args){
         try{
             Check(Store.Home.StartsWith(root)&&WorkPolicy.PolicyPath.StartsWith(root),"Test roots must be isolated");
             if(args[0]=="device"){Console.WriteLine(ProAccess.Device);return 0;}
+            if(args[0]=="migrate"){
+                var path=Path.Combine(Store.Home,"pro","subscription.dat");var original=File.ReadAllBytes(path);
+                try{
+                    var plain=System.Security.Cryptography.ProtectedData.Unprotect(original,null,System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                    var old=Store.Json().Deserialize<System.Collections.Generic.Dictionary<string,object>>(System.Text.Encoding.UTF8.GetString(plain));
+                    old["Receipt"]=File.ReadAllLines(Path.Combine(root,"fixtures.txt"))[1];old["LastSeen"]=DateTimeOffset.UtcNow.ToUnixTimeSeconds()+80000;
+                    File.WriteAllBytes(path,System.Security.Cryptography.ProtectedData.Protect(System.Text.Encoding.UTF8.GetBytes(Store.Json().Serialize(old)),null,System.Security.Cryptography.DataProtectionScope.CurrentUser));
+                    Check(ProAccess.Active,"Installed 5.1 receipt did not migrate");Console.WriteLine("PASS automatic offline migration of expired signed 5.1 state");return 0;
+                }finally{File.WriteAllBytes(path,original);}
+            }
             if(args[0]=="restart"){Check(ProAccess.Active,"Persisted lease missing");Console.WriteLine("PASS offline restart");return 0;}
             var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};var host=new Window{Width=400,Height=300,Left=-9000,Top=-9000,ShowInTaskbar=false,ShowActivated=false,WindowStartupLocation=WindowStartupLocation.Manual};host.Show();int rc=1;
             app.Dispatcher.BeginInvoke(new Action(async()=>{try{await Exercise(host);rc=0;}catch(Exception ex){Console.Error.WriteLine(ex);}finally{app.Shutdown();}}));app.Run();return rc;

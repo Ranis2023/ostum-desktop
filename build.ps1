@@ -26,6 +26,7 @@ $files = @(Get-ChildItem -LiteralPath $src -Filter '*.cs' | ForEach-Object FullN
 & (Join-Path $fx 'csc.exe') @options @files
 if ($LASTEXITCODE -ne 0) { throw 'C# compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $src 'OstumDesktop.exe.config') -Destination $build -Force
+Copy-Item -LiteralPath (Join-Path $src 'OSTUM-Help.html') -Destination $build -Force
 if ($AppOnly) { return }
 & (Join-Path $root 'packaging\VoiceRuntime.ps1') -Build $build
 & (Join-Path $root 'packaging\ProRuntime.ps1') -Build $build

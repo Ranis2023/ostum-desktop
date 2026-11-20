@@ -71,14 +71,30 @@ function Send-Text($Chat,[string]$Text,$Markup=$null) {
 function Test-Subscriber($Member,$UserId) {
     return ($null -ne $Member -and $Member.user.id -eq $UserId -and ($Member.status -in @('creator','administrator','member') -or ($Member.status -eq 'restricted' -and $Member.is_member -eq $true)))
 }
-function Send-Grant($Chat,[string]$Device) {
-    $issued=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();$end=$issued+604800
-    $body='OP1.'+$Device+'.'+$issued.ToString([Globalization.CultureInfo]::InvariantCulture)+'.'+$end.ToString([Globalization.CultureInfo]::InvariantCulture)
+function Subscriber-Record($UserId) {
+    # A domain-separated signature gives the registry an opaque, stable filename.
+    $proof=Signature ('OSTUM/subscriber/v2/'+[string]$UserId)
+    $hash=[Security.Cryptography.SHA256]::Create()
+    try{$name=[BitConverter]::ToString($hash.ComputeHash($utf8.GetBytes($proof))).Replace('-','').ToLowerInvariant()}finally{$hash.Dispose()}
+    $dir=Join-Path $privateDir 'subscribers'
+    [void][IO.Directory]::CreateDirectory($dir)
+    return @{Path=(Join-Path $dir ($name+'.dpapi'));Value=('verified/v2/'+$name)}
+}
+function Send-Grant($Chat,[string]$Device,[bool]$Permanent) {
+    $issued=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $stamp=$issued.ToString([Globalization.CultureInfo]::InvariantCulture)
+    if($Permanent){
+        $body='OP2.'+$Device+'.'+$stamp+'.permanent'
+        $caption='Бессрочный OSTUM Pro готов. Перенесите файл на тот ПК, где показан QR, и перетащите в окно активации. Сохраните свою копию.'
+    }else{
+        $body='OP1.'+$Device+'.'+$stamp+'.'+($issued+604800).ToString([Globalization.CultureInfo]::InvariantCulture)
+        $caption='Сохраните файл для OSTUM 5.1. Обновление до 5.2 превратит это подтверждение в бессрочный доступ на данном ПК.'
+    }
     $receipt=$body+'.'+(Signature $body)
     $form=[Net.Http.MultipartFormDataContent]::new()
     try {
         $form.Add([Net.Http.StringContent]::new([string]$Chat),'chat_id')
-        $form.Add([Net.Http.StringContent]::new('Подписка подтверждена. Сохраните файл и перетащите его в окно «Доступ к OSTUM Pro». Доступ действует семь дней.'),'caption')
+        $form.Add([Net.Http.StringContent]::new($caption),'caption')
         $form.Add([Net.Http.StringContent]::new($receipt,[Text.Encoding]::ASCII,'application/octet-stream'),'document','OSTUM-Pro.ostumpro')
         $res=$script:http.PostAsync($script:api+'sendDocument',$form).GetAwaiter().GetResult()
         try {if(-not $res.IsSuccessStatusCode -or -not (($res.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json).ok)){throw 'delivery failed'}}finally{$res.Dispose()}
@@ -90,19 +106,27 @@ function Handle-Update($Update) {
         try{$null=Telegram 'answerCallbackQuery' @{callback_query_id=$q.id}}catch{}
     }else{$msg=$Update.message;$actor=$msg.from;$request=$msg.text}
     if(-not $msg -or $msg.chat.type -ne 'private' -or $actor.is_bot -or $msg.chat.id -ne $actor.id){return}
-    if($request -cnotmatch '^(?:/start\s+)?p_([A-Za-z0-9_-]{24})$'){
+    if($request -cnotmatch '^(?:/start\s+)?(p2_|p_)([A-Za-z0-9_-]{24})$'){
         Send-Text $actor.id 'В OSTUM откройте «Рабочие пространства Pro», нажмите «Проверить подписку» или скопируйте запрос из окна и пришлите его сюда.';return
     }
-    $device=$Matches[1]
-    try{
-        $admin=Telegram 'getChatMember' @{chat_id=$script:channelId;user_id=$script:botId}
-        if($admin.user.id -ne $script:botId -or $admin.status -notin @('administrator','creator')){throw 'Administrator rights required'}
-        $member=Telegram 'getChatMember' @{chat_id=$script:channelId;user_id=$actor.id}
-    }catch{
-        Send-Text $actor.id 'Telegram временно не подтвердил статус. Повторите запрос чуть позже.';return
+    $prefix=$Matches[1];$device=$Matches[2]
+    $record=Subscriber-Record $actor.id
+    $known=[IO.File]::Exists($record.Path) -and ((Read-Private $record.Path) -ceq $record.Value)
+    if(-not $known){
+        try{
+            $admin=Telegram 'getChatMember' @{chat_id=$script:channelId;user_id=$script:botId}
+            if($admin.user.id -ne $script:botId -or $admin.status -notin @('administrator','creator')){throw 'Administrator rights required'}
+            $member=Telegram 'getChatMember' @{chat_id=$script:channelId;user_id=$actor.id}
+        }catch{
+            Send-Text $actor.id 'Telegram временно не подтвердил статус. Повторите запрос чуть позже.';return
+        }
+        if(Test-Subscriber $member $actor.id){
+            try{Save-Private $record.Path $record.Value}catch{if(-not [IO.File]::Exists($record.Path) -or (Read-Private $record.Path) -cne $record.Value){throw}}
+            $known=$true
+        }
     }
-    if(Test-Subscriber $member $actor.id){Send-Grant $actor.id $device;Service-Event 'last-issue';return}
-    $buttons=@{inline_keyboard=@(,@(@{text='Открыть канал';url='https://t.me/ranisgaliaskarov'},@{text='Я подписался · проверить';callback_data='p_'+$device}))}
+    if($known){Send-Grant $actor.id $device ($prefix -ceq 'p2_');Service-Event 'last-issue';return}
+    $buttons=@{inline_keyboard=@(,@(@{text='Открыть канал';url='https://t.me/ranisgaliaskarov'},@{text='Я подписался · проверить';callback_data=$prefix+$device}))}
     Send-Text $actor.id 'Подпишитесь на канал Раниса Галиаскарова и нажмите кнопку проверки.' $buttons
 }
 
@@ -173,7 +197,7 @@ try {
     if($Mode -eq 'HandleUpdate'){
         $update=[Console]::In.ReadToEnd()|ConvertFrom-Json
         $text=if($update.callback_query){$update.callback_query.data}else{$update.message.text}
-        if($text -cmatch '^(?:/start\s+)?p_[A-Za-z0-9_-]{24}$'){$script:http=[Net.Http.HttpClient]::new();try{Handle-Update $update}finally{$script:http.Dispose()}};return
+        if($text -cmatch '^(?:/start\s+)?(?:p2_|p_)[A-Za-z0-9_-]{24}$'){$script:http=[Net.Http.HttpClient]::new();try{Handle-Update $update}finally{$script:http.Dispose()}};return
     }
     if(-not [IO.File]::Exists($receiverFile) -or [IO.File]::ReadAllText($receiverFile) -ne 'standalone'){throw 'Выбран действующий сервис бота. Передавайте его запросы в режим HandleUpdate.'}
     $webhook=Telegram 'getWebhookInfo' @{};if($webhook.url){throw 'У бота уже настроен webhook. Используйте отдельного бота для OSTUM.'}

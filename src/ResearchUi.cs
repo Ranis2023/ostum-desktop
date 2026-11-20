@@ -12,8 +12,9 @@ namespace Sfera {
         ResearchDocument document;
         bool reading;
         int attachmentVersion;
-        void ChooseFile() {
+        void ChooseFile(bool documentsOnly=false) {
             var dlg=new OpenFileDialog {Title="Прикрепить файл",Filter="Поддерживаемые файлы|*.pdf;*.docx;*.txt;*.md;*.csv;*.tsv;*.json;*.log;*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff|Документы|*.pdf;*.docx;*.txt;*.md;*.csv;*.tsv;*.json;*.log|Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff"};
+            if(documentsOnly){dlg.Title="Выберите документ для разбора";dlg.FilterIndex=2;}
             if(dlg.ShowDialog(Window)==true)LoadFile(dlg.FileName);
         }
         async void LoadFile(string path) {

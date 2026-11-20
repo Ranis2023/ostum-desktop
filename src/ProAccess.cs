@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -8,26 +7,22 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
+using System.Threading;
 
 namespace Sfera {
     internal static class ProAccess {
         const long Week = 7 * 24 * 60 * 60;
-        static readonly DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         static readonly object gate = new object();
         static readonly string path = Path.Combine(Store.Home, "pro", "subscription.dat");
         static readonly Regex devicePattern = new Regex(@"\A[A-Za-z0-9_-]{24}\z");
         static readonly Regex number = new Regex(@"\A[0-9]{10}\z");
-        static readonly Stopwatch elapsed = Stopwatch.StartNew();
-        static readonly long started = UtcSeconds();
         static State state;
         static string device;
-        static long validUntil;
+        static bool active;
         sealed class State {
             public string Seed { get; set; }
             public string Receipt { get; set; }
-            public long LastSeen { get; set; }
         }
-        static long UtcSeconds() { return (long)(DateTime.UtcNow - epoch).TotalSeconds; }
         static string Base64Url(byte[] data) { return Convert.ToBase64String(data).TrimEnd('=').Replace('+','-').Replace('/','_'); }
         static byte[] Decode(string text) {
             string data = text.Replace('-','+').Replace('_','/');
@@ -49,18 +44,21 @@ namespace Sfera {
                 if (saved != null && saved.Seed != null && Decode(saved.Seed).Length == 32) return saved;
             } catch (FileNotFoundException) {} catch (DirectoryNotFoundException) {} catch (CryptographicException) {} catch (FormatException) {} catch (ArgumentException) {}
             var seed = new byte[32]; using (var random = RandomNumberGenerator.Create()) random.GetBytes(seed);
-            var fresh = new State { Seed = Base64Url(seed), LastSeen = UtcSeconds() };
+            var fresh = new State { Seed = Base64Url(seed) };
             Write(fresh); return fresh;
         }
         static void Load() {
             if (state != null) return;
-            var value = Read();
+            State value;
+            using (var creation = new Mutex(false, @"Local\OSTUM.ProState." + WindowsIdentity.GetCurrent().User.Value)) {
+                try { creation.WaitOne(); } catch (AbandonedMutexException) {}
+                try { value = Read(); } finally { creation.ReleaseMutex(); }
+            }
             using (var id = WindowsIdentity.GetCurrent()) using (var hash = SHA256.Create()) {
                 string machine = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography", "MachineGuid", "");
                 device = Base64Url(hash.ComputeHash(Encoding.UTF8.GetBytes(value.Seed + "|" + machine + "|" + id.User.Value)).Take(18).ToArray());
             }
-            long expiry;
-            if (Verify(value.Receipt, device, UtcSeconds(), out expiry)) validUntil = expiry;
+            active = Verify(value.Receipt, device);
             state = value;
         }
         static bool Signed(string body, string signature) {
@@ -72,37 +70,30 @@ namespace Sfera {
                 }
             } catch (CryptographicException) { return false; } catch (FormatException) { return false; }
         }
-        internal static bool Verify(string token, string expected, long now, out long expiry) {
-            expiry = 0;
-            if (string.IsNullOrEmpty(token) || token.Length > 1024) return false;
+        internal static bool Verify(string token, string expected) {
+            if (string.IsNullOrWhiteSpace(token) || token.Length > 1024) return false;
             var parts = token.Trim().Split('.');
-            if (parts.Length != 5 || parts[0] != "OP1" || !devicePattern.IsMatch(parts[1]) || parts[1] != expected || !number.IsMatch(parts[2]) || !number.IsMatch(parts[3])) return false;
-            long issued = long.Parse(parts[2], CultureInfo.InvariantCulture), end = long.Parse(parts[3], CultureInfo.InvariantCulture);
-            if (issued > now + 300 || end <= now || end <= issued || end - issued > Week) return false;
-            if (!Signed(string.Join(".", parts, 0, 4), parts[4])) return false;
-            expiry = end; return true;
+            if (parts.Length != 5 || !devicePattern.IsMatch(parts[1]) || parts[1] != expected || !number.IsMatch(parts[2])) return false;
+            if (parts[0] == "OP1") {
+                // A signed 5.1 receipt proves that this installation passed its first check.
+                if (!number.IsMatch(parts[3])) return false;
+                long span = long.Parse(parts[3], CultureInfo.InvariantCulture) - long.Parse(parts[2], CultureInfo.InvariantCulture);
+                if (span <= 0 || span > Week) return false;
+            } else if (parts[0] != "OP2" || parts[3] != "permanent") return false;
+            return Signed(string.Join(".", parts, 0, 4), parts[4]);
         }
         internal static string Device { get { lock (gate) { Load(); return device; } } }
-        static long Now() {
-            long clock = UtcSeconds();
-            if (clock + 300 < state.LastSeen) throw new InvalidOperationException("Проверьте дату и время Windows и снова откройте Pro.");
-            return Math.Max(state.LastSeen, Math.Max(clock, started + (long)elapsed.Elapsed.TotalSeconds));
+        internal static bool Active { get { lock (gate) { Load(); return active; } } }
+        internal static void Require() {
+            if (!Active) throw new UnauthorizedAccessException("Для первого входа в рабочее пространство активируйте OSTUM Pro.");
         }
-        internal static bool Active { get { lock (gate) {
-            Load(); long now = Now();
-            if (validUntil <= now) return false;
-            if (now - state.LastSeen >= 900) { state.LastSeen = now; Write(state); }
-            return true;
-        } } }
-        internal static DateTime Expires { get { lock (gate) { Load(); return epoch.AddSeconds(validUntil).ToLocalTime(); } } }
-        internal static void Require() { if (!Active) throw new UnauthorizedAccessException("Для рабочего пространства подтвердите подписку на канал в разделе OSTUM Pro."); }
         internal static void Import(string token) {
             lock (gate) {
-                Load(); long now = Now(), end;
-                if (!Verify(token, device, now, out end)) throw new InvalidDataException("Этот ответ не подходит. Запросите у бота новый файл для кода, показанного на этом компьютере.");
-                if (validUntil >= end) return;
-                var update = new State { Seed = state.Seed, Receipt = token.Trim(), LastSeen = now };
-                Write(update); state = update; validUntil = end;
+                Load();
+                if (!Verify(token, device)) throw new InvalidDataException("Файл не подходит к этой установке. Откройте QR на этом ПК и перенесите файл из ответа бота.");
+                if (active) return;
+                var update = new State { Seed = state.Seed, Receipt = token.Trim() };
+                Write(update); state = update; active = true;
             }
         }
     }

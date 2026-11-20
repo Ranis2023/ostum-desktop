@@ -2,7 +2,7 @@
   <Grid.Resources><!--theme--></Grid.Resources>
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <DockPanel Margin="22,16,18,13">
-    <Button x:Name="Help" DockPanel.Dock="Right" Content="Как работать" Style="{StaticResource Flat}" VerticalAlignment="Center" ToolTip="Короткая инструкция по работе с папкой, документами и локальным ИИ"/>
+    <Button x:Name="Help" DockPanel.Dock="Right" Content="Справка" Style="{StaticResource Flat}" VerticalAlignment="Center" ToolTip="Короткая инструкция по работе с папкой, документами и локальным ИИ"/>
     <Button x:Name="ToggleFiles" DockPanel.Dock="Right" Content="Папки и файлы" Visibility="Collapsed" VerticalAlignment="Center"/>
     <Border DockPanel.Dock="Left" Width="45" Height="45" Background="#FF833E" CornerRadius="15" VerticalAlignment="Center" Margin="0,0,13,0"><Path Width="25" Height="20" Stretch="Uniform" Stroke="#422512" StrokeThickness="1.6" StrokeLineJoin="Round" Data="M2,5 Q2,3 4,3 L10,3 13,6 22,6 Q24,6 24,8 L24,18 Q24,20 22,20 L4,20 Q2,20 2,18 Z M3,9 L23,9"/></Border>
     <StackPanel VerticalAlignment="Center"><TextBlock Text="Рабочее пространство" Style="{StaticResource Title}"/><TextBlock x:Name="HeadHint" Style="{StaticResource Hint}"/></StackPanel>
@@ -51,5 +51,5 @@
       <Border x:Name="DropOverlay" Visibility="Collapsed" IsHitTestVisible="False" Background="#F5FFF4E9" BorderBrush="#D56725" BorderThickness="2" CornerRadius="18"><TextBlock Text="Отпустите, чтобы открыть" Style="{StaticResource Title}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
     </Grid>
   </Grid>
-  <DockPanel Grid.Row="2" Margin="20,7,16,9"><WrapPanel DockPanel.Dock="Right"><Button x:Name="Templates" Content="Шаблоны" Style="{StaticResource Flat}" ToolTip="Создать документы компании и сравнить предложения"/><Button x:Name="Train" Content="Обучение Zarum" Style="{StaticResource Flat}" ToolTip="Обучить модель на проверенных примерах проекта"/></WrapPanel><ContentControl x:Name="Live" DockPanel.Dock="Left" VerticalAlignment="Center"/><TextBlock x:Name="Status" Style="{StaticResource Hint}" VerticalAlignment="Center" MaxHeight="54" TextTrimming="CharacterEllipsis"/></DockPanel>
+  <DockPanel Grid.Row="2" Margin="20,7,16,9"><WrapPanel DockPanel.Dock="Right"><Button x:Name="Templates" Content="Инструменты ▾" Style="{StaticResource Flat}" ToolTip="Реестр поручений, сверка Excel, закупки и шаблоны"/><Button x:Name="Train" Content="Обучение Zarum" Style="{StaticResource Flat}" ToolTip="Обучить модель на проверенных примерах проекта"/></WrapPanel><ContentControl x:Name="Live" DockPanel.Dock="Left" VerticalAlignment="Center"/><TextBlock x:Name="Status" Style="{StaticResource Hint}" VerticalAlignment="Center" MaxHeight="54" TextTrimming="CharacterEllipsis"/></DockPanel>
 </Grid>

@@ -54,7 +54,7 @@ namespace Sfera {
             files.MouseDoubleClick+=(s,e)=>{if(ItemsControl.ContainerFromElement(files,e.OriginalSource as System.Windows.DependencyObject)!=null)ActivateFile();};files.KeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Enter)ActivateFile();};
             grid.MouseDoubleClick+=(s,e)=>Try(()=>Edit(false));filter.TextChanged+=(s,e)=>Filter();
             Closed+=(s,e)=>{lifetime.Cancel();engine.StopChat();};
-            Closing+=(s,e)=>{if(busy){lifetime.Cancel();}else if(!closingForExpiry&&!Discard())e.Cancel=true;};
+            Closing+=(s,e)=>{if(busy){lifetime.Cancel();}else if(!Discard())e.Cancel=true;};
             RefreshProjects(null);RefreshView();
         }
         internal static DataGrid GridView(){return new DataGrid{AutoGenerateColumns=false,CanUserAddRows=false,CanUserDeleteRows=false,IsReadOnly=true,EnableRowVirtualization=true,HeadersVisibility=DataGridHeadersVisibility.Column,SelectionMode=DataGridSelectionMode.Single,GridLinesVisibility=DataGridGridLinesVisibility.Horizontal,RowHeight=32,Margin=new Thickness(2)};}

@@ -1,74 +1,76 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Ostum Desktop" Width="1150" Height="770" MinWidth="760" MinHeight="540" WindowStartupLocation="CenterScreen"
-        FontFamily="Inter, Segoe UI Variable Text, Segoe UI" FontSize="14" Background="#F8F8FC" Foreground="#292D33" UseLayoutRounding="True" AllowDrop="True"
+        FontFamily="Inter, Segoe UI Variable Text, Segoe UI" FontSize="14" Background="#F3F4EF" Foreground="#25332B" UseLayoutRounding="True" AllowDrop="True"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
   <Window.Resources>
     <Style TargetType="Button">
-      <Setter Property="Background" Value="#F0EEF7"/><Setter Property="Foreground" Value="#3B354B"/>
+      <Setter Property="Background" Value="#E9EDE5"/><Setter Property="Foreground" Value="#314237"/>
       <Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Padding" Value="13,8"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontSize" Value="13"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-        <Border x:Name="box" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+        <Border x:Name="box" CornerRadius="11" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
           <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" RecognizesAccessKey="True"/>
         </Border>
         <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="box" Property="Opacity" Value="0.83"/></Trigger>
           <Trigger Property="IsPressed" Value="True"><Setter TargetName="box" Property="Opacity" Value="0.68"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="box" Property="BorderBrush" Value="#8B78CE"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="box" Property="BorderBrush" Value="#BE6025"/></Trigger>
           <Trigger Property="IsEnabled" Value="False"><Setter TargetName="box" Property="Opacity" Value="0.45"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style x:Key="SidebarAction" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="#37364B"/><Setter Property="Foreground" Value="#FAF9FF"/>
+      <Setter Property="Background" Value="#33433A"/><Setter Property="Foreground" Value="#F5F7ED"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="Padding" Value="13,10"/>
     </Style>
     <Style TargetType="ListBoxItem">
-      <Setter Property="Padding" Value="12,9"/><Setter Property="Foreground" Value="#D6D2E4"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Padding" Value="12,9"/><Setter Property="Foreground" Value="#D4E0D4"/><Setter Property="Cursor" Value="Hand"/>
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
         <Border x:Name="row" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}" Margin="0,1">
           <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{TemplateBinding Foreground}" FontSize="13" ToolTip="{Binding Title}"/>
         </Border>
         <ControlTemplate.Triggers>
-          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="row" Property="Background" Value="#322F45"/></Trigger>
-          <Trigger Property="IsSelected" Value="True"><Setter TargetName="row" Property="Background" Value="#454058"/><Setter Property="Foreground" Value="White"/></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="row" Property="Background" Value="#344439"/></Trigger>
+          <Trigger Property="IsSelected" Value="True"><Setter TargetName="row" Property="Background" Value="#43564B"/><Setter Property="Foreground" Value="White"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
   </Window.Resources>
-  <Grid x:Name="Layout">
-    <Grid.ColumnDefinitions><ColumnDefinition Width="204"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Border Grid.Column="0" Background="#242333">
+  <Grid x:Name="Layout" Background="#F3F4EF">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="215"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Border Grid.Column="0" Background="#222F28">
       <Grid Margin="16,24,16,18">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Grid Margin="4,0,0,24"><Button x:Name="CollapseSidebar" Content="&#xE76B;" FontFamily="Segoe MDL2 Assets" AutomationProperties.Name="Свернуть историю" ToolTip="Свернуть историю" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="6" Background="Transparent" Foreground="#CFC8E6"/><Button x:Name="AboutApp" HorizontalAlignment="Left" Padding="0" Background="Transparent" ToolTip="О программе и обновлениях" AutomationProperties.Name="О программе и обновлениях"><StackPanel Orientation="Horizontal">
-          <Image x:Name="SidebarMark" Width="36" Height="36" RenderOptions.BitmapScalingMode="HighQuality"/>
-          <StackPanel Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock Text="OSTUM" FontSize="20" FontWeight="Bold" Foreground="#FFF8EF"/><TextBlock x:Name="AppVersion" FontSize="10" Foreground="#D7C7C2"/></StackPanel>
+        <Grid Margin="4,0,0,24"><Button x:Name="CollapseSidebar" Content="&#xE76B;" FontFamily="Segoe MDL2 Assets" AutomationProperties.Name="Свернуть историю" ToolTip="Свернуть историю" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="6" Background="Transparent" Foreground="#C6D7C8"/><Button x:Name="AboutApp" HorizontalAlignment="Left" Padding="0" Background="Transparent" ToolTip="О программе и обновлениях" AutomationProperties.Name="О программе и обновлениях"><StackPanel Orientation="Horizontal">
+          <Image x:Name="SidebarMark" Width="39" Height="39" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <StackPanel Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock Text="OSTUM" FontSize="20" FontWeight="Bold" Foreground="#FFF8EF"/><TextBlock x:Name="AppVersion" FontSize="10" Foreground="#BDCCBF"/></StackPanel>
         </StackPanel></Button></Grid>
-        <Button x:Name="NewChat" Grid.Row="1" Style="{StaticResource SidebarAction}" Background="#DDD5FF" Foreground="#322450" AutomationProperties.Name="Новый чат">
+        <Button x:Name="NewChat" Grid.Row="1" Style="{StaticResource SidebarAction}" Background="#FF9855" Foreground="#2F2118" AutomationProperties.Name="Новый чат">
           <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontSize="18" LineHeight="18" Margin="0,-2,9,0"/><TextBlock Text="Новый чат" FontWeight="SemiBold"/></StackPanel>
         </Button>
         <DockPanel Grid.Row="2" Margin="5,18,0,6">
           <Button x:Name="ArchiveSwitch" DockPanel.Dock="Right" Padding="5,3" Background="Transparent" Foreground="#D7C8B9" FontSize="11" AutomationProperties.Name="Переключить архив"/>
-          <TextBlock x:Name="HistoryHeading" Text="История" VerticalAlignment="Center" FontSize="12" Foreground="#B9B5CA"/>
+          <TextBlock x:Name="HistoryHeading" Text="История" VerticalAlignment="Center" FontSize="12" Foreground="#AFBEAF"/>
         </DockPanel>
         <ListBox x:Name="HistoryList" Grid.Row="3" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
-        <StackPanel Grid.Row="4"><Button x:Name="Projects" Content="Рабочие пространства Pro" ToolTip="Документы, таблицы и локальное обучение для подписчиков канала" Style="{StaticResource SidebarAction}" Padding="9,10" FontSize="12" Margin="0,8,0,0" Background="#494059" Foreground="White"/>
-        <Button x:Name="Models" Style="{StaticResource SidebarAction}" Margin="0,12,0,0">
+        <StackPanel Grid.Row="4"><Button x:Name="Projects" Content="Рабочие пространства Pro" ToolTip="Документы, таблицы и локальное обучение для подписчиков канала" Style="{StaticResource SidebarAction}" Padding="9,10" FontSize="12" Margin="0,8,0,0" Background="#35493C" Foreground="White"/>
+        <Button x:Name="Models" Style="{StaticResource SidebarAction}" Margin="0,6,0,0">
           <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" Margin="0,1,9,0"/><TextBlock Text="Модели и настройки"/></StackPanel>
-        </Button></StackPanel>
+        </Button>
+          <Button x:Name="FullHelp" Style="{StaticResource SidebarAction}" Background="Transparent" Margin="0,4,0,0" ToolTip="Открыть локальную справку · F1"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE897;" Margin="0,1,9,0"/><TextBlock Text="Справка"/></StackPanel></Button>
+        </StackPanel>
       </Grid>
     </Border>
     <Grid Grid.Column="1">
       <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <Border BorderBrush="#E5E3EC" BorderThickness="0,0,0,1">
+      <Border BorderBrush="#DCE3DA" BorderThickness="0,0,0,1">
         <Grid Margin="28,0,24,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <DockPanel LastChildFill="True"><Button x:Name="ChatActions" DockPanel.Dock="Right" Content="⋯" FontSize="18" Padding="6,1" VerticalAlignment="Center" ToolTip="Действия с диалогом" AutomationProperties.Name="Действия с диалогом"/><Button x:Name="ExpandSidebar" Visibility="Collapsed" DockPanel.Dock="Left" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Margin="0,0,10,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть историю" ToolTip="Открыть историю"/><TextBlock x:Name="ChatTitle" Text="Новый чат" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/></DockPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
             <Ellipse x:Name="ModelLight" Width="7" Height="7" Fill="#4D856B" Margin="0,0,7,0"/>
-            <TextBlock x:Name="ModelLabel" FontSize="12" Foreground="#5A5566"/>
+            <TextBlock x:Name="ModelLabel" FontSize="12" Foreground="#506457"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -76,21 +78,35 @@
         <ScrollViewer x:Name="TranscriptScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel x:Name="Transcript" MaxWidth="820" Margin="28,16,28,12"/>
         </ScrollViewer>
-        <StackPanel x:Name="Welcome" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10">
-          <Image x:Name="WelcomeMark" Width="84" Height="84" Margin="0,0,0,13" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
-          <TextBlock Text="Что сделаем сегодня?" HorizontalAlignment="Center" FontSize="35" FontWeight="SemiBold" Foreground="#302A41" Margin="0,0,0,18"/>
-          <WrapPanel HorizontalAlignment="Center">
-            <Button x:Name="QuickPhoto" Margin="4" Padding="15,11" Background="White" BorderBrush="#DFDCE9" ToolTip="Приложить фото для анализа"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEB9F;" Foreground="#79649C" Margin="0,1,8,0"/><TextBlock Text="Разобрать фото"/></StackPanel></Button>
-            <Button x:Name="QuickAgents" Margin="4" Padding="15,11" Background="White" BorderBrush="#DFDCE9" ToolTip="Поручить задачу команде агентов"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE721;" Foreground="#79649C" Margin="0,1,8,0"/><TextBlock Text="Исследовать тему"/></StackPanel></Button>
-            <Button x:Name="QuickArt" Margin="4" Padding="15,11" Background="White" BorderBrush="#DFDCE9" ToolTip="Создать изображение по описанию"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE790;" Foreground="#79649C" Margin="0,1,8,0"/><TextBlock Text="Нарисовать"/></StackPanel></Button>
-          </WrapPanel>
-        </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalAlignment="Center" Visibility="{Binding ElementName=Welcome,Path=Visibility}">
+          <StackPanel x:Name="Welcome" MaxWidth="775" Margin="23,12">
+            <Border Margin="3" CornerRadius="23" Padding="23,18">
+              <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0.9"><GradientStop Color="#263B30"/><GradientStop Color="#3B5345" Offset=".68"/><GradientStop Color="#526953" Offset="1"/></LinearGradientBrush></Border.Background>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center"><TextBlock Text="Локальный помощник" Foreground="#D4E2CE" FontSize="13"/><TextBlock Text="Чем вам помочь?" FontSize="33" FontWeight="SemiBold" Foreground="#FFFDF5" TextWrapping="Wrap" Margin="0,3,0,3"/><TextBlock Text="Напишите Zarum или перетащите сюда фото или документ." Foreground="#DBE6DA" FontSize="14" TextWrapping="Wrap"/></StackPanel>
+                <Grid x:Name="WelcomeArt" Grid.Column="1" Width="130" Height="106" IsHitTestVisible="False"><Ellipse Width="122" Height="85" Stroke="#4D83977D" StrokeThickness="1" RenderTransformOrigin=".5,.5"><Ellipse.RenderTransform><RotateTransform Angle="-22"/></Ellipse.RenderTransform></Ellipse><Ellipse Width="95" Height="95" Fill="#24566954" Stroke="#66829579"/><Viewbox Width="97" Height="100" Stretch="Uniform" IsHitTestVisible="False"><Canvas Width="106" Height="106">
+                    <Path Data="M30,11 L67,6 94,27 98,63 76,89 40,96 13,75 9,39 Z M40,37 L57,34 69,43 71,57 61,70 46,72 34,62 32,48 Z">
+                      <Path.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#ED8240"/><GradientStop Color="#7F3E23" Offset=".48"/><GradientStop Color="#CB7845" Offset="1"/></LinearGradientBrush></Path.Fill>
+                    </Path>
+                    <Path Data="F0 M30,7 L67,2 94,23 98,59 76,85 40,92 13,71 9,35 Z M40,33 L57,30 69,39 71,53 61,66 46,68 34,58 32,44 Z">
+                      <Path.Fill><LinearGradientBrush StartPoint="0,0" EndPoint=".94,1"><GradientStop Color="#FFE6A3"/><GradientStop Color="#FFAF62" Offset=".30"/><GradientStop Color="#DC6F38" Offset=".52"/><GradientStop Color="#F2A065" Offset=".78"/><GradientStop Color="#FFD19E" Offset="1"/></LinearGradientBrush></Path.Fill>
+                    </Path>
+                    <Path Data="M30,7 L40,33 32,44 9,35 Z" Fill="#39FFF1B9"/><Path Data="M67,2 L94,23 69,39 57,30 Z" Fill="#44FFDB97"/>
+                    <Path Data="M98,59 L76,85 61,66 71,53 Z" Fill="#4C9D542D"/><Path Data="M13,71 L40,92 46,68 34,58 Z" Fill="#4E8F4730"/>
+                    <Path Data="M10,35 L30,7 67,2" Stroke="#FFF0B4" StrokeThickness="1.2"/>
+                  </Canvas></Viewbox></Grid>
+              </Grid>
+            </Border>
+            <UniformGrid Columns="2" Margin="0,7,0,0"><Button x:Name="QuickDocument" Margin="3" Padding="10,9" Background="White" BorderBrush="#DCE3D9" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Разобрать документ" ToolTip="Приложите файл и задайте вопрос"><DockPanel><Border Background="#E8F1E8" Width="32" Height="32" CornerRadius="11" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,9,0"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8A5;" FontSize="15" Foreground="#496F55" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel VerticalAlignment="Center"><TextBlock Text="Разобрать документ" Foreground="#28382F" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Приложите файл и задайте вопрос" Foreground="#58665C" FontSize="12" TextWrapping="Wrap"/></StackPanel></DockPanel></Button><Button x:Name="QuickAgents" Margin="3" Padding="10,9" Background="White" BorderBrush="#DCE3D9" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Поручить команде" ToolTip="Разберите задачу в несколько шагов"><DockPanel><Border Background="#F6EADB" Width="32" Height="32" CornerRadius="11" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,9,0"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D4;" FontSize="15" Foreground="#77614D" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel VerticalAlignment="Center"><TextBlock Text="Поручить команде" Foreground="#28382F" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Разберите задачу в несколько шагов" Foreground="#58665C" FontSize="12" TextWrapping="Wrap"/></StackPanel></DockPanel></Button><Button x:Name="QuickPhoto" Margin="3" Padding="10,9" Background="White" BorderBrush="#DCE3D9" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Рассмотреть фото" ToolTip="Узнайте, что изображено на снимке"><DockPanel><Border Background="#E7EFF6" Width="32" Height="32" CornerRadius="11" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,9,0"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEB9F;" FontSize="15" Foreground="#536C83" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel VerticalAlignment="Center"><TextBlock Text="Рассмотреть фото" Foreground="#28382F" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Узнайте, что изображено на снимке" Foreground="#58665C" FontSize="12" TextWrapping="Wrap"/></StackPanel></DockPanel></Button><Button x:Name="QuickArt" Margin="3" Padding="10,9" Background="White" BorderBrush="#DCE3D9" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Создать изображение" ToolTip="Опишите сюжет своими словами"><DockPanel><Border Background="#FBE6D9" Width="32" Height="32" CornerRadius="11" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,9,0"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE790;" FontSize="15" Foreground="#92503B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel VerticalAlignment="Center"><TextBlock Text="Создать изображение" Foreground="#28382F" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Опишите сюжет своими словами" Foreground="#58665C" FontSize="12" TextWrapping="Wrap"/></StackPanel></DockPanel></Button></UniformGrid>
+          </StackPanel>
+        </ScrollViewer>
+        <Border x:Name="ChatDrop" Visibility="Collapsed" IsHitTestVisible="False" Margin="24,12" Panel.ZIndex="2" Background="#F4F8FBF5" BorderBrush="#87A98D" BorderThickness="2" CornerRadius="20"><StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"><TextBlock Text="Отпустите файл здесь" FontWeight="SemiBold" FontSize="23"/><TextBlock Text="Фото или документ появится рядом с сообщением." Margin="0,5" TextWrapping="Wrap"/></StackPanel></Border>
       </Grid>
       <Grid Grid.Row="2" MaxWidth="880" Margin="24,0,24,16">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <StackPanel><Border x:Name="RunPanel" Visibility="Collapsed" Background="#F0EDF9" CornerRadius="10" BorderThickness="1" BorderBrush="#E4DFF2" Padding="10,6" Margin="0,4,0,2"><DockPanel><Ellipse DockPanel.Dock="Left" x:Name="RunDot" Width="7" Height="7" Fill="#7859CB" Margin="1,0,9,0"/><WrapPanel x:Name="StageList"/></DockPanel></Border>
-        <TextBlock x:Name="Activity" MinHeight="18" FontSize="12" Foreground="#675E77" TextWrapping="Wrap" Margin="4,2,3,5"/></StackPanel>
-        <Border Grid.Row="1" Background="White" BorderBrush="#D9D5E4" BorderThickness="1" CornerRadius="13" Padding="14,9,10,9">
+        <StackPanel><Border x:Name="RunPanel" Visibility="Collapsed" Background="#EDF2E9" CornerRadius="10" BorderThickness="1" BorderBrush="#D8E1D4" Padding="10,6" Margin="0,4,0,2"><DockPanel><Ellipse DockPanel.Dock="Left" x:Name="RunDot" Width="7" Height="7" Fill="#528163" Margin="1,0,9,0"/><WrapPanel x:Name="StageList"/></DockPanel></Border>
+        <TextBlock x:Name="Activity" MinHeight="18" FontSize="12" Foreground="#526557" TextWrapping="Wrap" Margin="4,2,3,5"/></StackPanel>
+        <Border Grid.Row="1" Background="White" BorderBrush="#C6D2C5" BorderThickness="1" CornerRadius="20" Padding="16,11,12,10">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel x:Name="AttachmentBar" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,6">
@@ -112,8 +128,8 @@
             </Border>
             <Grid Grid.Row="2" Margin="2,2,2,8">
               <TextBox x:Name="Input" AutomationProperties.Name="Сообщение" MinHeight="46" MaxHeight="130" FontSize="15" FontFamily="Inter, Segoe UI Variable Text, Segoe UI"
-                  Foreground="#302B3A" CaretBrush="#6B52BC" Background="Transparent" BorderThickness="0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="0"/>
-              <TextBlock x:Name="Placeholder" Text="Напишите сообщение…" Foreground="#716C7D" FontSize="15" IsHitTestVisible="False"/>
+                  Foreground="#27362D" CaretBrush="#B45E30" Background="Transparent" BorderThickness="0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="0"/>
+              <TextBlock x:Name="Placeholder" Text="Напишите сообщение…" Foreground="#657369" FontSize="15" IsHitTestVisible="False"/>
             </Grid>
             <Grid Grid.Row="3">
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -127,7 +143,7 @@
                 <Button Visibility="Collapsed" x:Name="ArtMode" Content="Рисование" Padding="9,6"/>
                 <CheckBox x:Name="WebSearch" Content="Веб-доступ" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12" ToolTip="Разрешить оркестратору обращаться к интернету, когда для ответа нужны свежие сведения"/>
               </StackPanel>
-              <Button x:Name="Send" Grid.Column="2" Background="#5944A9" Foreground="White" Content="Отправить" FontWeight="SemiBold" Padding="14,7" ToolTip="Enter — отправить, Shift+Enter — новая строка"/>
+              <Button x:Name="Send" Grid.Column="2" Background="#304B3B" Foreground="White" Content="Отправить" FontWeight="SemiBold" Padding="14,7" ToolTip="Enter — отправить, Shift+Enter — новая строка"/>
             </Grid>
           </Grid>
         </Border>

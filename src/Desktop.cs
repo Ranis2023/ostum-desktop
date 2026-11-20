@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("5.1.0.0")]
+[assembly: AssemblyVersion("5.2.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -93,6 +93,9 @@ namespace Sfera {
             Find<Button>("QuickAgents").Click += (s,e) => SetMode(false,true);
             Find<Button>("ArtMode").Click += (s,e) => SetMode(true);
             Find<Button>("Attach").Click += (s,e) => {if(art)ChoosePhoto();else ChooseFile();};
+            Find<Button>("QuickDocument").Click += (s,e) => {SetMode(false);ChooseFile(true);};
+            Find<Button>("FullHelp").Click += (s,e) => WorkspaceUi.Help(Window);
+            Window.SizeChanged += (s,e)=>Find<Grid>("WelcomeArt").Visibility=Window.ActualWidth<900?Visibility.Collapsed:Visibility.Visible;
             Find<Button>("QuickPhoto").Click += (s,e) => { SetMode(false); ChoosePhoto(); };
             Find<Button>("QuickArt").Click += (s,e) => SetMode(true);
             Find<Button>("RemoveAttach").Click += (s,e) => SetAttachment(null,null);
@@ -114,20 +117,37 @@ namespace Sfera {
                 }
             };
             Window.PreviewKeyDown += async (s,e) => {
+                if(e.Key==Key.F1){e.Handled=true;WorkspaceUi.Help(Window);return;}
                 if(voice.Recording&&e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Shift)==0) {e.Handled=true;if(!e.IsRepeat)await Dictate();return;}
                 if(e.Key==Key.Escape&&(voice.Recording||speechWork!=null)){e.Handled=true;CancelVoice();return;}
                 if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control && work == null) { NewChat(); e.Handled=true; }
                 if (e.Key == Key.Escape && work != null) { work.Cancel(); e.Handled=true; }
             };
-            Window.PreviewDragOver += (s,e) => { if (e.Data.GetDataPresent(DataFormats.FileDrop)) { e.Effects=work == null ? DragDropEffects.Copy : DragDropEffects.None; e.Handled=true; } };
-            Window.Drop += (s,e) => {
-                if (work != null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop); if (files.Length > 0) LoadFile(files[0]);
+            Window.PreviewDragOver+=(s,e)=>{
+                if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;
+                var paths=e.Data.GetData(DataFormats.FileDrop) as string[];
+                bool accept=work==null&&speechWork==null&&!voice.Recording&&paths!=null&&paths.Length==1;
+                e.Effects=accept?e.AllowedEffects&DragDropEffects.Copy:DragDropEffects.None;
+                Find<Border>("ChatDrop").Visibility=e.Effects==DragDropEffects.None?Visibility.Collapsed:Visibility.Visible;e.Handled=true;
+            };
+            Window.PreviewDragLeave+=(s,e)=>{var p=e.GetPosition(Window);if(p.X<=0||p.Y<=0||p.X>=Window.ActualWidth-1||p.Y>=Window.ActualHeight-1)Find<Border>("ChatDrop").Visibility=Visibility.Collapsed;};
+            Window.PreviewDrop+=(s,e)=>{
+                if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;
+                e.Handled=true;Find<Border>("ChatDrop").Visibility=Visibility.Collapsed;
+                if(work!=null||speechWork!=null||voice.Recording)return;
+                var paths=e.Data.GetData(DataFormats.FileDrop) as string[];
+                if(paths==null||paths.Length!=1){status.Text="Прикрепите один файл к сообщению.";return;}
+                string path=paths[0];
+                if(Directory.Exists(path)||Path.GetExtension(path).Equals(".xlsx",StringComparison.OrdinalIgnoreCase)){
+                    if(!ProAccessWindow.Ensure(Window))return;
+                    prepareDraft.Stop();engine.StopChat();
+                    var workspace=new ProjectWindow(Window,prefs,engine);workspace.OpenOnLoad(path);workspace.ShowDialog();
+                }else LoadFile(path);
             };
             Window.Closing += (s,e) => { closing = true; idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
             Window.Loaded += (s,e) => input.Focus();
             SetupStudio(engines); SetupHistory();
-            Find<Image>("SidebarMark").Source=Window.Icon;Find<Image>("WelcomeMark").Source=Window.Icon;
+            Find<Image>("SidebarMark").Source=Window.Icon;
             Find<TextBlock>("AppVersion").Text="Desktop  "+Brand.Version;
             active = history.FirstOrDefault(c=>!c.Archived) ?? new Conversation();
             RefreshList(); ShowChat(); SetMode(false);
@@ -180,7 +200,7 @@ namespace Sfera {
             Find<CheckBox>("WebSearch").Visibility=Visibility.Visible;
             foreach (var name in new [] {"ChatMode","AgentMode","ArtMode"}) {
                 bool selected = name==(image?"ArtMode":team?"AgentMode":"ChatMode");
-                var b=Find<Button>(name); b.Background=Color(selected ? "#E7E3FA" : "#F2F1F7"); b.Foreground=Color(selected ? "#49338B" : "#5C5768");
+                var b=Find<Button>(name); b.Background=Color(selected ? "#E1EDDC" : "#EEF2E9"); b.Foreground=Color(selected ? "#2F563B" : "#536258");
             }
             Find<Button>("ChatMode").Content=team?"Агенты ×":image?"Рисование ×":"Авто";
             PromptHint();
@@ -256,7 +276,7 @@ namespace Sfera {
                 Find<Button>(name).IsEnabled=!busy;
             list.IsEnabled=!busy; Find<Button>("Attach").IsEnabled=!busy;Find<CheckBox>("WebSearch").IsEnabled=!busy;
             Find<Button>("Microphone").IsEnabled=Find<Button>("MicDevices").IsEnabled=Find<Button>("Toolbox").IsEnabled=!busy;
-            var b=Find<Button>("Send"); b.Content=busy ? "Стоп" : (art ? "Нарисовать" : "Отправить"); b.Background=Color(busy ? "#965355" : "#5944A9");
+            var b=Find<Button>("Send"); b.Content=busy ? "Стоп" : (art ? "Нарисовать" : "Отправить"); b.Background=Color(busy ? "#965355" : "#304B3B");
         }
         void Persist() {
             if (!history.Contains(active)) history.Add(active);
@@ -328,7 +348,7 @@ namespace Sfera {
             }
         }
         static TextBlock Author(string name) {
-            return new TextBlock { Text=name, FontSize=12, FontWeight=FontWeights.SemiBold, Foreground=Color("#635A7C"), Margin=new Thickness(0,0,0,4) };
+            return new TextBlock { Text=name, FontSize=12, FontWeight=FontWeights.SemiBold, Foreground=Color("#43674D"), Margin=new Thickness(0,0,0,4) };
         }
         static RichTextBox Formatted(string text) {
             var doc=new FlowDocument { PagePadding=new Thickness(0), FontFamily=new FontFamily("Inter, Segoe UI"), FontSize=15, Foreground=Color("#29332D"), TextAlignment=TextAlignment.Left };
@@ -355,8 +375,9 @@ namespace Sfera {
         void AddTurn(Turn t,WrapPanel recentWorkers=null) {
             bool user=t.Role=="user";
             var shell=new Border { HorizontalAlignment=user ? HorizontalAlignment.Right : HorizontalAlignment.Stretch,
-                MaxWidth=user?650:820, Margin=new Thickness(user?36:0,4,user?0:18,12), CornerRadius=new CornerRadius(12),
-                Background=user ? Color("#EAE6F6") : Brushes.Transparent, Padding=user?new Thickness(13,9,13,7):new Thickness(0,5,0,4) };
+                MaxWidth=user?650:820, Margin=new Thickness(user?36:0,4,user?0:18,12), CornerRadius=user?new CornerRadius(17,17,4,17):new CornerRadius(4,18,18,18),
+                BorderBrush=Color(user?"#CEDDCB":"#DDE4DA"),BorderThickness=new Thickness(1),
+                Background=user?Color("#DEECD9"):Brushes.White, Padding=new Thickness(17,11,17,11) };
             var block=new StackPanel(); shell.Child=block; transcript.Children.Add(shell);
             block.Children.Add(Author(user?"Вы":"Zarum"));
             if(recentWorkers!=null)block.Children.Add(recentWorkers);
@@ -368,7 +389,7 @@ namespace Sfera {
                 } catch (Exception) { block.Children.Add(new TextBlock {Text="Не удалось открыть сохранённое изображение."}); }
             }
             if (!t.Generated || t.Text!="Изображение готово.") block.Children.Add(Formatted(t.Text));
-            if(user&&!string.IsNullOrEmpty(t.OriginalText))block.Children.Add(new Expander{Header="Исправлена раскладка · исходный ввод",FontSize=11,Foreground=Color("#655D76"),Content=Formatted(t.OriginalText)});
+            if(user&&!string.IsNullOrEmpty(t.OriginalText))block.Children.Add(new Expander{Header="Исправлена раскладка · исходный ввод",FontSize=11,Foreground=Color("#536557"),Content=Formatted(t.OriginalText)});
             if (!user) {
                 WorkerHistory(block,t); AddResearchDetails(block,t);
                 var actions=new WrapPanel { Margin=new Thickness(0,3,0,0) }; block.Children.Add(actions);
@@ -386,7 +407,7 @@ namespace Sfera {
             }
         }
         void Small(Panel row,string title,Action action) {
-            var b=new Button { Content=title,FontSize=11,Padding=new Thickness(7,3,7,3),Background=Color("#F0EEF5"),Foreground=Color("#5D5570"),Margin=new Thickness(0,2,6,0) };
+            var b=new Button { Content=title,FontSize=11,Padding=new Thickness(7,3,7,3),Background=Color("#F0F3ED"),Foreground=Color("#526455"),Margin=new Thickness(0,2,6,0) };
             b.Click+=(s,e) => { try { action(); } catch (Exception ex) { status.Text=ex.Message; } }; row.Children.Add(b);
         }
     }

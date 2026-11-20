@@ -46,15 +46,18 @@ namespace Sfera {
                 var wash=System.Windows.Media.Color.FromArgb(16,c.R,c.G,c.B);
                 Background=new LinearGradientBrush(wash,Colors.White,0);
                 BorderBrush=new SolidColorBrush(System.Windows.Media.Color.FromArgb(51,c.R,c.G,c.B));
-                CornerRadius=new CornerRadius(9);BorderThickness=new Thickness(1);
-                Padding=new Thickness(5,4,8,4);Margin=new Thickness(0,2,6,2);MaxWidth=202;
+                CornerRadius=new CornerRadius(13);BorderThickness=new Thickness(1);
+                Padding=new Thickness(5,5,10,5);Margin=new Thickness(0,3,6,3);MaxWidth=220;
                 var body=new DockPanel();Child=body;
-                light=new AgentLight(evt.Id,isLive);DockPanel.SetDock(light,Dock.Left);body.Children.Add(light);
+                var well=new Grid{Width=31,Height=31,VerticalAlignment=VerticalAlignment.Center};
+                var glow=new RadialGradientBrush(System.Windows.Media.Color.FromArgb(65,c.R,c.G,c.B),Colors.Transparent);
+                well.Background=glow;light=new AgentLight(evt.Id,isLive);well.Children.Add(light);
+                DockPanel.SetDock(well,Dock.Left);body.Children.Add(well);
                 var labels=new StackPanel{Margin=new Thickness(5,0,0,0),VerticalAlignment=VerticalAlignment.Center};
                 body.Children.Add(labels);
                 var heading=new StackPanel{Orientation=Orientation.Horizontal};labels.Children.Add(heading);
                 heading.Children.Add(new TextBlock{Text=evt.Name,FontSize=12,FontWeight=FontWeights.SemiBold,Foreground=tint});
-                marker=new TextBlock{FontSize=10,Foreground=tint,Margin=new Thickness(5,1,0,0)};heading.Children.Add(marker);
+                marker=new TextBlock{Text=isLive?"в работе":"",FontSize=10,Foreground=tint,Margin=new Thickness(5,1,0,0)};heading.Children.Add(marker);
                 labels.Children.Add(new TextBlock{Text=evt.Detail,TextWrapping=TextWrapping.Wrap,FontSize=11.5,Foreground=Color("#565268")});
                 AutomationProperties.SetName(this,evt.Name+" · "+evt.Detail);
                 if(isLive)Loaded+=Arrive;else SetResult(evt);
@@ -64,8 +67,11 @@ namespace Sfera {
                 if(!SystemParameters.ClientAreaAnimation)return;
                 var ease=new CubicEase{EasingMode=EasingMode.EaseOut};
                 var length=TimeSpan.FromMilliseconds(210);
-                var transform=new TranslateTransform();RenderTransform=transform;
-                transform.BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(5,0,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
+                var transform=new TranslateTransform();var scale=new ScaleTransform();
+                var group=new TransformGroup();group.Children.Add(scale);group.Children.Add(transform);RenderTransform=group;RenderTransformOrigin=new Point(.16,.7);
+                var grow=new DoubleAnimation(.93,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop};
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty,grow);scale.BeginAnimation(ScaleTransform.ScaleYProperty,grow);
+                transform.BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(7,0,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
                 BeginAnimation(OpacityProperty,new DoubleAnimation(.32,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
             }
             public void SetResult(WorkerEvent evt) {

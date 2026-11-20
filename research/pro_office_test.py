@@ -47,6 +47,32 @@ def run(base):
     table=office.offers(offers)
     assert len(table)==4 and any(r[6]==24 for r in table) and any(r[7]=="Требует уточнения" for r in table)
     assert any("offer" in r["value"] for r in read(out)["rows"])
+    register=base/office.TASK_FILE
+    source=read(old)
+    task=dict(action="task",path=str(register),other=str(old),revision=source["revision"],sheet="",key="1",title="Проверить договор",owner="Ирина",due="2026-12-01")
+    office.execute(task)
+    office.execute(dict(task,title="=текст поручения"))
+    cells={c["key"]:c for c in read(register)["rows"]}
+    assert cells["E2"]["value"]==old.name and cells["H2"]["value"]==source["rows"][0]["value"]
+    assert cells["A3"]["kind"]=="text" and cells["A3"]["value"]=="=текст поручения"
+    assert cells["D2"]["value"]=="Открыто" and read(old)["revision"]==source["revision"]
+    a,b,report=[base/name for name in ("before.xlsx","after.xlsx","diff.xlsx")]
+    office.write_new(a,[["ID","Цена","Старый"],["A","10","x"],["B","1","x"],["D","5","x"],["D","8","x"],["","7","x"]])
+    office.write_new(b,[["Цена","Номер","Новый"],["12","A","x"],["9","C","x"],["6","D","x"]])
+    req=dict(action="reconcile",path=str(report),sources=[str(a),str(b)],sheets=["Данные"]*2,keys=["ID","Номер"],revisions=[read(a)["revision"],read(b)["revision"]])
+    office.execute(req)
+    data=office.reconcile(req)
+    assert {r[0] for r in data[1:]}=={"Столбец удалён","Столбец добавлен","Значение изменено","Ключ неоднозначен","Пустой ключ","Строка добавлена","Строка удалена"}
+    assert any(r[1:5]==("A","Цена","10","12") and r[-2:]==("Данные!B2","Данные!A2") for r in data)
+    assert [r[0] for r in data].count("Ключ неоднозначен")==3
+    assert req["revisions"]==[read(a)["revision"],read(b)["revision"]]
+    try:office.execute(req)
+    except FileExistsError:pass
+    else:raise AssertionError("Existing report overwritten")
+    try:office.reconcile(dict(req,revisions=["stale",req["revisions"][1]]))
+    except ValueError:pass
+    else:raise AssertionError("Changed input not noticed")
+    print("PASS · sourced tasks, literal text, keyed comparison, duplicates, blanks, changed schema, independent reports and revisions")
     print("PASS · DOCX selective changes, comments, unknown parts, version restore, stale-file conflict, XLSX formulas and three suppliers")
 
 

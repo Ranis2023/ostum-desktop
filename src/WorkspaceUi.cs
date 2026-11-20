@@ -43,27 +43,43 @@ namespace Sfera {
             }
             return w.ShowDialog()==true?choice:-1;
         }
-        internal static void Guide(Window owner) {
-            var w=Dialog(owner,"Как работать в OSTUM Pro",565,466);var root=new DockPanel{Margin=new Thickness(22)};w.Content=root;
-            var done=Button(w,"Понятно",()=>w.DialogResult=true,"Primary");done.HorizontalAlignment=HorizontalAlignment.Right;done.IsDefault=true;DockPanel.SetDock(done,Dock.Bottom);root.Children.Add(done);
-            var p=new StackPanel();root.Children.Add(new ScrollViewer{Content=p,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});p.Children.Add(Text(w,"От папки до первой правки","Title"));
-            string[][] steps={new[]{"1. Откройте рабочую папку","Перетащите папку или DOCX/XLSX из Проводника. Если папка новая, выберите доступ. В организации доступные папки назначает администратор."},new[]{"2. Выберите то, что хотите изменить","Дважды щёлкните файл слева. Нажмите на абзац или ячейку, затем «Предложить правку». В режиме локального анализа кнопка «Спросить Zarum» помогает переформулировать выбранный текст."},new[]{"3. Проверьте и сохраните","Откройте вкладку «Правки», оставьте нужные галочки и нажмите «Сохранить выбранные». Предыдущую редакцию можно вернуть через «Ещё → Версии файла»."}};
-            foreach(var step in steps){p.Children.Add(Text(w,step[0],"Subhead"));p.Children.Add(Text(w,step[1],"Hint"));}w.ShowDialog();
+        internal static void Help(Window owner,string section="start") {
+            try {
+                string path=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"OSTUM-Help.html");
+                if(!File.Exists(path))throw new FileNotFoundException("Восстановите справку с помощью установщика OSTUM.");
+                var uri=new UriBuilder(new Uri(path)){Fragment=section};
+                try{Process.Start(new ProcessStartInfo(uri.Uri.AbsoluteUri){UseShellExecute=true});}
+                catch(System.ComponentModel.Win32Exception){Process.Start(new ProcessStartInfo(path){UseShellExecute=true});}
+            } catch(Exception ex){MessageBox.Show(owner,ex.Message,"Справка OSTUM");}
         }
+
     }
 
     internal sealed class ProAccessWindow : Window {
         readonly Grid view; readonly TextBlock feedback; readonly Button check;
+        readonly byte[] qrBytes;
         ProAccessWindow(Window owner) {
             Owner=owner;Icon=owner.Icon;Title="Доступ к OSTUM Pro";WindowStartupLocation=WindowStartupLocation.CenterOwner;
             Width=Math.Min(655,SystemParameters.WorkArea.Width);Height=Math.Min(690,SystemParameters.WorkArea.Height);MinWidth=375;MinHeight=410;WorkspaceUi.Skin(this);
             view=WorkspaceUi.View("ProAccessView.xaml");Content=view;feedback=Get<TextBlock>("Feedback");check=Get<Button>("Verify");
-            string request="p_"+ProAccess.Device;Get<TextBox>("Request").Text=request;
+            string request="p2_"+ProAccess.Device;Get<TextBox>("Request").Text=request;
+            string url="https://t.me/"+Brand.SubscriptionBot+"?start="+request;
+            using(var gen=new QRCoder.QRCodeGenerator()) using(var data=gen.CreateQrCode(url,QRCoder.QRCodeGenerator.ECCLevel.M))
+            using(var qr=new QRCoder.PngByteQRCode(data)) qrBytes=qr.GetGraphic(8);
+            var image=new System.Windows.Media.Imaging.BitmapImage();
+            using(var stream=new MemoryStream(qrBytes)){image.BeginInit();image.CacheOption=System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;image.StreamSource=stream;image.EndInit();}
+            image.Freeze();Get<Image>("Qr").Source=image;
+            Get<Button>("SaveQR").Click+=(s,e)=>{
+                var picker=new SaveFileDialog{FileName="OSTUM-Pro-QR.png",Filter="QR-код PNG|*.png"};
+                if(picker.ShowDialog(this)==true)try{WorkPolicy.LocalPath(picker.FileName);File.WriteAllBytes(picker.FileName,qrBytes);feedback.Text="QR сохранён. Откройте его на устройстве с доступом к Telegram.";}catch(Exception ex){feedback.Text=ex.Message;}
+            };
+            Get<Button>("Guide").Click+=(s,e)=>WorkspaceUi.Help(this,"activation");
+            PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.F1){e.Handled=true;WorkspaceUi.Help(this,"activation");}};
             Get<Button>("Channel").Click+=(s,e)=>Brand.OpenChannel(this);check.Click+=(s,e)=>OpenBot(request);
             Get<Button>("Copy").Click+=(s,e)=>{try{Clipboard.SetText(request);feedback.Text="Запрос скопирован. Отправьте его проверяющему боту в Telegram.";}catch{feedback.Text="Выделите код и нажмите Ctrl+C.";}};
             Get<Button>("Import").Click+=(s,e)=>{var pick=new OpenFileDialog{Filter="Подтверждение OSTUM|*.ostumpro",Title="Выберите файл из ответа бота"};if(pick.ShowDialog(this)==true)LoadFile(pick.FileName);};
             Get<Button>("CloseGate").Click+=(s,e)=>DialogResult=false;
-            if(!WorkPolicy.Network){Get<Button>("Channel").Visibility=check.Visibility=Visibility.Collapsed;Get<TextBlock>("NetHint").Text="На другом устройстве подпишитесь на @ranisgaliaskarov. Отправьте код ниже боту @"+Brand.SubscriptionBot+" и перенесите файл ответа на рабочий ПК.";}
+            if(!WorkPolicy.Network){Get<Button>("Channel").Visibility=check.Visibility=Visibility.Collapsed;Get<TextBlock>("NetHint").Text="Отсканируйте QR телефоном или отправьте показанный код боту @"+Brand.SubscriptionBot+" и перенесите файл ответа на рабочий ПК.";}
             AllowDrop=true;PreviewDragOver+=(s,e)=>{if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;e.Effects=IsGrant(e.Data)?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;};
             PreviewDrop+=(s,e)=>{if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;e.Handled=true;if(IsGrant(e.Data))LoadFile(((string[])e.Data.GetData(DataFormats.FileDrop))[0]);else feedback.Text="Перетащите один файл OSTUM-Pro.ostumpro, полученный от бота.";};
         }
@@ -84,7 +100,7 @@ namespace Sfera {
             catch(Exception ex){MessageBox.Show(owner,ex.Message,"Доступ к OSTUM Pro",MessageBoxButton.OK,MessageBoxImage.Information);return false;}
         }
         internal static void Manage(Window owner) {
-            try{var w=new ProAccessWindow(owner);w.Get<Button>("CloseGate").Content="Закрыть";if(ProAccess.Active)w.feedback.Text="На этом компьютере доступ действует до "+ProAccess.Expires.ToString("dd.MM.yyyy HH:mm")+". Его можно продлить заранее.";w.ShowDialog();}
+            try{var w=new ProAccessWindow(owner);w.Get<Button>("CloseGate").Content="Закрыть";if(ProAccess.Active){w.Get<StackPanel>("Steps").Visibility=Visibility.Collapsed;w.Get<Border>("Granted").Visibility=Visibility.Visible;w.MinHeight=260;w.Height=Math.Min(320,SystemParameters.WorkArea.Height);}w.ShowDialog();}
             catch(Exception ex){MessageBox.Show(owner,ex.Message,"Подписка Pro",MessageBoxButton.OK,MessageBoxImage.Information);}
         }
     }

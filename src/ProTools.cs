@@ -80,6 +80,15 @@ namespace Sfera {
             var req=args??new Dictionary<string,object>();req["action"]=action;req["path"]=path;
             if(req.ContainsKey("other"))UnderProject(project,(string)req["other"]);
             if(req.ContainsKey("sources"))foreach(var s in (string[])req["sources"])UnderProject(project,s);
+            if(action=="task"||action=="reconcile"||action=="offers"){
+                if(!string.Equals(Path.GetExtension(path),".xlsx",StringComparison.OrdinalIgnoreCase))throw new IOException("Для результата выберите файл .xlsx.");
+                var inputs=req.ContainsKey("sources")?(string[])req["sources"]:new[]{(string)req["other"]};
+                var rules=WorkPolicy.Projects();
+                foreach(string src in inputs.Concat(new[]{path})){
+                    if(Path.GetFullPath(src).Split(Path.DirectorySeparatorChar).Any(x=>x.StartsWith(".ostum-",StringComparison.OrdinalIgnoreCase)))throw new UnauthorizedAccessException("Выберите обычную рабочую папку.");
+                    if(rules.Any(p=>WorkPolicy.Within(src,p.Root)!=WorkPolicy.Within(path,p.Root)))throw new UnauthorizedAccessException("Исходные данные и результат должны принадлежать одному рабочему пространству с одинаковыми правами.");
+                }
+            }
             var result=Store.Json().Deserialize<OfficeResult>(await Python("office.py",null,Store.Json().Serialize(req),ct).ConfigureAwait(false));
             if(result==null||result.error!=null)throw new IOException(result==null?"Редактор не ответил.":result.error);
             if(action!="read"&&action!="versions")WorkPolicy.Audit(action,path);

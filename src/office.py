@@ -199,7 +199,8 @@ class Office:
                         start=datetime.datetime(1904,1,1) if prop and prop[0].getAttribute("date1904") in ("1","true") else datetime.datetime(1899,12,30)
                         display=(start+datetime.timedelta(days=float(raw))).isoformat(sep=" ").removesuffix(" 00:00:00")
                     except (ArithmeticError,ValueError): pass
-                result.append(dict(key=k,value="="+text(f[0]) if f else raw,display=display,style=format_name,comment=""))
+                kind="formula" if f else "text" if typ in ("inlineStr","s","str") else typ or "n"
+                result.append(dict(key=k,value="="+text(f[0]) if f else raw,display=display,kind=kind,style=format_name,comment=""))
         if len(result)>MAX_ROWS: raise ValueError("Лимит редактора — 25 000 заполненных ячеек или абзацев за одно открытие.")
         return result
 
@@ -294,7 +295,9 @@ class Office:
             for e in children(cell,X,tag):cell.removeChild(e)
         if cell.hasAttribute("t"):cell.removeAttribute("t")
         v=row["value"]
-        if v.startswith("="):
+        if row.get("operation")=="literal":
+            cell.setAttribute("t","inlineStr");element(element(cell,X,"is"),X,"t",v).setAttribute("xml:space","preserve")
+        elif v.startswith("="):
             if re.search(r"\[|https?:|WEBSERVICE\s*\(|HYPERLINK\s*\(|\|",v,re.I): raise ValueError("Внешние формулы в редакторе отключены.")
             element(cell,X,"f",v[1:])
         elif re.fullmatch(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?",v):
@@ -406,6 +409,20 @@ def versions(path):
 
 def replace(path,prepared,revision):
     folder,key=versions(path);folder.mkdir(exist_ok=True)
+    lock_path=folder/(key+".lock")
+    if lock_path.is_symlink() or lock_path.is_junction():raise ValueError("Недопустимый путь блокировки.")
+    with lock_path.open("a+b") as lock:
+        lock.seek(0)
+        if os.name=="nt":
+            import msvcrt
+            msvcrt.locking(lock.fileno(),msvcrt.LK_LOCK,1)
+        else:
+            import fcntl
+            fcntl.flock(lock,fcntl.LOCK_EX)
+        replace_locked(path,prepared,revision,folder,key)
+
+
+def replace_locked(path,prepared,revision,folder,key):
     if digest(path)!=revision:raise ValueError("Файл изменён другим пользователем.")
     backup=folder/(key+"-"+datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S%fZ")+path.suffix)
     if os.name=="nt":
@@ -485,12 +502,114 @@ def offers(sources):
     return [result[0]]+sorted(result[1:],key=lambda v:(v[0],v[2],v[4],v[6]=="" ,v[6] or 0))
 
 
+TASK_HEADERS=["Поручение","Ответственный","Срок","Статус","Файл","Лист","Фрагмент","Текст источника"]
+TASK_FILE="Поручения OSTUM.xlsx"
+
+
+def add_task(path,req):
+    source=Path(req["other"])
+    if path.name!=TASK_FILE or path.parent.resolve()!=source.parent.resolve() or path.resolve()==source.resolve():
+        raise ValueError("Реестр хранится рядом с исходным документом.")
+    title=req["title"].strip()
+    if not title or len(title)>500:raise ValueError("Введите поручение длиной от 1 до 500 символов.")
+    due=req.get("due","")
+    if due:datetime.date.fromisoformat(due)
+    if len(req.get("owner",""))>160:raise ValueError("Сократите имя ответственного.")
+    book=Office(source)
+    try:
+        if book.revision!=req["revision"]:raise ValueError("Источник изменился. Откройте его заново.")
+        rows=book.rows(req.get("sheet"))
+        fragment=next((r for r in rows if r["key"]==req["key"]),None)
+        if fragment is None:raise ValueError("Фрагмент отсутствует в документе.")
+        record=[title,req.get("owner","").strip(),due,"Открыто",source.name,req.get("sheet",""),fragment["key"],fragment["value"][:2000]]
+    finally:book.z.close()
+    if not path.exists():
+        try:
+            write_new(path,[TASK_HEADERS,record],sheet="Поручения")
+            return
+        except FileExistsError:pass
+    register=Office(path)
+    try:
+        if "Поручения" not in register.sheets:raise ValueError("Имя реестра уже занимает другая книга.")
+        cells={r["key"]:r["value"] for r in register.rows("Поручения")}
+        if [cells.get(column(i)+"1") for i in range(1,9)]!=TASK_HEADERS:raise ValueError("Столбцы реестра изменены. Проверьте заголовки.")
+        if len(cells)+len(record)>MAX_ROWS:raise ValueError("Реестр заполнен. Сохраните его под другим именем и создайте следующий.")
+        n=max(address(k)[0] for k in cells)+1
+        patches=[dict(key=column(i)+str(n),value=value,old="",operation="literal") for i,value in enumerate(record,1)]
+        register.commit(patches,"Поручения",register.revision)
+    finally:register.z.close()
+
+
+def indexed_sheet(path,sheet,key_column,revision):
+    book=Office(path)
+    try:
+        if book.is_word or sheet not in book.sheets:raise ValueError("Выберите существующий лист XLSX.")
+        if book.revision!=revision:raise ValueError("Таблица изменилась. Начните сверку заново.")
+        rows=collections.defaultdict(dict)
+        for cell in book.rows(sheet):
+            n,c=address(cell["key"])
+            if cell["value"] or cell["display"]:rows[n][c]=cell
+        names={c:h["display"].strip() for c,h in rows.pop(1,{}).items()}
+        cols={name.casefold():c for c,name in names.items()}
+        if not names or "" in cols or len(cols)!=len(names) or any(c not in names for row in rows.values() for c in row):
+            raise ValueError("В первой строке нужны уникальные названия всех заполненных столбцов: "+path.name)
+        if key_column not in cols:raise ValueError("Выбранный заголовок отсутствует.")
+        index=collections.defaultdict(list)
+        for n,row in sorted(rows.items()):
+            key=row.get(cols[key_column],{})
+            value=key.get("display","") if key.get("kind")=="formula" else key.get("value","")
+            index[value.strip()].append((n,row))
+        return names,cols,index
+    finally:book.z.close()
+
+
+def reconcile(req):
+    paths=list(map(Path,req["sources"]));sheets=req["sheets"];keys=[k.strip().casefold() for k in req["keys"]]
+    if len(paths)!=2 or paths[0].resolve()==paths[1].resolve():raise ValueError("Выберите две разные книги.")
+    tabs=[indexed_sheet(p,s,k,v) for p,s,k,v in zip(paths,sheets,keys,req["revisions"],strict=True)]
+    (an,ac,a),(bn,bc,b)=tabs
+    output=[["Результат","Ключ","Столбец","Раньше","Теперь","Исходная книга · "+paths[0].name,"Новая книга · "+paths[1].name]]
+    def add(*row):
+        if (len(output)+1)*7>MAX_ROWS:raise ValueError("Отчёт превышает 25 000 ячеек. Сверьте меньшие выборки.")
+        output.append(row)
+    def loc(side,n,c):return sheets[side]+"!"+column(c)+str(n)
+    left_headers=ac.keys()-{keys[0]};right_headers=bc.keys()-{keys[1]}
+    for k in sorted(left_headers ^ right_headers):
+        if k in left_headers:add("Столбец удалён","",an[ac[k]],"","",loc(0,1,ac[k]),"")
+        else:add("Столбец добавлен","",bn[bc[k]],"","","",loc(1,1,bc[k]))
+    common=[k for k in ac if k in bc and k not in keys]
+    for key in sorted(a.keys()|b.keys()):
+        left=a.get(key,[]);right=b.get(key,[])
+        if not key or len(left)>1 or len(right)>1 or not left or not right:
+            label="Пустой ключ" if not key else "Ключ неоднозначен" if len(left)>1 or len(right)>1 else "Строка удалена" if left else "Строка добавлена"
+            for side,items in enumerate((left,right)):
+                for n,row in items:
+                    where=loc(side,n,(ac,bc)[side][keys[side]])
+                    add(label,key,"","","",where if side==0 else "",where if side==1 else "")
+            continue
+        (ln,lr),(rn,rr)=left[0],right[0]
+        for k in common:
+            before=lr.get(ac[k],{});after=rr.get(bc[k],{})
+            if any(before.get(field,"")!=after.get(field,"") for field in ("value","kind","display")):
+                def shown(cell):
+                    value=cell.get("value","");display=cell.get("display","")
+                    return value if display==value or not display else value+" · "+display
+                label="Тип ячейки изменён" if before.get("value")==after.get("value") and before.get("kind")!=after.get("kind") else "Значение изменено"
+                add(label,key,an[ac[k]],shown(before),shown(after),loc(0,ln,ac[k]),loc(1,rn,bc[k]))
+    if len(output)==1:add("Различий не найдено","","","","","","")
+    return output
+
+
 def execute(req):
     path=Path(req["path"]);op=req["action"]
     if op=="create":
         write_new(path,req["data"],path.suffix.lower()==".docx");return {}
     if op=="offers":
         write_new(path,offers(req["sources"]),sheet="Сравнение");return {}
+    if op=="reconcile":
+        write_new(path,reconcile(req),sheet="Сверка");return {}
+    if op=="task":
+        add_task(path,req);return {}
     if op=="versions":
         folder,key=versions(path)
         return {"versions":sorted((p.name for p in folder.glob(key+"-*"+path.suffix)),reverse=True)}

@@ -32,7 +32,7 @@
         <TextBlock Text="Поблагодарить разработчика" FontWeight="SemiBold"/>
         <TextBlock Text="Подписка на канал Раниса Галиаскарова открывает рабочие пространства Pro после проверки в Telegram. Базовым чатом можно пользоваться сразу." TextWrapping="Wrap" Margin="0,4,0,5"/>
         <Button x:Name="DeveloperChannel" Content="Открыть канал в Telegram ↗" HorizontalAlignment="Left" Padding="8,4"/>
-        <Button x:Name="ProSubscription" Content="Проверить или продлить доступ к Pro" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="8,4"/>
+        <Button x:Name="ProSubscription" Content="Бессрочный доступ к OSTUM Pro" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="8,4"/>
       </StackPanel>
     </ScrollViewer>
     <StackPanel Grid.Row="2" Margin="0,8,0,0">
