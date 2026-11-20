@@ -1,0 +1,16 @@
+Адаптеры OSTUM для Zarum 9B (основа Qwen3.5-9B)
+
+Базовая модель Qwen Team распространяется по Apache License 2.0.
+https://huggingface.co/Qwen/Qwen3.5-9B
+
+source-check.gguf корректирует выходной слой Qwen при проверке одного утверждения по рабочему материалу. Обучающие примеры описывают вымышленные договоры, брифы и сметы. Для оценки на общих русских текстах использовалась выборка Russian Commitment Bank из RussianSuperGLUE. Авторы RussianSuperGLUE распространяют данные по лицензии MIT. Использована ревизия 53cb9d7f38b34c308a2eea3f4797f9edc7947d8b.
+https://huggingface.co/datasets/RussianNLP/russian_super_glue
+
+tool-routing.gguf выбирает сочетание инструментов для русскоязычной просьбы. Набор запросов, разметка инструментов и веса дополнения созданы для «Сферы».
+
+Оба адаптера работают через llama.cpp. История пользователя и его персональный адаптер хранятся в его учётной записи Windows.
+https://github.com/ggml-org/llama.cpp
+
+Для совместимой видеокарты NVIDIA установщик поддерживает официальный модуль llama.cpp b12547 для CUDA 12.4. Двоичные библиотеки CUDA Runtime и cuBLAS принадлежат NVIDIA и используются «Сферой» на условиях NVIDIA CUDA Toolkit EULA.
+https://github.com/ggml-org/llama.cpp/releases/tag/b12547
+https://docs.nvidia.com/cuda/archive/12.4.0/eula/index.html

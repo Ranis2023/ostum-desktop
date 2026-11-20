@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Ostum Desktop" Manufacturer="OSTUM" Version="4.0.0" Language="1049" Codepage="1251" UpgradeCode="04C666A8-5F46-44A7-BC04-19100F94AF39">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited" Platform="x64" SummaryCodepage="1251"/>
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="На компьютере уже установлена более новая версия Ostum Desktop."/>
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high"/>
+    <Icon Id="SferaIcon" SourceFile="$(var.Build)\ostum.ico"/><Property Id="ARPPRODUCTICON" Value="SferaIcon"/>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder"><Directory Id="UserPrograms" Name="Programs"><Directory Id="INSTALLFOLDER" Name="Ostum Desktop">
+        <Directory Id="Engines" Name="engines"><Directory Id="LlamaDir" Name="llama-b12547"/><Directory Id="SdDir" Name="sd-532d2c1"/><Directory Id="VoiceDir" Name="whisper-b5454"/></Directory>
+        <Directory Id="NoticeDir" Name="licenses"/><Directory Id="AdapterDir" Name="adapters"/>
+      </Directory></Directory></Directory>
+      <Directory Id="ProgramMenuFolder"/><Directory Id="DesktopFolder"/>
+    </Directory>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="Main" Guid="47EC0175-2533-4841-B317-0A41E3C911C1" Win64="yes">
+        <File Id="SferaExecutable" Source="$(var.Build)\OstumDesktop.exe"/>
+        <File Id="SferaConfig" Source="$(var.Src)\OstumDesktop.exe.config"/>
+        <File Id="OstumLicense" Name="LICENSE.txt" Source="$(var.Src)\..\LICENSE"/>
+        <File Id="AudioCore" Source="$(var.Build)\NAudio.Core.dll"/>
+        <File Id="AudioWasapi" Source="$(var.Build)\NAudio.Wasapi.dll"/>
+        <File Id="AudioLicense" Source="$(var.Src)\..\packaging\NAudio-license.txt"/>
+        <File Id="PdfMain" Source="$(var.Build)\UglyToad.PdfPig.dll"/>
+        <File Id="PdfCore" Source="$(var.Build)\UglyToad.PdfPig.Core.dll"/>
+        <File Id="PdfLayout" Source="$(var.Build)\UglyToad.PdfPig.DocumentLayoutAnalysis.dll"/>
+        <File Id="PdfFonts" Source="$(var.Build)\UglyToad.PdfPig.Fonts.dll"/>
+        <File Id="PdfTokens" Source="$(var.Build)\UglyToad.PdfPig.Tokens.dll"/>
+        <File Id="PdfTokenization" Source="$(var.Build)\UglyToad.PdfPig.Tokenization.dll"/>
+        <File Id="LibHash" Source="$(var.Build)\Microsoft.Bcl.HashCode.dll"/>
+        <File Id="LibMem" Source="$(var.Build)\System.Memory.dll"/>
+        <File Id="LibBuf" Source="$(var.Build)\System.Buffers.dll"/>
+        <File Id="LibVec" Source="$(var.Build)\System.Numerics.Vectors.dll"/>
+        <File Id="LibRun" Source="$(var.Build)\System.Runtime.CompilerServices.Unsafe.dll"/>
+        <File Id="AgentNotices" Source="$(var.Src)\..\packaging\Research-credits.txt"/>
+        <Shortcut Id="StartLink" Directory="ProgramMenuFolder" Name="Ostum Desktop" Target="[#SferaExecutable]" WorkingDirectory="INSTALLFOLDER" Description="Локальный чат и генерация изображений" Icon="SferaIcon"/>
+        <Shortcut Id="DesktopLink" Directory="DesktopFolder" Name="Ostum Desktop" Target="[#SferaExecutable]" WorkingDirectory="INSTALLFOLDER" Description="Открыть локальный ИИ" Icon="SferaIcon"/>
+        <RegistryValue Root="HKCU" Key="Software\SferaAI\Setup" Name="Installed" Type="integer" Value="1" KeyPath="yes"/>
+        <RegistryValue Root="HKCU" Key="Software\SferaAI\Setup" Name="ModelSource" Type="string" Value="[SourceDir]Models"/>
+        <RegistryValue Root="HKCU" Key="Software\SferaAI\Setup" Name="InstallPath" Type="string" Value="[INSTALLFOLDER]"/>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="AdapterDir"><Component Id="QwenTaskAdapters" Guid="EAE1AB27-9D32-4683-84D1-4A3A597F3E60" Win64="yes">
+      <File Id="QwenSourceCheck" Source="$(var.Src)\adapters\source-check.gguf" KeyPath="yes"/>
+      <File Id="QwenToolRouting" Source="$(var.Src)\adapters\tool-routing.gguf"/>
+      <File Id="QwenAdapterNotice" Source="$(var.Src)\..\packaging\Adapter-credits.txt"/>
+    </Component></DirectoryRef>
+    <DirectoryRef Id="LlamaDir"><Component Id="LocalLlamaCRT" Guid="C759CC90-2B39-482D-BD03-B7CBF4BC5702" Win64="yes">
+      <File Id="LlamaMs" Source="$(var.Build)\msvc\msvcp140.dll" KeyPath="yes"/>
+      <File Id="LlamaVc" Source="$(var.Build)\msvc\vcruntime140.dll"/><File Id="LlamaVcOne" Source="$(var.Build)\msvc\vcruntime140_1.dll"/>
+    </Component></DirectoryRef>
+    <DirectoryRef Id="SdDir"><Component Id="LocalSdCRT" Guid="AB05A635-A34E-4576-B29F-F3CA75719840" Win64="yes">
+      <File Id="SdMs" Source="$(var.Build)\msvc\msvcp140.dll" KeyPath="yes"/><File Id="SdMsCodec" Source="$(var.Build)\msvc\msvcp140_codecvt_ids.dll"/>
+      <File Id="SdVc" Source="$(var.Build)\msvc\vcruntime140.dll"/><File Id="SdVcOne" Source="$(var.Build)\msvc\vcruntime140_1.dll"/>
+      <File Id="SdComp" Source="$(var.Build)\msvc\vcomp140.dll"/>
+    </Component></DirectoryRef>
+    <DirectoryRef Id="VoiceDir"><Component Id="SpeechRuntime" Guid="7837EEFB-3BB9-4D8D-BF6F-90CBFBF4C8AF" Win64="yes">
+      <File Id="VoiceFile0" Source="$(var.Build)\voice\engine\ggml-base.dll" KeyPath="yes"/>
+      <File Id="VoiceFile1" Source="$(var.Build)\voice\engine\ggml-cpu-alderlake.dll"/>
+      <File Id="VoiceFile2" Source="$(var.Build)\voice\engine\ggml-cpu-cannonlake.dll"/>
+      <File Id="VoiceFile3" Source="$(var.Build)\voice\engine\ggml-cpu-cascadelake.dll"/>
+      <File Id="VoiceFile4" Source="$(var.Build)\voice\engine\ggml-cpu-haswell.dll"/>
+      <File Id="VoiceFile5" Source="$(var.Build)\voice\engine\ggml-cpu-icelake.dll"/>
+      <File Id="VoiceFile6" Source="$(var.Build)\voice\engine\ggml-cpu-sandybridge.dll"/>
+      <File Id="VoiceFile7" Source="$(var.Build)\voice\engine\ggml-cpu-skylakex.dll"/>
+      <File Id="VoiceFile8" Source="$(var.Build)\voice\engine\ggml-cpu-sse42.dll"/>
+      <File Id="VoiceFile9" Source="$(var.Build)\voice\engine\ggml-cpu-x64.dll"/>
+      <File Id="VoiceFile10" Source="$(var.Build)\voice\engine\ggml.dll"/>
+      <File Id="VoiceFile11" Source="$(var.Build)\voice\engine\whisper-cli.exe"/>
+      <File Id="VoiceFile12" Source="$(var.Build)\voice\engine\whisper.dll"/>
+      <File Id="VoiceMs" Source="$(var.Build)\msvc\msvcp140.dll"/><File Id="VoiceVc" Source="$(var.Build)\msvc\vcruntime140.dll"/><File Id="VoiceVcOne" Source="$(var.Build)\msvc\vcruntime140_1.dll"/><File Id="VoiceLicense" Source="$(var.Src)\..\packaging\Voice-license.txt"/>
+    </Component></DirectoryRef>
+    <Feature Id="Sfera" Title="Ostum Desktop" Level="1"><ComponentRef Id="Main"/><ComponentRef Id="QwenTaskAdapters"/><ComponentRef Id="LocalLlamaCRT"/><ComponentRef Id="LocalSdCRT"/><ComponentRef Id="SpeechRuntime"/><ComponentGroupRef Id="RuntimeFiles"/></Feature>
+    <CustomAction Id="ImportLocalModels" FileKey="SferaExecutable" ExeCommand="--import-models &quot;[SourceDir]Models&quot;" Execute="immediate" Return="ignore"/>
+    <InstallExecuteSequence><Custom Action="ImportLocalModels" After="InstallFinalize">NOT REMOVE~="ALL" AND NOT SFERA_MANAGED_MODELS</Custom></InstallExecuteSequence>
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+    <UIRef Id="WixUI_InstallDir"/>
+    <UI>
+      <ProgressText Action="ImportLocalModels">Подготовка моделей для работы без интернета</ProgressText>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="3">NOT Installed</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="3">1</Publish>
+    </UI>
+  </Product>
+</Wix>

@@ -1,0 +1,23 @@
+Ostum Desktop. Источники локальных движков и моделей
+
+Приложение обращается к llama-server через 127.0.0.1 и запускает sd-cli как дочерний процесс. Кнопка загрузки моделей использует Hugging Face. Контрольные суммы SHA-256, версии и адреса файлов находятся в каталоге приложения.
+
+llama.cpp, сборка b12547 (MIT)
+https://github.com/ggml-org/llama.cpp/releases/tag/b12547
+stable-diffusion.cpp, сборка master-1106-532d2c1 (MIT)
+https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-1106-532d2c1
+
+Zarum 9B использует Qwen3.5-9B, Qwen Team (Apache License 2.0), квантование Q4_K_M и зрительный проектор F16 от Unsloth. OSTUM поставляет собственные адаптеры отдельно от базовых весов.
+https://huggingface.co/Qwen/Qwen3.5-9B
+https://huggingface.co/unsloth/Qwen3.5-9B-GGUF
+
+Z-Image-Turbo — Tongyi-MAI. GGUF основного генератора от leejet, текстовый энкодер Qwen3-4B-Instruct-2507 от Unsloth, VAE из комплекта Comfy-Org.
+https://huggingface.co/Tongyi-MAI/Z-Image-Turbo
+https://huggingface.co/leejet/Z-Image-Turbo-GGUF
+https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
+https://huggingface.co/Comfy-Org/z_image_turbo
+
+whisper.cpp b5454 и модель Whisper base multilingual Q8_0 для диктовки. Захват Windows WASAPI реализован с NAudio 2.2.1.
+https://github.com/ggml-org/whisper.cpp/releases/tag/b5454
+https://huggingface.co/ggerganov/whisper.cpp
+https://github.com/naudio/NAudio/tree/v2.2.1
