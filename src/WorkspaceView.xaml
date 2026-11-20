@@ -1,11 +1,12 @@
 <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Background="#F4F5F1">
   <Grid.Resources><!--theme--></Grid.Resources>
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <DockPanel Margin="22,16,18,13">
-    <Button x:Name="Help" DockPanel.Dock="Right" Content="Справка" Style="{StaticResource Flat}" VerticalAlignment="Center" ToolTip="Короткая инструкция по работе с папкой, документами и локальным ИИ"/>
+  <DockPanel x:Name="WorkspaceHeader" Margin="22,16,18,13">
+    <Button x:Name="BackToChat" Content="В чат" DockPanel.Dock="Right" Visibility="Collapsed" Style="{StaticResource Flat}" VerticalAlignment="Center" ToolTip="Перенести этот редактор и предложенные правки в чат"/>
+    <Button x:Name="Help" DockPanel.Dock="Right" Content="Справка" Style="{StaticResource Flat}" VerticalAlignment="Center" ToolTip="Как работать с папкой и документом из чата"/>
     <Button x:Name="ToggleFiles" DockPanel.Dock="Right" Content="Папки и файлы" Visibility="Collapsed" VerticalAlignment="Center"/>
-    <Border DockPanel.Dock="Left" Width="45" Height="45" Background="#FF833E" CornerRadius="15" VerticalAlignment="Center" Margin="0,0,13,0"><Path Width="25" Height="20" Stretch="Uniform" Stroke="#422512" StrokeThickness="1.6" StrokeLineJoin="Round" Data="M2,5 Q2,3 4,3 L10,3 13,6 22,6 Q24,6 24,8 L24,18 Q24,20 22,20 L4,20 Q2,20 2,18 Z M3,9 L23,9"/></Border>
-    <StackPanel VerticalAlignment="Center"><TextBlock Text="Рабочее пространство" Style="{StaticResource Title}"/><TextBlock x:Name="HeadHint" Style="{StaticResource Hint}"/></StackPanel>
+    <Border x:Name="FolderMark" DockPanel.Dock="Left" Width="45" Height="45" Background="#FF833E" CornerRadius="15" VerticalAlignment="Center" Margin="0,0,13,0"><Path Width="25" Height="20" Stretch="Uniform" Stroke="#422512" StrokeThickness="1.6" StrokeLineJoin="Round" Data="M2,5 Q2,3 4,3 L10,3 13,6 22,6 Q24,6 24,8 L24,18 Q24,20 22,20 L4,20 Q2,20 2,18 Z M3,9 L23,9"/></Border>
+    <StackPanel VerticalAlignment="Center"><TextBlock x:Name="WorkspaceTitle" Text="Рабочее пространство" Style="{StaticResource Title}"/><TextBlock x:Name="HeadHint" Style="{StaticResource Hint}"/></StackPanel>
   </DockPanel>
   <Grid Grid.Row="1" Margin="16,0,16,0" x:Name="Body">
     <Grid.ColumnDefinitions><ColumnDefinition x:Name="SideColumn" Width="255"/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -18,6 +19,7 @@
           <Button x:Name="AddFolder" Content="+  Подключить папку" HorizontalContentAlignment="Left" Margin="0,7,0,7" ToolTip="Выберите папку на компьютере и укажите, что разрешено делать с её файлами"/>
           <Button x:Name="FolderAccess" Content="Доступ к папке" Style="{StaticResource Flat}" HorizontalContentAlignment="Left" Margin="0,0,0,4" ToolTip="Настроить права редактора, локального анализа и обучения"/>
           <Separator Margin="0,4,0,8"/>
+          <TextBlock Text="Фильтр по имени" Style="{StaticResource Hint}"/><TextBox x:Name="FileFilter" Margin="0,3,0,5" AutomationProperties.Name="Фильтр по имени"/>
           <DockPanel><Button x:Name="Up" Content="↑" DockPanel.Dock="Right" Style="{StaticResource Flat}" Padding="9,2" MinHeight="26" Margin="4,0,0,0" ToolTip="На одну папку выше" AutomationProperties.Name="На одну папку выше"/><TextBlock x:Name="FolderName" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0" TextTrimming="CharacterEllipsis"/></DockPanel>
         </StackPanel>
         <WrapPanel DockPanel.Dock="Bottom" Margin="0,5,0,0"><Button x:Name="FileMenu" Content="Файлы…" ToolTip="Создать, скопировать, переместить или переименовать файл"/><Button x:Name="SearchProject" Content="Поиск" ToolTip="Искать текст и формулы по всем DOCX и XLSX в проекте"/></WrapPanel>
@@ -35,7 +37,7 @@
           <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="13" Background="#FFE4C9" VerticalAlignment="Top" Margin="0,1,13,0"><TextBlock Style="{StaticResource Glyph}" Text="&#xE898;" FontSize="20" Foreground="#8A3F17"/></Border>
           <StackPanel><TextBlock Text="Перетащите сюда папку или файл" Style="{StaticResource Subhead}"/><TextBlock Text="Подойдут папка из Проводника, документ Word (.docx) или таблица Excel (.xlsx). Файлы открываются на своём месте." Style="{StaticResource Hint}" Margin="0,4,0,9"/><WrapPanel><Button x:Name="PickFile" Content="Выбрать файл" Style="{StaticResource Primary}"/><Button x:Name="PickFolder" Content="Выбрать папку" Style="{StaticResource Flat}"/></WrapPanel></StackPanel>
         </DockPanel></Border>
-        <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Попробовать на примере" Style="{StaticResource Subhead}"/><TextBlock Text="Откройте учебную заметку. На ней можно исправить текст, проверить правку и сохранить свою версию." Style="{StaticResource Hint}" Margin="0,4,0,8"/><Button x:Name="Sample" Content="Открыть учебный пример" HorizontalAlignment="Left"/></StackPanel></Border>
+        <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Попробовать на примере" Style="{StaticResource Subhead}"/><TextBlock Text="Откройте учебную заметку. На ней можно исправить текст, проверить правку и сохранить свою версию." Style="{StaticResource Hint}" Margin="0,4,0,8"/><Button x:Name="Sample" Content="Открыть учебный пример" HorizontalAlignment="Left"/><TextBlock Text="Те же инструменты доступны в чате. Напишите «Открой папку» или «Создай таблицу». Файл появится рядом с перепиской." Style="{StaticResource Hint}" Margin="0,8,0,0"/></StackPanel></Border>
       </StackPanel></ScrollViewer>
       <Border x:Name="Editor" Style="{StaticResource Card}" Padding="12" Visibility="Collapsed"><DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="1,0,0,5"><DockPanel><Button x:Name="Home" DockPanel.Dock="Right" Content="К началу" Style="{StaticResource Flat}" ToolTip="Закрыть просмотр и выбрать другой файл"/><TextBlock x:Name="DocTitle" Style="{StaticResource Subhead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></DockPanel>
@@ -44,12 +46,12 @@
         </StackPanel>
         <TabControl x:Name="Tabs" Background="White" BorderBrush="#E4E7E0" Padding="4">
           <TabItem Header="Просмотр"><ContentControl x:Name="Page" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></TabItem>
-          <TabItem x:Name="PatchTab" Header="Правки"><DockPanel><StackPanel DockPanel.Dock="Top"><TextBlock Style="{StaticResource Hint}" Margin="5,4" Text="Отметьте изменения, которые хотите записать в файл."/><WrapPanel><Button x:Name="Save" Content="Сохранить выбранные" Style="{StaticResource Primary}"/><Button x:Name="Uncheck" Content="Снять отметки"/></WrapPanel></StackPanel><ContentControl x:Name="ChangeHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></DockPanel></TabItem>
+          <TabItem x:Name="PatchTab" Header="Правки"><DockPanel><StackPanel DockPanel.Dock="Top"><TextBlock x:Name="PatchHelp" Style="{StaticResource Hint}" Margin="5,4" Text="Отметьте изменения, которые хотите записать в файл."/><WrapPanel><Button x:Name="Save" Content="Сохранить выбранные" Style="{StaticResource Primary}"/><Button x:Name="Uncheck" Content="Снять отметки"/></WrapPanel></StackPanel><ContentControl x:Name="ChangeHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></DockPanel></TabItem>
           <TabItem Header="Найти в файле"><DockPanel><DockPanel DockPanel.Dock="Top" Margin="3,3,3,7"><Label Target="{Binding ElementName=Filter}" Content="Найти"/><TextBox x:Name="Filter" ToolTip="Введите адрес ячейки, слово, формулу или текст комментария" AutomationProperties.Name="Поиск в документе"/></DockPanel><ContentControl x:Name="RowsHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></DockPanel></TabItem>
         </TabControl>
       </DockPanel></Border>
       <Border x:Name="DropOverlay" Visibility="Collapsed" IsHitTestVisible="False" Background="#F5FFF4E9" BorderBrush="#D56725" BorderThickness="2" CornerRadius="18"><TextBlock Text="Отпустите, чтобы открыть" Style="{StaticResource Title}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
     </Grid>
   </Grid>
-  <DockPanel Grid.Row="2" Margin="20,7,16,9"><WrapPanel DockPanel.Dock="Right"><Button x:Name="Templates" Content="Инструменты ▾" Style="{StaticResource Flat}" ToolTip="Реестр поручений, сверка Excel, закупки и шаблоны"/><Button x:Name="Train" Content="Обучение Zarum" Style="{StaticResource Flat}" ToolTip="Обучить модель на проверенных примерах проекта"/></WrapPanel><ContentControl x:Name="Live" DockPanel.Dock="Left" VerticalAlignment="Center"/><TextBlock x:Name="Status" Style="{StaticResource Hint}" VerticalAlignment="Center" MaxHeight="54" TextTrimming="CharacterEllipsis"/></DockPanel>
+  <StackPanel Grid.Row="2" Margin="16,5,12,6"><WrapPanel><Button x:Name="Templates" Content="Инструменты ▾" Style="{StaticResource Flat}" ToolTip="Реестр поручений, сверка Excel, закупки и шаблоны"/><Button x:Name="Train" Content="Обучение Zarum" Style="{StaticResource Flat}" ToolTip="Обучить модель на проверенных примерах проекта"/></WrapPanel><DockPanel><ContentControl x:Name="Live" DockPanel.Dock="Left" VerticalAlignment="Center"/><TextBlock x:Name="Status" Style="{StaticResource Hint}" VerticalAlignment="Center" MaxHeight="54" TextTrimming="CharacterEllipsis"/></DockPanel></StackPanel>
 </Grid>

@@ -4,6 +4,7 @@ param(
     [string]$OutputFolder,
     [switch]$Dictation,
     [switch]$Drawing,
+    [switch]$Music,
     [switch]$Cuda
 )
 $ErrorActionPreference='Stop'
@@ -11,19 +12,28 @@ $root=Split-Path -Parent $PSScriptRoot
 $kit=if($OutputFolder){[IO.Path]::GetFullPath($OutputFolder)}else{Join-Path $root 'dist'}
 $dest=Join-Path $kit 'Models'
 [void][IO.Directory]::CreateDirectory($dest)
-$files=(Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'src\catalog.json') | ConvertFrom-Json).files
+$catalog=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'src\catalog.json') | ConvertFrom-Json
+$files=$catalog.files
 if(!$FileIds){$FileIds=@('q9','v9')}
 if($Dictation){$FileIds+=@('voice')}
 if($Drawing){$FileIds+=@('zimage','zte','zvae')}
 $unknown=@($FileIds|Where-Object {$_ -notin $files.id})
 if($unknown){throw ('Unknown model identifiers: '+($unknown -join ', '))}
 $files=$files | Where-Object {$_.id -in $FileIds}
+if($Music){$files=@($files)+@($catalog.music)}
 foreach ($file in $files) {
-    $src=Join-Path $ModelDirectory $file.name
+    $srcDir=$ModelDirectory
+    $destDir=$dest
+    if($file.name -in $catalog.music.name){
+        $srcDir=Join-Path $ModelDirectory 'music-ace15'
+        $destDir=Join-Path $dest 'music-ace15'
+        [void][IO.Directory]::CreateDirectory($destDir)
+    }
+    $src=Join-Path $srcDir $file.name
     if(!(Test-Path -LiteralPath $src) -and $file.legacyName){$src=Join-Path $ModelDirectory $file.legacyName}
     if(!(Test-Path -LiteralPath $src)){throw ('Missing selected model: '+$file.name)}
     if((Get-Item -LiteralPath $src).Length -ne $file.bytes -or (Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash -ne $file.sha256) {throw ('Model verification failed: '+$file.name)}
-    $target=Join-Path $dest $file.name
+    $target=Join-Path $destDir $file.name
     if(Test-Path -LiteralPath $target) {
         if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $file.sha256){throw ('A different file exists at '+$target)}
         continue

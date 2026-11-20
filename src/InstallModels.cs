@@ -32,6 +32,8 @@ namespace Sfera {
             if (!Directory.Exists(source)) return 0;
             var included = Store.ChatModels.Concat(Store.ArtModels).Where(m => Store.Ready(m,source)).SelectMany(m => m.Files).Distinct().Select(id => Store.Files[id]).ToList();
             if (Store.Files["voice"].Present(source)) included.Add(Store.Files["voice"]);
+            string musicSource=Path.Combine(source,Store.MusicDirectory);
+            if(Directory.Exists(musicSource))included.AddRange(Store.MusicFiles);
             if (included.Count == 0) return 0;
             Directory.CreateDirectory(destination);
             Directory.CreateDirectory(Path.Combine(Store.Home,"logs"));
@@ -39,10 +41,13 @@ namespace Sfera {
             using (var log = new StreamWriter(Path.Combine(Store.Home,"logs","setup-models.log"),false)) {
                 foreach (var f in included) {
                     if(status!=null)status(f.name);
-                    var src=f.PathIn(source); var dst=f.PathIn(destination);
+                    bool music=Store.MusicFiles.Contains(f);
+                    string target=music?Path.Combine(destination,Store.MusicDirectory):destination;
+                    Directory.CreateDirectory(target);
+                    var src=f.PathIn(music?musicSource:source); var dst=f.PathIn(target);
                     var tmp=dst+"."+Guid.NewGuid().ToString("N")+".importing";
                     try {
-                        if (f.Present(destination)) {
+                        if (f.Present(target)) {
                             try { Downloads.Verify(dst,f,CancellationToken.None); log.WriteLine("Verified " + f.name); continue; }
                             catch (InvalidDataException) { log.WriteLine("Repairing " + f.name); }
                         }

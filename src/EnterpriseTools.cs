@@ -34,7 +34,7 @@ namespace Sfera {
         }
         async Task AddTask(){
             var row=SelectedRow();if(row==null||opened==null||InRegister)return;
-            var w=WorkspaceUi.Dialog(this,"Поручение из документа",530,465);
+            var w=WorkspaceUi.Dialog(DialogHost,"Поручение из документа",530,465);
             var root=new DockPanel{Margin=new Thickness(21)};w.Content=root;
             var actions=new WrapPanel{HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(actions,Dock.Bottom);root.Children.Add(actions);
             var cancel=WorkspaceUi.Button(w,"Отмена",()=>w.DialogResult=false,"Flat");cancel.IsCancel=true;actions.Children.Add(cancel);
@@ -51,7 +51,7 @@ namespace Sfera {
             if(w.ShowDialog()!=true)return;
             var args=new Dictionary<string,object>{{"other",file},{"revision",opened.revision},{"sheet",opened.sheet??""},{"key",row.key},{"title",title.Text},{"owner",owner.Text},{"due",due.SelectedDate.HasValue?due.SelectedDate.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture):""}};
             string dest=Path.Combine(Path.GetDirectoryName(file),TaskFile);
-            await ProTools.Office(project,dest,"task",args,lifetime.Token);ListFiles();status.Text="Поручение сохранено. Откройте «Инструменты → Реестр поручений» в этой папке.";
+            await ProTools.Office(project,dest,"task",args,OperationToken);ListFiles();status.Text="Поручение сохранено. Откройте «Инструменты → Реестр поручений» в этой папке.";
         }
         string RegisterRow(){
             var selected=SelectedRow();if(!InRegister||selected==null)throw new IOException("Выберите ячейку в строке поручения.");
@@ -84,24 +84,24 @@ namespace Sfera {
             for(int i=0;i<2;i++){
                 string side=i==0?"Исходная книга":"Новая книга";
                 var picker=new OpenFileDialog{InitialDirectory=folder,Filter="Книги Excel|*.xlsx",Title=side+" для сверки"};
-                if(picker.ShowDialog(this)!=true)return;
+                if(picker.ShowDialog(DialogHost)!=true)return;
                 sources[i]=ProTools.UnderProject(project,picker.FileName);
                 if(i==1&&string.Equals(sources[0],sources[1],StringComparison.OrdinalIgnoreCase))throw new IOException("Выберите две разные книги.");
-                var book=await ProTools.Office(project,sources[i],"read",null,lifetime.Token);
+                var book=await ProTools.Office(project,sources[i],"read",null,OperationToken);
                 if(book.sheets.Length==0)throw new IOException("В книге нет доступных листов.");
-                int n=book.sheets.Length==1?0:Choose(this,side+" · выберите лист",book.sheets);if(n<0)return;
+                int n=book.sheets.Length==1?0:Choose(DialogHost,side+" · выберите лист",book.sheets);if(n<0)return;
                 sheetsToRead[i]=book.sheets[n];
-                if(book.sheet!=sheetsToRead[i])book=await ProTools.Office(project,sources[i],"read",new Dictionary<string,object>{{"sheet",sheetsToRead[i]}},lifetime.Token);
+                if(book.sheet!=sheetsToRead[i])book=await ProTools.Office(project,sources[i],"read",new Dictionary<string,object>{{"sheet",sheetsToRead[i]}},OperationToken);
                 revisions[i]=book.revision;
                 var headers=book.rows.Where(r=>Regex.IsMatch(r.key,@"^[A-Z]+1$")&&!string.IsNullOrWhiteSpace(r.display)).ToArray();
                 if(headers.Length==0)throw new IOException("В первой строке книги нужны названия столбцов.");
-                int k=Choose(this,side+" · по какому столбцу сопоставить строки?",headers.Select(r=>r.display+"   ("+r.key+")").ToArray());
+                int k=Choose(DialogHost,side+" · по какому столбцу сопоставить строки?",headers.Select(r=>r.display+"   ("+r.key+")").ToArray());
                 if(k<0)return;keys[i]=headers[k].display;
             }
             var save=new SaveFileDialog{InitialDirectory=folder,FileName="Сверка "+DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss")+".xlsx",Title="Сохранить отдельный отчёт",Filter="Отчёт Excel|*.xlsx"};
-            if(save.ShowDialog(this)!=true)return;
+            if(save.ShowDialog(DialogHost)!=true)return;
             if(File.Exists(save.FileName))throw new IOException("Выберите новое имя. Отчёт сохраняется отдельно.");
-            await ProTools.Office(project,save.FileName,"reconcile",new Dictionary<string,object>{{"sources",sources},{"sheets",sheetsToRead},{"keys",keys},{"revisions",revisions}},lifetime.Token);
+            await ProTools.Office(project,save.FileName,"reconcile",new Dictionary<string,object>{{"sources",sources},{"sheets",sheetsToRead},{"keys",keys},{"revisions",revisions}},OperationToken);
             folder=Path.GetDirectoryName(save.FileName);ListFiles();await Open(save.FileName,"Сверка");
         }
     }

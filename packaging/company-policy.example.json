@@ -8,7 +8,7 @@
   "ModelFolders": [],
   "Projects": [
     {"Root":"C:\\Company\\Contracts","Analysis":false,"Training":false,"Groups":[]},
-    {"Root":"C:\\Company\\Procurement","Analysis":true,"Training":false,"Groups":[]},
-    {"Root":"C:\\Company\\Training","Analysis":true,"Training":true,"Groups":[]}
+    {"Root":"C:\\Company\\Procurement","Analysis":true,"DocumentAnalysis":true,"Training":false,"Groups":[]},
+    {"Root":"C:\\Company\\Training","Analysis":true,"DocumentAnalysis":true,"Training":true,"Groups":[]}
   ]
 }

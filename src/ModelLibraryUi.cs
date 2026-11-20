@@ -16,7 +16,16 @@ namespace Sfera {
         [StructLayout(LayoutKind.Sequential)]sealed class Memory {public uint length=64,load;public ulong physical,available,page,freePage,virtualBytes,freeVirtual,extended;}
         [DllImport("kernel32.dll",SetLastError=true)]static extern bool GlobalMemoryStatusEx([In,Out]Memory m);
         public static bool LargeForRam(long size){var mem=new Memory();return GlobalMemoryStatusEx(mem)&&(double)size>mem.physical*.8;}
+        public static int RamGiB(){var mem=new Memory();return GlobalMemoryStatusEx(mem)?(int)Math.Round(mem.physical/1073741824d):0;}
         static string Gib(ulong n){return (n/1073741824d).ToString("0.#")+" ГиБ";}
+        internal static int NvidiaGiB(){
+            string smi=Path.Combine(Environment.SystemDirectory,"nvidia-smi.exe");if(!File.Exists(smi))return 0;
+            try{using(var proc=Process.Start(new ProcessStartInfo(smi,"--query-gpu=memory.total --format=csv,noheader,nounits"){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true})){
+                if(!proc.WaitForExit(2200)){proc.Kill();return 0;}
+                int largest=0;foreach(string line in proc.StandardOutput.ReadToEnd().Split('\n')){int mb;if(int.TryParse(line.Trim(),out mb))largest=Math.Max(largest,mb);}
+                return (int)Math.Round(largest/1024d);
+            }}catch(System.ComponentModel.Win32Exception){return 0;}catch(InvalidOperationException){return 0;}
+        }
         public static string Describe(string directory){
             var mem=new Memory();GlobalMemoryStatusEx(mem);
             string cpu=Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER")??"CPU",gpu="CPU",vram="";
@@ -98,18 +107,16 @@ namespace Sfera {
         }
         async Task Catalog(){
             if(transfer!=null)return;
-            var entries=Store.Json().Deserialize<CatalogEntry[]>(Store.Resource("model-catalog.json"));
-            var combo=new ComboBox{ItemsSource=entries,SelectedIndex=0,MinWidth=360,Margin=new Thickness(0,6,0,10)};
-            var text=new TextBlock{TextWrapping=TextWrapping.Wrap,Text="Модель будет загружена в выбранную библиотеку и проверена на этом компьютере. Обученные для Zarum адаптеры остаются привязаны к Zarum."};
-            var load=new Button{Content="Скачать и использовать",HorizontalAlignment=HorizontalAlignment.Left,Padding=new Thickness(12,6,12,6),Margin=new Thickness(0,12,0,0),IsEnabled=WorkPolicy.Network};
-            var panel=new StackPanel{Margin=new Thickness(20)};panel.Children.Add(combo);panel.Children.Add(text);panel.Children.Add(load);
-            var dialog=new Window{Title="Каталог моделей",Owner=window,WindowStartupLocation=WindowStartupLocation.CenterOwner,Width=510,Height=228,Content=panel};load.Click+=(s,e)=>dialog.DialogResult=true;
-            if(dialog.ShowDialog()!=true)return;var entry=(CatalogEntry)combo.SelectedItem;
+            var entry=ModelCatalogDialog.Choose(window,folder.Text);if(entry==null)return;
+            if(entry.builtin){
+                Find<ComboBox>("EngineChoice").SelectedItem=library.First(m=>m.Id=="quality");
+                apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));return;
+            }
             if(MachineProfile.LargeForRam(entry.files[0].bytes)&&MessageBox.Show(window,"Выбранная модель велика для доступной ОЗУ. Скачать "+Store.Size(entry.files.Sum(f=>f.bytes))+"?","Загрузка модели",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
             var cts=transfer=new CancellationTokenSource();bool selected=false;
             try{
                 BusyLibrary(true);apply.IsEnabled=false;dismiss.Content="Остановить";progress.Visibility=Visibility.Visible;
-                string dest=Path.Combine(folder.Text,"catalog",entry.revision);WorkPolicy.CheckImport(Path.Combine(dest,entry.files[0].name));
+                string dest=entry.DirectoryIn(folder.Text);WorkPolicy.CheckImport(Path.Combine(dest,entry.files[0].name));
                 await Downloads.Prepare(entry.files,dest,(label,ratio)=>window.Dispatcher.BeginInvoke(new Action(()=>{notice.Text=label;progress.Value=ratio;})),cts.Token);
                 var record=await Task.Run(()=>LocalModel.Inspect(entry.files[0].PathIn(dest),entry.files.Length>1?entry.files[1].PathIn(dest):null));SelectLocal(record);selected=true;
             }catch(Exception ex){notice.Text=ex.Message;}finally{transfer=null;cts.Dispose();BusyLibrary(false);apply.IsEnabled=true;dismiss.Content="Закрыть";progress.Visibility=Visibility.Collapsed;}

@@ -38,7 +38,7 @@
     </Style>
   </Window.Resources>
   <Grid x:Name="Layout" Background="#F3F4EF">
-    <Grid.ColumnDefinitions><ColumnDefinition Width="215"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="215"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition x:Name="PreviewColumn" Width="0"/></Grid.ColumnDefinitions>
     <Border Grid.Column="0" Background="#222F28">
       <Grid Margin="16,24,16,18">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -62,13 +62,14 @@
         </StackPanel>
       </Grid>
     </Border>
-    <Grid Grid.Column="1">
+    <Grid x:Name="ChatCanvas" Grid.Column="1">
       <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <Border BorderBrush="#DCE3DA" BorderThickness="0,0,0,1">
         <Grid Margin="28,0,24,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <DockPanel LastChildFill="True"><Button x:Name="ChatActions" DockPanel.Dock="Right" Content="⋯" FontSize="18" Padding="6,1" VerticalAlignment="Center" ToolTip="Действия с диалогом" AutomationProperties.Name="Действия с диалогом"/><Button x:Name="ExpandSidebar" Visibility="Collapsed" DockPanel.Dock="Left" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Margin="0,0,10,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть историю" ToolTip="Открыть историю"/><TextBlock x:Name="ChatTitle" Text="Новый чат" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/></DockPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="PreviewToggle" Content="Файлы" AutomationProperties.Name="Открыть просмотр файлов справа" ToolTip="Файлы и таблицы рядом с чатом" Padding="7,4" Margin="0,0,6,0"/>
             <Button x:Name="UpdateNotice" Visibility="Collapsed" Margin="0,0,12,0" Padding="12,6" Background="#FFE2BF" Foreground="#432D17" FontWeight="SemiBold" ToolTip="Сведения о новой версии и установка"/>
             <Ellipse x:Name="ModelLight" Width="7" Height="7" Fill="#4D856B" Margin="0,0,7,0"/>
             <TextBlock x:Name="ModelLabel" FontSize="12" Foreground="#506457"/>
@@ -133,8 +134,8 @@
               <TextBlock x:Name="Placeholder" Text="Напишите сообщение…" Foreground="#657369" FontSize="15" IsHitTestVisible="False"/>
             </Grid>
             <Grid Grid.Row="3">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <WrapPanel VerticalAlignment="Center">
                 <Button x:Name="Attach" FontFamily="Segoe MDL2 Assets" Content="&#xE723;" FontSize="16" ToolTip="Прикрепить фото или документ" AutomationProperties.Name="Прикрепить файл" Padding="8,7" Margin="0,0,6,0"/>
                 <Button x:Name="Microphone" FontFamily="Segoe MDL2 Assets" Content="&#xE720;" FontSize="15" AutomationProperties.Name="Микрофон" ToolTip="Записать голосовое сообщение" Padding="8,7" Margin="0,0,1,0"/>
                 <Button x:Name="MicDevices" FontFamily="Segoe MDL2 Assets" Content="&#xE70D;" FontSize="10" AutomationProperties.Name="Выбрать микрофон" ToolTip="Выбрать микрофон" Padding="4,9" Margin="0,0,5,0"/>
@@ -143,12 +144,19 @@
                 <Button Visibility="Collapsed" x:Name="AgentMode" Content="Агенты" Padding="9,6" Margin="0,0,3,0" ToolTip="Планирование, инструменты и проверка ответа"/>
                 <Button Visibility="Collapsed" x:Name="ArtMode" Content="Рисование" Padding="9,6"/>
                 <CheckBox x:Name="WebSearch" Content="Веб-доступ" VerticalContentAlignment="Center" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12" ToolTip="Разрешить оркестратору обращаться к интернету, когда для ответа нужны свежие сведения"/>
-              </StackPanel>
-              <Button x:Name="Send" Grid.Column="2" Background="#304B3B" Foreground="White" Content="Отправить" FontWeight="SemiBold" Padding="14,7" ToolTip="Enter — отправить, Shift+Enter — новая строка"/>
+              </WrapPanel>
+              <Button x:Name="Send" Grid.Column="1" MinWidth="92" VerticalAlignment="Center" Background="#304B3B" Foreground="White" Content="Отправить" FontWeight="SemiBold" Padding="14,7" ToolTip="Enter — отправить, Shift+Enter — новая строка"/>
             </Grid>
           </Grid>
         </Border>
       </Grid>
     </Grid>
+    <GridSplitter x:Name="PreviewSplitter" Grid.Column="2" Width="9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="#D0D9CF" Focusable="True" KeyboardIncrement="12" ToolTip="Перетащите границу или используйте стрелки" AutomationProperties.Name="Ширина просмотра файлов"/>
+    <Border x:Name="PreviewPane" Grid.Column="3" Visibility="Collapsed" Background="#F4F5F1">
+      <DockPanel><Grid DockPanel.Dock="Top" Margin="12,7"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <CheckBox x:Name="UseFileContext" Content="Вопросы по открытому файлу" IsChecked="True" VerticalAlignment="Center" FontSize="12" ToolTip="При открытом документе вопросы обрабатываются локально в пределах доступа к папке"/>
+        <Button x:Name="ClosePreview" Grid.Column="1" Content="×" FontSize="18" Padding="7,1" Background="Transparent" ToolTip="Закрыть просмотр" AutomationProperties.Name="Закрыть просмотр"/>
+      </Grid><ContentControl x:Name="PreviewHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></DockPanel>
+    </Border>
   </Grid>
 </Window>

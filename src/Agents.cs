@@ -45,9 +45,18 @@ namespace Sfera {
             Merge(dest,rows);
             step(rows.Count==0 ? "Поиск завершён без доступных источников" : "Найдено источников · "+rows.Count+", прочитано страниц · "+rows.Count(s=>s.Location=="текст страницы"));
         }
-        static void DocumentsFor(List<Turn> history,string keywords,List<Source> sources,Action<string> step) {
-            var docs=Documents.Find(history,keywords);Merge(sources,docs);
+        static Task<List<Source>> ReadDocuments(List<Turn> history,string keywords,Action<WorkerEvent> worker,CancellationToken ct) {
+            return Workers.Track(worker,"docs","Документалист","Ищет фрагменты во вложениях",()=>Task.Run(()=>{
+                ct.ThrowIfCancellationRequested();var result=Documents.Find(history,keywords);ct.ThrowIfCancellationRequested();return result;
+            },ct));
+        }
+        static void IncludeDocuments(List<Source> docs,List<Source> sources,Action<string> step) {
+            Merge(sources,docs);
             if(docs.Count>0)step("Чтение файлов · "+string.Join(", ",docs.Select(d=>d.Title).Distinct()));
+        }
+        static T ReadPlan<T>(string value) where T:class {
+            try{return Store.Json().Deserialize<T>(value);}
+            catch(ArgumentException){return null;}catch(InvalidOperationException){return null;}
         }
         static string Bundle(string task,string history,List<Source> sources,List<string> math,bool online) {
             return "Дата на компьютере: "+DateTime.Now.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture)+"\nЗадание пользователя:\n"+task+
@@ -55,8 +64,9 @@ namespace Sfera {
                 "\nИнтернет-поиск "+(online?"включён":"выключен")+". Материалы с номерами:\n"+Evidence(sources);
         }
         public static bool HasArithmetic(string task) {return !string.IsNullOrWhiteSpace(LiteralMath(task));}
-        public static async Task<string> Run(Engine engine,Preferences prefs,List<Turn> history,bool team,bool online,Turn answer,Action<string> stream,Action<string> status,CancellationToken ct,string publicQuery=null,string guidance="",Action<WorkerEvent> worker=null) {
+        public static async Task<string> Run(Engine engine,Preferences prefs,List<Turn> history,bool team,bool online,Turn answer,Action<string> stream,Action<string> status,CancellationToken ct,string publicQuery=null,string guidance="",Action<WorkerEvent> worker=null,IList<Source> localSources=null) {
             var sources=answer.Sources=new List<Source>();var steps=answer.Steps=new List<string>();
+            if(localSources!=null)Merge(sources,localSources);
             Action<string> stage=line=>{steps.Add(line);status(line);};Action<string> quiet=t=>{};
             string task=history.Last().Text??"", recent=History(history);
             var image=history.LastOrDefault(t=>!string.IsNullOrEmpty(t.Image)&&File.Exists(t.Image));
@@ -70,16 +80,21 @@ namespace Sfera {
                 stage("Координатор составляет план");
                 string planText=await Workers.Track(worker,"plan","Координатор","Определяет цель и порядок действий",()=>engine.Role(prefs,"Ты координатор команды. Верни JSON. В goal кратко укажи цель по-русски. В query напиши один короткий поисковый запрос (названия, имена, 3–9 ключевых слов), если разрешён поиск. В calculation напиши чистое числовое выражение, только если числа и операция ясно следуют из задания. Для ненужных действий используй пустую строку.",
                     "Поиск "+(online?"разрешён":"выключен")+". Задание:\n"+ResearchText.Clip(task,3500),null,220,false,quiet,status,ct,Schema("goal","query","calculation"))).ConfigureAwait(false);
-                var plan=Store.Json().Deserialize<Plan>(planText);
+                var plan=ReadPlan<Plan>(planText);
                 if(plan!=null){objective=ResearchText.Clip(plan.goal,200);if(!string.IsNullOrWhiteSpace(plan.query))query=plan.query;Calc(plan.calculation,math,stage);}
                 if(!string.IsNullOrWhiteSpace(objective))stage("План · "+objective);
             }
-            if(hasDocuments)DocumentsFor(history,task,sources,stage);
             Calc(LiteralMath(task),math,stage);
+            // Each tool owns its result list. Source numbering is independent of completion order.
+            var localRead=hasDocuments?ReadDocuments(history,task,worker,ct):Task.FromResult(new List<Source>());
+            var publicSources=new List<Source>();
+            Task publicRead=Task.FromResult(false);
             if(online){
                 query=ResearchText.Clip(direct.Length>0?direct:!string.IsNullOrWhiteSpace(publicQuery)?publicQuery:query,200);
-                queries.Add(query);await Workers.Track(worker,"web","Поисковик","Ищет публикации и читает источники",async()=>{await Search(query,sources,stage,ct).ConfigureAwait(false);return true;}).ConfigureAwait(false);
+                queries.Add(query);publicRead=Workers.Track(worker,"web","Поисковик","Читает открытые источники",async()=>{await Search(query,publicSources,stage,ct).ConfigureAwait(false);return true;});
             }
+            await Task.WhenAll(localRead,publicRead).ConfigureAwait(false);
+            IncludeDocuments(localRead.Result,sources,stage);Merge(sources,publicSources);
             ct.ThrowIfCancellationRequested();
             string draft="",critique="";
             if(team) {
@@ -99,10 +114,11 @@ namespace Sfera {
                 stage("Рецензент проверяет выводы");
                 string check=await Workers.Track(worker,"review","Рецензент","Сверяет решение и независимую проверку",()=>engine.Role(prefs,"Ты независимый рецензент. Найди конкретные ошибки в черновике и несоответствия источникам. Верни JSON: critique (до двух коротких замечаний на русском), extra_query (короткий дополнительный запрос только при пробеле и доступном веб-поиске), calculation (одно числовое выражение для перепроверки, если нужно), document_keywords (до пяти слов для повторного поиска по вложению, если оно есть), claim (один краткий проверяемый тезис черновика, когда есть пронумерованные материалы). Для ненужных действий верни пустые строки. "+EvidenceRules,
                     Bundle(task,recent,sources,math,online)+"\nЧерновик:\n"+draft,null,250,false,quiet,status,ct,Schema("critique","extra_query","calculation","document_keywords","claim"))).ConfigureAwait(false);
-                var rev=Store.Json().Deserialize<Review>(check);
+                var rev=ReadPlan<Review>(check);
                 if(rev!=null) {
                     critique=ResearchText.Clip(rev.critique,520);Calc(rev.calculation,math,stage);
-                    if(hasDocuments&&!string.IsNullOrWhiteSpace(rev.document_keywords))DocumentsFor(history,rev.document_keywords,sources,stage);
+                    if(hasDocuments&&!string.IsNullOrWhiteSpace(rev.document_keywords)&&sources.Count<8)
+                        IncludeDocuments(await ReadDocuments(history,rev.document_keywords,worker,ct).ConfigureAwait(false),sources,stage);
                     if(sources.Count>0&&!string.IsNullOrWhiteSpace(rev.claim)){
                         var claim=ResearchText.Clip(rev.claim,300);
                         string verdict=await Workers.Track(worker,"source","Фактчекер","Проверяет тезис по источникам",()=>engine.VerifyClaim(prefs,SourceCheck.Excerpts(sources),claim,105,quiet,status,ct)).ConfigureAwait(false);
@@ -111,7 +127,7 @@ namespace Sfera {
                     // A second public query may use public findings. Private attachments and earlier turns stay local.
                     string extra=ResearchText.Clip(rev.extra_query,160);
                     if(online&&!hasDocuments&&photo==null&&history.Count==1&&extra.Length>0&&queries.Add(extra)&&sources.Count<8)
-                        await Search(extra,sources,stage,ct).ConfigureAwait(false);
+                        await Workers.Track(worker,"web","Поисковик","Уточняет вывод по новым источникам",async()=>{await Search(extra,sources,stage,ct).ConfigureAwait(false);return true;}).ConfigureAwait(false);
                 }
             }
             stage(team?"Редактор собирает ответ":"Составляю ответ");

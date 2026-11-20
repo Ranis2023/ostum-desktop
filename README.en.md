@@ -12,6 +12,14 @@ Download and run **Ostum-Desktop-Setup.exe**. On a new PC, the standard installa
 
 For an air-gapped PC, prepare the full **offline ISO or USB folder** on a connected machine, bring it to the target PC and run the installer from that media. GitHub Releases hosts the network installer. The weights come from the model sources during setup, or from the prepared offline media. [Offline build instructions](README.md#полная-установка-без-интернета) · [Model catalogue](src/catalog.json)
 
+## Chat, files and music in 5.4
+
+Open **Files** in the chat header to work with Word and Excel beside the conversation. Drag the divider to resize the preview. OSTUM asks for access to a new folder. Ask for a cell change or paragraph rewrite, review the original and proposed values, then save the selected changes. The standalone workspace can move its open document and pending edits back to chat. Project messages stay in the current session.
+
+**Zarum 9B** is the recommended default and takes 6.60 GB including the vision projector. The network installer downloads it during setup. The full USB kit carries both files. The local catalog compares six choices, including Qwen3.5 0.8B, 2B, 4B, 27B and the text-only Qwen3 14B. See the upstream benchmark sources in the [model comparison](README.md#локальные-модели-пользователя).
+
+Ask in Russian to generate instrumental music for 10–60 seconds. The optional ACE-Step download is 2.71 GB. Playback and WAV export are available inside the reply. [Release 5.4.0](packaging/releases/5.4.0.md)
+
 ## Release notifications
 
 Starting with 5.3, OSTUM checks GitHub after launch and every six hours. A button in the main window shows the new version. When minimized, OSTUM also sends one Windows notification per release. The app can download the installer in the background and check its published SHA-256 before you click to install and restart. Chats, Pro access and the model library are retained. Click the OSTUM logo to change either preference. Managed installations keep external requests disabled. For 5.2 and earlier, install 5.3 once using the Windows download above.

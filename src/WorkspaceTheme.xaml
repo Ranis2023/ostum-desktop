@@ -22,4 +22,10 @@
   <Style TargetType="ComboBox"><Setter Property="Padding" Value="6,5"/><Setter Property="MaxDropDownHeight" Value="300"/></Style>
   <Style TargetType="TabItem"><Setter Property="Padding" Value="10,6"/><Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="#465148"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="Tab" Padding="{TemplateBinding Padding}" Margin="0,0,3,3" CornerRadius="9" Background="Transparent" BorderThickness="1" BorderBrush="Transparent"><ContentPresenter ContentSource="Header"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="Background" Value="#E9EEE6"/><Setter Property="Foreground" Value="#263326"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Tab" Property="BorderBrush" Value="#B95721"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
   <Style TargetType="DataGrid"><Setter Property="Background" Value="White"/><Setter Property="RowBackground" Value="White"/><Setter Property="AlternatingRowBackground" Value="#F8F9F6"/><Setter Property="HorizontalGridLinesBrush" Value="#E6E9E2"/><Setter Property="BorderThickness" Value="0"/></Style>
+
+    <DataTemplate x:Key="InlinePatch"><DockPanel Margin="0,3" LastChildFill="True">
+      <CheckBox DockPanel.Dock="Left" Margin="2,2,9,0" VerticalAlignment="Top" IsChecked="{Binding Selected,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding key}"/>
+      <StackPanel><TextBlock Text="{Binding key}" FontWeight="SemiBold"/><TextBlock Text="Было" Foreground="#59635E" FontSize="11" Margin="0,4,0,0"/><TextBlock Text="{Binding old}" TextWrapping="Wrap"/>
+        <TextBlock Text="Станет" Foreground="#2B6949" FontSize="11" Margin="0,4,0,0"/><TextBlock Text="{Binding value}" Foreground="#23452F" TextWrapping="Wrap"/></StackPanel>
+    </DockPanel></DataTemplate>
 </ResourceDictionary>

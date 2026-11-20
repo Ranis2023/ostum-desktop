@@ -38,8 +38,9 @@ namespace Sfera {
             }
             return result;
         }
+        internal static DocumentSearch InMemory(ResearchDocument doc){return new DocumentSearch(doc,null);}
         DocumentSearch(ResearchDocument doc,FileInfo file){
-            document=doc;path=file.FullName;length=file.Length;modified=file.LastWriteTimeUtc;
+            document=doc;if(file!=null){path=file.FullName;length=file.Length;modified=file.LastWriteTimeUtc;}
             var vocabulary=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
             foreach(var p in doc.Parts){
                 var words=Terms(p.Text,vocabulary);positions.Add(words);

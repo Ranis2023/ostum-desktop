@@ -33,7 +33,7 @@ namespace Sfera {
     }
 
     public sealed class CudaCatalog {public ModelFile[] libraries {get;set;} public ModelFile[] archives {get;set;}}
-    public sealed class Catalog { public List<ModelFile> files { get; set; } public CudaCatalog acceleration {get;set;} }
+    public sealed class Catalog { public List<ModelFile> files { get; set; } public CudaCatalog acceleration {get;set;} public ModelFile[] music {get;set;} }
 
     public sealed class Model {
         public readonly string Id, Name, Description;
@@ -81,9 +81,11 @@ namespace Sfera {
     public sealed class Turn {
         public string Role { get; set; }
         public string Text { get; set; }
+        [ScriptIgnore] public bool ProjectOnly {get;set;}
         public string OriginalText { get; set; }
         public string Image { get; set; }
         public bool Generated { get; set; }
+        public string Audio {get;set;}
         public string DocumentId { get; set; }
         public string DocumentName { get; set; }
         public List<Source> Sources { get; set; }
@@ -116,12 +118,15 @@ namespace Sfera {
         public static string Chats {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"chats");}}
         public static string Images {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"images");}}
         public static readonly Model[] ChatModels = {
-            new Model("quality", "Zarum 9B", "Мультимодальная модель OSTUM на основе Qwen3.5-9B. Работает с текстом и фотографиями, поддерживает дообучение через адаптеры LoRA.", "q9", "v9")
+            new Model("quality", "Zarum 9B", "Рекомендуемая модель OSTUM · 9 млрд параметров · текст, фото и локальное дообучение. Входит в установку. Базовые веса Qwen3.5-9B и зрительный модуль занимают 6,60 ГБ.", "q9", "v9")
         };
         public static readonly Model[] ArtModels = {
             new Model("studio", "Z-Image-Turbo", "Детальные изображения до 1024 × 1024 за 8 шагов. Требует больше памяти и времени.", "zimage", "zte", "zvae")
         };
         static readonly Catalog catalog=Json().Deserialize<Catalog>(Resource("catalog.json"));
+        public const string MusicDirectory="music-ace15";
+        public static ModelFile[] MusicFiles {get{return catalog.music;}}
+        public static string Audio {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"audio");}}
         public static readonly Dictionary<string,ModelFile> Files = catalog.files.ToDictionary(f => f.id);
         public static CudaCatalog Cuda {get{return catalog.acceleration;}}
         public static JavaScriptSerializer Json() { return new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }; }
@@ -140,7 +145,17 @@ namespace Sfera {
             string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try {
                 File.WriteAllText(tmp, Json().Serialize(value), new UTF8Encoding(false));
-                if (File.Exists(path)) File.Replace(tmp, path, null); else File.Move(tmp, path);
+                for(int attempt=0;;attempt++){
+                    try{
+                        if(File.Exists(path))File.Replace(tmp,path,null);else File.Move(tmp,path);
+                        break;
+                    }catch(IOException ex){
+                        // Another reader can briefly deny rename/delete, including the Windows indexer.
+                        int code=ex.HResult&0xffff;
+                        if(attempt>=5||(code!=32&&code!=33&&code!=80&&code!=183&&code!=1175)||!File.Exists(tmp))throw;
+                        Thread.Sleep(20<<attempt);
+                    }
+                }
             } finally { if (File.Exists(tmp)) File.Delete(tmp); }
         }
         public static Preferences Load() {
@@ -161,7 +176,17 @@ namespace Sfera {
             return p;
         }
         public static void Save(Preferences p) { Write(Path.Combine(Home, "preferences.json"), p); }
-        public static void Save(Conversation c) { c.Updated = DateTime.Now; if(WorkPolicy.History)Write(Path.Combine(Chats, c.Id + ".json"), c); }
+        static Conversation SavedView(Conversation c){
+            if(!c.Turns.Any(t=>t.ProjectOnly))return c;
+            return new Conversation{Id=c.Id,Title=c.Title,Updated=c.Updated,Archived=c.Archived,Turns=c.Turns.Where(t=>!t.ProjectOnly).ToList()};
+        }
+        public static void Save(Conversation c) {
+            c.Updated=DateTime.Now;if(!WorkPolicy.History)return;
+            string path=SavedChatPath(c);
+            // A private turn changes only the live conversation. Retain a single empty history entry for archive/delete.
+            if(c.Turns.Count>0&&c.Turns[c.Turns.Count-1].ProjectOnly&&File.Exists(path))return;
+            Write(path,SavedView(c));
+        }
         static string SavedChatPath(Conversation c) {
             Guid id;
             if(c==null||!Guid.TryParseExact(c.Id,"N",out id))throw new InvalidDataException("Неизвестный идентификатор диалога.");
@@ -171,12 +196,15 @@ namespace Sfera {
             var path=SavedChatPath(c);bool previous=c.Archived;
             if(!File.Exists(path))throw new FileNotFoundException("Диалог уже отсутствует.");
             c.Archived=value;
-            try{Write(path,c);}catch{c.Archived=previous;throw;}
+            try{Write(path,SavedView(c));}catch{c.Archived=previous;throw;}
         }
         static IEnumerable<string> OwnedAttachments(Conversation c) {
             foreach(var t in c.Turns) {
                 Guid id;
                 if(Guid.TryParseExact(t.DocumentId,"N",out id))yield return Path.Combine(Home,"documents",id.ToString("N")+".json");
+                if(!string.IsNullOrEmpty(t.Audio)&&Guid.TryParseExact(Path.GetFileNameWithoutExtension(t.Audio),"N",out id)){
+                    var audio=Path.Combine(Audio,id.ToString("N")+".wav");if(string.Equals(audio,t.Audio,StringComparison.OrdinalIgnoreCase))yield return audio;
+                }
                 if(string.IsNullOrEmpty(t.Image)||!Guid.TryParseExact(Path.GetFileNameWithoutExtension(t.Image),"N",out id))continue;
                 var ext=Path.GetExtension(t.Image).ToLowerInvariant();
                 if(ext!=".png"&&ext!=".jpg"&&ext!=".jpeg")continue;

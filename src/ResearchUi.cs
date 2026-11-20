@@ -13,11 +13,13 @@ namespace Sfera {
         bool reading;
         int attachmentVersion;
         void ChooseFile(bool documentsOnly=false) {
-            var dlg=new OpenFileDialog {Title="Прикрепить файл",Filter="Поддерживаемые файлы|*.pdf;*.docx;*.txt;*.md;*.csv;*.tsv;*.json;*.log;*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff|Документы|*.pdf;*.docx;*.txt;*.md;*.csv;*.tsv;*.json;*.log|Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff"};
+            var dlg=new OpenFileDialog {Title="Прикрепить файл",Filter="Поддерживаемые файлы|*.pdf;*.docx;*.xlsx;*.txt;*.md;*.csv;*.tsv;*.json;*.log;*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff|Документы|*.pdf;*.docx;*.xlsx;*.txt;*.md;*.csv;*.tsv;*.json;*.log|Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff"};
             if(documentsOnly){dlg.Title="Выберите документ для разбора";dlg.FilterIndex=2;}
             if(dlg.ShowDialog(Window)==true)LoadFile(dlg.FileName);
         }
         async void LoadFile(string path) {
+            bool office=Path.GetExtension(path).Equals(".docx",StringComparison.OrdinalIgnoreCase)||Path.GetExtension(path).Equals(".xlsx",StringComparison.OrdinalIgnoreCase);
+            if(office&&(Path.GetExtension(path).Equals(".xlsx",StringComparison.OrdinalIgnoreCase)||!WorkPolicy.GlobalFile(path))){await OpenInChat(path);return;}
             try{WorkPolicy.CheckFile(path,true);if(!WorkPolicy.GlobalFile(path)){status.Text="Откройте документ в рабочем пространстве и явно выберите фрагмент для анализа.";return;}}
             catch(Exception ex){status.Text=ex.Message;return;}
             if(!Documents.Supported(path)){LoadPhoto(path);return;}
@@ -27,7 +29,7 @@ namespace Sfera {
             try {
                 var result=await Task.Run(()=>Documents.Read(path));
                 if(closing||ticket!=attachmentVersion)return;
-                document=result;
+                document=result;ReadOnlyPreview(result,path);
                 Find<StackPanel>("AttachmentBar").Visibility=Visibility.Visible;
                 Find<TextBlock>("DocIcon").Visibility=Visibility.Visible;
                 Find<TextBlock>("AttachName").Text=result.Name;

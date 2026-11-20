@@ -24,41 +24,52 @@ namespace Sfera {
 
     public sealed partial class Desktop {
         WrapPanel workerPanel;
-        readonly Dictionary<string,WorkerEvent> workerEvents=new Dictionary<string,WorkerEvent>();
-        readonly Dictionary<string,LightCard> workerCards=new Dictionary<string,LightCard>();
+        readonly List<WorkerEvent> workerEvents=new List<WorkerEvent>();
+        readonly Dictionary<WorkerEvent,LightCard> workerCards=new Dictionary<WorkerEvent,LightCard>();
 
         static string WorkerColor(string id) {
             switch(id) {
                 case "analyst":return "#5740A6";case "facts":return "#156960";case "review":return "#90571B";
                 case "edit":return "#99436F";case "web":return "#266887";case "paint":return "#A7433E";
                 case "chat":return "#415E99";case "calc":return "#885128";case "plan":return "#804197";
-                case "source":return "#456F3B";default:return "#67479A";
+                case "source":return "#456F3B";case "docs":return "#236D79";case "diff":return "#96612F";case "music":return "#924868";default:return "#67479A";
             }
         }
         sealed class LightCard : Border {
             readonly AgentLight light;
             readonly TextBlock marker;
+            readonly SolidColorBrush halo;
             readonly Stopwatch visibleFor=new Stopwatch();
             readonly bool live;
+            static string ShortAction(WorkerEvent evt){
+                switch(evt.Id){
+                    case "route":return "Выбирает инструменты";case "plan":return "Составляет план";
+                    case "docs":return evt.Detail.StartsWith("Ищет")?"Ищет в файлах":evt.Detail.StartsWith("Читает")?"Читает файл":"Работает с файлом";
+                    case "web":return "Ищет источники";case "facts":return evt.Detail.StartsWith("Извлекает")?"Извлекает поле":"Сверяет факты";
+                    case "analyst":return "Разбирает задачу";case "review":return "Проверяет вывод";case "source":return "Сверяет тезис";
+                    case "edit":return "Собирает ответ";case "music":return "Создаёт музыку";case "diff":return "Сравнивает текст";
+                    default:return evt.Detail;
+                }
+            }
             public LightCard(WorkerEvent evt,bool isLive) {
                 live=isLive;
                 var tint=(SolidColorBrush)Color(WorkerColor(evt.Id));var c=tint.Color;
-                var wash=System.Windows.Media.Color.FromArgb(16,c.R,c.G,c.B);
-                Background=new LinearGradientBrush(wash,Colors.White,0);
-                BorderBrush=new SolidColorBrush(System.Windows.Media.Color.FromArgb(51,c.R,c.G,c.B));
-                CornerRadius=new CornerRadius(13);BorderThickness=new Thickness(1);
-                Padding=new Thickness(5,5,10,5);Margin=new Thickness(0,3,6,3);MaxWidth=220;
-                var body=new DockPanel();Child=body;
-                var well=new Grid{Width=31,Height=31,VerticalAlignment=VerticalAlignment.Center};
-                var glow=new RadialGradientBrush(System.Windows.Media.Color.FromArgb(65,c.R,c.G,c.B),Colors.Transparent);
-                well.Background=glow;light=new AgentLight(evt.Id,isLive);well.Children.Add(light);
+                var wash=System.Windows.Media.Color.FromArgb(17,c.R,c.G,c.B);
+                Background=new LinearGradientBrush(wash,System.Windows.Media.Color.FromArgb(10,c.R,c.G,c.B),0);
+                BorderBrush=new SolidColorBrush(System.Windows.Media.Color.FromArgb(55,c.R,c.G,c.B));
+                CornerRadius=new CornerRadius(15);BorderThickness=new Thickness(1);Height=30;
+                Padding=new Thickness(2,0,8,0);Margin=new Thickness(0,2,5,2);MaxWidth=220;
+                var body=new DockPanel{VerticalAlignment=VerticalAlignment.Center};Child=body;
+                var well=new Grid{Width=25,Height=25};
+                halo=new SolidColorBrush(System.Windows.Media.Color.FromArgb(28,c.R,c.G,c.B));
+                well.Children.Add(new Border{Width=19,Height=19,CornerRadius=new CornerRadius(10),Background=halo});
+                light=new AgentLight(evt.Id,isLive);well.Children.Add(light);
                 DockPanel.SetDock(well,Dock.Left);body.Children.Add(well);
-                var labels=new StackPanel{Margin=new Thickness(5,0,0,0),VerticalAlignment=VerticalAlignment.Center};
-                body.Children.Add(labels);
-                var heading=new StackPanel{Orientation=Orientation.Horizontal};labels.Children.Add(heading);
-                heading.Children.Add(new TextBlock{Text=evt.Name,FontSize=12,FontWeight=FontWeights.SemiBold,Foreground=tint});
-                marker=new TextBlock{Text=isLive?"в работе":"",FontSize=10,Foreground=tint,Margin=new Thickness(5,1,0,0)};heading.Children.Add(marker);
-                labels.Children.Add(new TextBlock{Text=evt.Detail,TextWrapping=TextWrapping.Wrap,FontSize=11.5,Foreground=Color("#565268")});
+                var name=new TextBlock{Text=evt.Name,FontSize=11.5,FontWeight=FontWeights.SemiBold,Foreground=tint,VerticalAlignment=VerticalAlignment.Center};
+                DockPanel.SetDock(name,Dock.Left);body.Children.Add(name);
+                marker=new TextBlock{Text=ShortAction(evt),FontSize=11,Foreground=Color("#505B57"),Margin=new Thickness(6,0,0,0),
+                    TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
+                body.Children.Add(marker);ToolTip=evt.Name+" · "+evt.Detail;
                 AutomationProperties.SetName(this,evt.Name+" · "+evt.Detail);
                 if(isLive)Loaded+=Arrive;else SetResult(evt);
             }
@@ -66,20 +77,24 @@ namespace Sfera {
                 Loaded-=Arrive;visibleFor.Start();
                 if(!SystemParameters.ClientAreaAnimation)return;
                 var ease=new CubicEase{EasingMode=EasingMode.EaseOut};
-                var length=TimeSpan.FromMilliseconds(210);
+                var length=TimeSpan.FromMilliseconds(250);
                 var transform=new TranslateTransform();var scale=new ScaleTransform();
                 var group=new TransformGroup();group.Children.Add(scale);group.Children.Add(transform);RenderTransform=group;RenderTransformOrigin=new Point(.16,.7);
-                var grow=new DoubleAnimation(.93,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop};
+                var grow=new DoubleAnimation(.88,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop};
                 scale.BeginAnimation(ScaleTransform.ScaleXProperty,grow);scale.BeginAnimation(ScaleTransform.ScaleYProperty,grow);
-                transform.BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(7,0,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
-                BeginAnimation(OpacityProperty,new DoubleAnimation(.32,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
+                transform.BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(5,0,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
+                BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,length){EasingFunction=ease,FillBehavior=FillBehavior.Stop});
+                halo.BeginAnimation(Brush.OpacityProperty,new DoubleAnimation(.22,1,length){AutoReverse=true,FillBehavior=FillBehavior.Stop});
             }
             public void SetResult(WorkerEvent evt) {
                 light.Rest();
                 string result=evt.State=="done"?"Готово":evt.State=="stopped"?"Остановлен":evt.State=="error"?"Ошибка":"Завершение не записано";
-                marker.Text=evt.State=="done"?"✓":result;
-                if(!live&&evt.Ended>evt.Started)marker.Text+="  "+Math.Max(1,(int)(evt.Ended-evt.Started).TotalSeconds)+" с";
-                ToolTip=evt.Name+" · "+result;
+                marker.Text=evt.State=="done"?"✓ Готово":result;
+                if(!live&&evt.Ended>evt.Started){
+                    double seconds=(evt.Ended-evt.Started).TotalSeconds;
+                    marker.Text+=seconds<.1?" · <0,1 с":" · "+seconds.ToString("0.#")+" с";
+                }
+                ToolTip=evt.Name+" · "+evt.Detail+" · "+result;
                 AutomationProperties.SetName(this,evt.Name+" · "+evt.Detail+" · "+result);
             }
             public async void Retire(WrapPanel owner) {
@@ -90,8 +105,10 @@ namespace Sfera {
                 if(hold>0)await Task.Delay(hold);
                 if(!owner.Children.Contains(this))return;
                 if(SystemParameters.ClientAreaAnimation&&IsVisible) {
-                    BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(145)));
-                    await Task.Delay(150);
+                    var length=TimeSpan.FromMilliseconds(310);light.Extinguish(length);
+                    halo.BeginAnimation(Brush.OpacityProperty,new DoubleAnimation(1,0,length));
+                    BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(200)){BeginTime=TimeSpan.FromMilliseconds(115)});
+                    await Task.Delay(325);
                 }
                 owner.Children.Remove(this);
                 if(owner.Children.Count==0)owner.Visibility=Visibility.Collapsed;
@@ -104,18 +121,20 @@ namespace Sfera {
         }
         void WorkerUpdate(WorkerEvent evt) {
             if(workerPanel==null)return;
-            workerEvents[evt.Id]=evt;LightCard card;
+            LightCard card;
             if(evt.State=="running") {
-                if(workerCards.TryGetValue(evt.Id,out card))workerPanel.Children.Remove(card);
-                card=new LightCard(evt,true);workerCards[evt.Id]=card;
+                workerEvents.Add(evt);card=new LightCard(evt,true);workerCards[evt]=card;
                 workerPanel.Visibility=Visibility.Visible;workerPanel.Children.Add(card);
-            }else if(workerCards.TryGetValue(evt.Id,out card)){
-                workerCards.Remove(evt.Id);card.SetResult(evt);card.Retire(workerPanel);
+            }else{
+                int index=workerEvents.FindLastIndex(w=>w.State=="running"&&w.Id==evt.Id&&w.Started==evt.Started);
+                if(index<0)return;
+                var started=workerEvents[index];workerEvents[index]=evt;
+                if(workerCards.TryGetValue(started,out card)){workerCards.Remove(started);card.SetResult(evt);card.Retire(workerPanel);}
             }
         }
         WrapPanel FinishWorkers(Turn turn) {
             var panel=workerPanel;if(panel==null)return null;
-            turn.Workers=workerEvents.Values.OrderBy(x=>x.Started).ToList();
+            turn.Workers=workerEvents.OrderBy(x=>x.Started).ToList();
             var parent=panel.Parent as Panel;if(parent!=null)parent.Children.Remove(panel);
             workerPanel=null;workerCards.Clear();workerEvents.Clear();
             return panel.Children.Count==0?null:panel;
@@ -126,7 +145,12 @@ namespace Sfera {
             var history=new Expander{Header=title,Margin=new Thickness(0,4,0,4)};
             history.Expanded+=(s,e)=>{
                 if(history.Content!=null)return;
-                var rows=new WrapPanel();foreach(var evt in turn.Workers)rows.Children.Add(new LightCard(evt,false));
+                var rows=new StackPanel();foreach(var evt in turn.Workers){
+                    var row=new DockPanel();var chip=new LightCard(evt,false);
+                    DockPanel.SetDock(chip,Dock.Left);row.Children.Add(chip);
+                    row.Children.Add(new TextBlock{Text=evt.Detail,FontSize=12,Foreground=Color("#505B57"),TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center});
+                    rows.Children.Add(row);
+                }
                 history.Content=rows;
             };
             host.Children.Add(history);

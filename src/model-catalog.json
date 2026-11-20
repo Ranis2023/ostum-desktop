@@ -1,20 +1,90 @@
 [
   {
-    "title":"Qwen3.5 2B · текст и зрение",
-    "license":"Apache-2.0",
-    "revision":"f6d5376be1edb4d416d56da11e5397a961aca8ae",
-    "source":"https://huggingface.co/unsloth/Qwen3.5-2B-GGUF",
-    "files":[
+    "title": "Zarum 9B",
+    "upstream": "Qwen3.5-9B",
+    "parameters": "9",
+    "ram": 16,
+    "vram": 8,
+    "score": "82,5",
+    "description": "Основная модель OSTUM для русского чата, работы команды, фото и локального дообучения. На RTX 4050 с 6 ГиБ часть весов работает из ОЗУ.",
+    "builtin": true,
+    "license": "Apache-2.0"
+  },
+  {
+    "title": "Qwen3.5 0.8B",
+    "upstream": "Qwen3.5-0.8B",
+    "parameters": "0,8",
+    "ram": 8,
+    "vram": 2,
+    "score": "42,3",
+    "description": "Для коротких подсказок на маломощном ПК. Сложные инструкции и сверку фактов лучше поручать Zarum.",
+    "revision": "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF",
+    "license": "Apache-2.0",
+    "files": [
+      {"name":"Qwen3.5-0.8B-Q4_K_M.gguf","bytes":532517120,"sha256":"bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517","url":"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf"},
+      {"name":"mmproj-F16.gguf","bytes":204987232,"sha256":"56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453","url":"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/mmproj-F16.gguf"}
+    ]
+  },
+  {
+    "title": "Qwen3.5 2B",
+    "upstream": "Qwen3.5-2B",
+    "parameters": "2",
+    "ram": 8,
+    "vram": 4,
+    "score": "66,5",
+    "description": "Быстрые черновики и простые вопросы по фото при ограниченной памяти.",
+    "license": "Apache-2.0",
+    "revision": "f6d5376be1edb4d416d56da11e5397a961aca8ae",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF",
+    "files": [
       {"name":"Qwen3.5-2B-Q4_K_M.gguf","bytes":1280835840,"sha256":"aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223","url":"https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf"},
       {"name":"mmproj-F16.gguf","bytes":668227264,"sha256":"7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7","url":"https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/mmproj-F16.gguf"}
     ]
   },
   {
-    "title":"Qwen3.5 27B · текст и зрение",
-    "license":"Apache-2.0",
-    "revision":"3221f178a6b842d04f1fb42f1c413534adcc0a6a",
-    "source":"https://huggingface.co/unsloth/Qwen3.5-27B-GGUF",
-    "files":[
+    "title": "Qwen3.5 4B",
+    "upstream": "Qwen3.5-4B",
+    "parameters": "4",
+    "ram": 12,
+    "vram": 6,
+    "score": "79,1",
+    "description": "Для быстрых повседневных ответов и фото. Полезный вариант, если 9B медленно отвечает на вашем ПК.",
+    "revision": "e87f176479d0855a907a41277aca2f8ee7a09523",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF",
+    "license": "Apache-2.0",
+    "files": [
+      {"name":"Qwen3.5-4B-Q4_K_M.gguf","bytes":2740937888,"sha256":"00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4","url":"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"},
+      {"name":"mmproj-F16.gguf","bytes":672423616,"sha256":"cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864","url":"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/mmproj-F16.gguf"}
+    ]
+  },
+  {
+    "title": "Qwen3 14B",
+    "upstream": "Qwen3-14B",
+    "parameters": "14,8",
+    "ram": 24,
+    "vram": 12,
+    "score": "",
+    "description": "Текстовая модель предыдущего поколения для второго мнения. Подходит для ПК с большим запасом памяти.",
+    "revision": "a04a82c4739b3ef5fa6da7d10261db2c67dd1985",
+    "source": "https://huggingface.co/unsloth/Qwen3-14B-GGUF",
+    "license": "Apache-2.0",
+    "files": [
+      {"name":"Qwen3-14B-Q4_K_M.gguf","bytes":9001753984,"sha256":"5eaa0870bd81ed3b58a630a271234cfa604e43ffb3a19cd68e54a80dd9d52a66","url":"https://huggingface.co/unsloth/Qwen3-14B-GGUF/resolve/a04a82c4739b3ef5fa6da7d10261db2c67dd1985/Qwen3-14B-Q4_K_M.gguf"}
+    ]
+  },
+  {
+    "title": "Qwen3.5 27B",
+    "upstream": "Qwen3.5-27B",
+    "parameters": "27",
+    "ram": 32,
+    "vram": 24,
+    "score": "86,1",
+    "description": "Для сложных текстовых задач и анализа изображения на рабочей станции. На небольших видеокартах большая часть вычислений приходится на CPU.",
+    "license": "Apache-2.0",
+    "revision": "3221f178a6b842d04f1fb42f1c413534adcc0a6a",
+    "source": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF",
+    "files": [
       {"name":"Qwen3.5-27B-Q4_K_M.gguf","bytes":16740812704,"sha256":"84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806","url":"https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/3221f178a6b842d04f1fb42f1c413534adcc0a6a/Qwen3.5-27B-Q4_K_M.gguf"},
       {"name":"mmproj-F16.gguf","bytes":927607040,"sha256":"458bc46d8f275866fde5d88c9c554d9d462a6e8e3a028090d9850e17ab6a1217","url":"https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/3221f178a6b842d04f1fb42f1c413534adcc0a6a/mmproj-F16.gguf"}
     ]

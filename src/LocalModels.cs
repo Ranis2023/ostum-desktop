@@ -72,6 +72,18 @@ namespace Sfera {
     }
     public sealed class CatalogEntry {
         public string title {get;set;}public string license {get;set;}public string revision {get;set;}public string source {get;set;}public ModelFile[] files {get;set;}
-        public override string ToString(){return title+" · "+Store.Size(files.Sum(f=>f.bytes))+" · "+license;}
+        public bool builtin {get;set;}
+        public string upstream {get;set;} public string parameters {get;set;} public string description {get;set;} public string score {get;set;}
+        public int ram {get;set;} public int vram {get;set;}
+        public string Label {get{return builtin?title+" ★":title;}}
+        public string Vision {get{return files.Length>1?"Да":"—";}}
+        public string Size {get{return Store.Size(files.Sum(f=>f.bytes));}}
+        public string BenchmarkLabel {get{return string.IsNullOrEmpty(score)?"—":score;}}
+        public static CatalogEntry[] All(){
+            var entries=Store.Json().Deserialize<CatalogEntry[]>(Store.Resource("model-catalog.json"));
+            foreach(var e in entries.Where(x=>x.builtin))e.files=Store.ChatModels[0].Files.Select(id=>Store.Files[id]).ToArray();
+            return entries;
+        }
+        public string DirectoryIn(string library){return builtin?library:System.IO.Path.Combine(library,"catalog",revision);}
     }
 }

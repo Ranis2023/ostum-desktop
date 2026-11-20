@@ -10,8 +10,40 @@ namespace Sfera {
     public sealed partial class Desktop {
         async Task RunRequest(List<Turn> turns,Turn reply,Action<string> stream,Action<string> activity,Action<WorkerEvent> changed,CancellationToken token) {
             var user=turns.Last();string request=user.Text??"";
+            if(reply.ProjectOnly){
+                var command=ChatFileIntent.Read(request);
+                reply.Text=await Workers.Track(changed,"docs","Документалист",command==null?"Читает открытый файл":"Работает с папкой и документом",async()=>{
+                    if(!ShowProject())return "Чтобы открыть локальный редактор в чате, требуется OSTUM Pro.";
+                    return await chatProject.ChatAction(command,request,token,agents||Orchestrator.WantsTeam(request),changed);
+                });
+                reply.Steps=new List<string>{"Оркестратор · рабочая папка · локально"};return;
+            }
+            if(!art&&user.Image==null&&user.DocumentId==null&&LocalMusic.Requested(request)){
+                WorkPolicy.RequireAI();string directory=LocalMusic.Library(prefs.Models);
+                WorkPolicy.CheckImport(Path.Combine(directory,LocalMusic.Files[1].name));
+                long missing=LocalMusic.Files.Where(f=>!f.Present(directory)).Sum(f=>f.bytes);
+                if(missing>0){
+                    if(!WorkPolicy.Network){reply.Text="Для автономной генерации перенесите полный модуль ACE-Step в папку "+directory+".";return;}
+                    if(System.Windows.MessageBox.Show(Window,"Скачать "+Store.Size(missing)+" для локальной инструментальной музыки? После установки треки создаются без интернета.","Модуль ACE-Step",System.Windows.MessageBoxButton.YesNo,System.Windows.MessageBoxImage.Question,System.Windows.MessageBoxResult.No)!=System.Windows.MessageBoxResult.Yes){reply.Text="Загрузка музыки отменена.";return;}
+                }
+                int duration=LocalMusic.Duration(request);
+                reply.Audio=await Workers.Track(changed,"music","Композитор","Создаёт инструментальный трек",async()=>{
+                    string caption=request;
+                    if(System.Text.RegularExpressions.Regex.IsMatch(request,@"[А-Яа-яЁё]")&&Store.Ready(Store.Chat(prefs),prefs.Models)){
+                        string english=await Task.Run(()=>engine.Role(prefs,"Write one English musical caption for an instrumental music generator. Capture the requested mood, instruments, genre and tempo. Output only the caption.",ResearchText.Clip(request,1500),null,100,false,t=>{},activity,token));
+                        if(!string.IsNullOrWhiteSpace(english))caption=english;
+                    }
+                    engine.StopChat();return await Task.Run(()=>LocalMusic.Create(prefs.Models,caption,duration,activity,token));
+                });
+                reply.Text="Инструментальный трек готов · "+duration+" с.";reply.Steps=new List<string>{"Оркестратор · локальная музыка ACE-Step"};return;
+            }
+            if(!WorkPolicy.CaptureAllowed&&Orchestrator.DesktopIntent(request)){reply.Text="Доступ к экрану и приложениям ограничен настройками рабочих папок или организации.";return;}
             string memory=Personal.ExplicitRequest(request,prefs);
             if(memory!=null){reply.Text=memory;reply.Steps=new List<string>{"Оркестратор · рабочий профиль на компьютере"};return;}
+            if(!art&&!agents&&user.Image==null&&DocumentComparison.Requested(request)){
+                reply.Text=await Workers.Track(changed,"diff","Сверка версий","Сопоставляет текст двух вложений",()=>Task.Run(()=>DocumentComparison.Run(turns,reply,token),token));
+                reply.Steps=new List<string>{"Сверка версий · извлечённый текст двух последних вложений"};return;
+            }
             if(!art&&!agents&&user.Image==null&&user.DocumentId==null){
                 string value=Calculator.Direct(request);
                 if(value!=null){
@@ -26,10 +58,14 @@ namespace Sfera {
             }
             engine.SelectSlots(agents||Orchestrator.WantsTeam(request),turns.Sum(t=>(long)(t.Text??"").Length));
             bool field=ReplyFormat.Field(request);
-            var local=field||!WorkPolicy.CaptureAllowed?null:Computer.WindowRequest(request,new System.Windows.Interop.WindowInteropHelper(Window).Handle);
-            if(local!=null){Progress("Компьютер обрабатывает окно");reply.Text=local;reply.Steps=new List<string>{"Оркестратор · окна Windows"};return;}
-            string launch=field||!WorkPolicy.CaptureAllowed?null:Computer.LaunchIntent(request);
-            if(launch!=null){Progress("Компьютер открывает приложение");reply.Text=Computer.Launch(launch);reply.Steps=new List<string>{"Оркестратор · запуск приложения Windows"};return;}
+            if(!field&&WorkPolicy.CaptureAllowed&&Orchestrator.DesktopIntent(request)&&!Orchestrator.WantsScreen(request)){
+                var handle=new System.Windows.Interop.WindowInteropHelper(Window).Handle;
+                string result=await Workers.Track(changed,"windows","Диспетчер окон","Работает с окнами Windows",()=>{
+                    var launch=Computer.LaunchIntent(request);
+                    return Task.FromResult(launch==null?Computer.WindowRequest(request,handle):Computer.Launch(launch));
+                });
+                if(result!=null){reply.Text=result;reply.Steps=new List<string>{"Оркестратор · окна и приложения Windows"};return;}
+            }
             bool permitted=WorkPolicy.Network&&Find<CheckBox>("WebSearch").IsChecked==true;
             var verification=SourceCheck.Read(turns);
             if(verification!=null&&!art&&!agents&&!Orchestrator.WantsTeam(request)){

@@ -18,6 +18,7 @@ namespace Sfera {
     public sealed class ProjectRule {
         public string Root {get;set;}
         public bool Analysis {get;set;}
+        public bool DocumentAnalysis {get;set;}
         public bool Training {get;set;}
         public string[] Groups {get;set;}
         public override string ToString(){return System.IO.Path.GetFileName(Root.TrimEnd('\\'))+"  ·  "+(Analysis?"локальный анализ":"только редактор");}
@@ -65,7 +66,7 @@ namespace Sfera {
             if(Rules.Managed)throw new UnauthorizedAccessException("Список проектов задаёт администратор.");
             LocalPath(root);if(!Directory.Exists(root))throw new DirectoryNotFoundException();
             var all=Projects().Where(p=>!string.Equals(Full(root),Full(p.Root),StringComparison.OrdinalIgnoreCase)).ToList();
-            all.Add(new ProjectRule{Root=Path.GetFullPath(root),Analysis=analyze,Training=train});
+            all.Add(new ProjectRule{Root=Path.GetFullPath(root),Analysis=analyze,DocumentAnalysis=analyze,Training=train});
             Store.Write(Path.Combine(Store.Home,"pro","projects.json"),all);
         }
         static ProjectRule[] Matching(string file){
@@ -76,6 +77,9 @@ namespace Sfera {
                 return matches;
             }
             return Projects().Where(p=>Within(file,p.Root)).ToArray();
+        }
+        public static bool CanAnalyzeDocument(string file){
+            var matches=Matching(file);return matches.Length>0&&matches.All(p=>p.Analysis&&p.DocumentAnalysis);
         }
         public static void CheckFile(string file,bool analysis=false,bool training=false){
             var matches=Matching(file);var r=Rules;

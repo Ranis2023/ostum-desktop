@@ -10,10 +10,12 @@ $Image=[IO.Path]::GetFullPath($Image)
 if($Image.StartsWith($Kit.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Place the image outside the source tree.'}
 $cat=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'src/catalog.json')|ConvertFrom-Json
 $all=@($setup)+@($cat.files|ForEach-Object {Get-Item -LiteralPath (Join-Path $Kit ('Models/'+$_.name))})+@($cat.acceleration.libraries|ForEach-Object {Get-Item -LiteralPath (Join-Path $Kit ('Acceleration/'+$_.name))})
+$music=Join-Path $Kit 'Models/music-ace15'
+if(Test-Path -LiteralPath $music){$all+=@($cat.music|ForEach-Object {Get-Item -LiteralPath (Join-Path $music $_.name)})}
 $lines=@()
 foreach($file in $all){
     $hash=(Get-FileHash -LiteralPath $file.FullName).Hash.ToLowerInvariant()
-    $spec=@($cat.files)+@($cat.acceleration.libraries)|Where-Object name -eq $file.Name|Select-Object -First 1
+    $spec=@($cat.files)+@($cat.acceleration.libraries)+@($cat.music)|Where-Object name -eq $file.Name|Select-Object -First 1
     if($spec -and $hash -ne $spec.sha256){throw "Checksum mismatch $($file.Name)"}
     $lines+="$hash  "+$file.FullName.Substring($Kit.Length+1).Replace('\','/')
 }

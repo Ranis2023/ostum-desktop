@@ -37,9 +37,9 @@ namespace Sfera {
                 bool clean=true;
                 if(delete){
                     var confirm=MessageBox.Show(Window,"Удалить «"+chat.Title+"» и копии вложений, которые нужны только этому диалогу?","Удаление диалога",MessageBoxButton.YesNo,MessageBoxImage.Warning,MessageBoxResult.No);
-                    if(confirm!=MessageBoxResult.Yes)return;
+                    if(confirm!=MessageBoxResult.Yes||(chat==active&&!ClosePreview()))return;
                     clean=Store.DeleteConversation(chat);history.Remove(chat);
-                }else Store.SetArchived(chat,!chat.Archived);
+                }else{if(chat==active&&!ClosePreview())return;Store.SetArchived(chat,!chat.Archived);}
                 if(chat==active&&(delete||(input.Text.Length==0&&attached==null&&document==null))) {
                     active=history.Where(c=>c.Archived==archiveView).OrderByDescending(c=>c.Updated).FirstOrDefault()??new Conversation();
                     ShowChat();

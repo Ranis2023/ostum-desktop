@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("5.3.0.0")]
+[assembly: AssemblyVersion("5.4.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -83,10 +83,10 @@ namespace Sfera {
             list = Find<ListBox>("HistoryList"); scroll = Find<ScrollViewer>("TranscriptScroll"); transcript = Find<StackPanel>("Transcript");
             list.SelectionChanged += (s,e) => {
                 if (rebuilding || work != null || speechWork!=null || (voice!=null&&voice.Recording) || list.SelectedItem == null || list.SelectedItem == active) return;
-                active = (Conversation)list.SelectedItem; ClearDraft(); ShowChat();
+                if(!ClosePreview()){list.SelectedItem=active;return;} active = (Conversation)list.SelectedItem; ClearDraft(); ShowChat();
             };
             Find<Button>("NewChat").Click += (s,e) => NewChat();
-            Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;if(!ProAccessWindow.Ensure(Window))return;prepareDraft.Stop();engine.StopChat();new ProjectWindow(Window,prefs,engine).ShowDialog();};
+            Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;if(!ProAccessWindow.Ensure(Window))return;prepareDraft.Stop();if(chatProject!=null){input.Focus();return;}engine.StopChat();var workspace=new ProjectWindow(Window,prefs,engine);workspace.OfferChat();workspace.ShowDialog();if(workspace.RequestedChat){chatProject=workspace;Find<CheckBox>("UseFileContext").IsChecked=true;DisplayPane(workspace.DockInChat(),true);input.Focus();}};
             Find<Button>("Models").Click += (s,e) => Settings();
             Find<Button>("ChatMode").Click += (s,e) => SetMode(false);
             Find<Button>("AgentMode").Click += (s,e) => SetMode(false,true);
@@ -95,7 +95,7 @@ namespace Sfera {
             Find<Button>("Attach").Click += (s,e) => {if(art)ChoosePhoto();else ChooseFile();};
             Find<Button>("QuickDocument").Click += (s,e) => {SetMode(false);ChooseFile(true);};
             Find<Button>("FullHelp").Click += (s,e) => WorkspaceUi.Help(Window);
-            Window.SizeChanged += (s,e)=>Find<Grid>("WelcomeArt").Visibility=Window.ActualWidth<900?Visibility.Collapsed:Visibility.Visible;
+            SetupPreview();
             Find<Button>("QuickPhoto").Click += (s,e) => { SetMode(false); ChoosePhoto(); };
             Find<Button>("QuickArt").Click += (s,e) => SetMode(true);
             Find<Button>("RemoveAttach").Click += (s,e) => SetAttachment(null,null);
@@ -117,13 +117,14 @@ namespace Sfera {
                 }
             };
             Window.PreviewKeyDown += async (s,e) => {
-                if(e.Key==Key.F1){e.Handled=true;WorkspaceUi.Help(Window);return;}
+                if(e.Key==Key.F1){e.Handled=true;WorkspaceUi.Help(Window,PreviewOpen?"projects":"start");return;}
                 if(voice.Recording&&e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Shift)==0) {e.Handled=true;if(!e.IsRepeat)await Dictate();return;}
                 if(e.Key==Key.Escape&&(voice.Recording||speechWork!=null)){e.Handled=true;CancelVoice();return;}
                 if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control && work == null) { NewChat(); e.Handled=true; }
                 if (e.Key == Key.Escape && work != null) { work.Cancel(); e.Handled=true; }
             };
             Window.PreviewDragOver+=(s,e)=>{
+                if(chatProject!=null&&Find<Border>("PreviewPane").IsMouseOver)return;
                 if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;
                 var paths=e.Data.GetData(DataFormats.FileDrop) as string[];
                 bool accept=work==null&&speechWork==null&&!voice.Recording&&paths!=null&&paths.Length==1;
@@ -131,7 +132,8 @@ namespace Sfera {
                 Find<Border>("ChatDrop").Visibility=e.Effects==DragDropEffects.None?Visibility.Collapsed:Visibility.Visible;e.Handled=true;
             };
             Window.PreviewDragLeave+=(s,e)=>{var p=e.GetPosition(Window);if(p.X<=0||p.Y<=0||p.X>=Window.ActualWidth-1||p.Y>=Window.ActualHeight-1)Find<Border>("ChatDrop").Visibility=Visibility.Collapsed;};
-            Window.PreviewDrop+=(s,e)=>{
+            Window.PreviewDrop+=async(s,e)=>{
+                if(chatProject!=null&&Find<Border>("PreviewPane").IsMouseOver)return;
                 if(!e.Data.GetDataPresent(DataFormats.FileDrop))return;
                 e.Handled=true;Find<Border>("ChatDrop").Visibility=Visibility.Collapsed;
                 if(work!=null||speechWork!=null||voice.Recording)return;
@@ -139,12 +141,10 @@ namespace Sfera {
                 if(paths==null||paths.Length!=1){status.Text="Прикрепите один файл к сообщению.";return;}
                 string path=paths[0];
                 if(Directory.Exists(path)||Path.GetExtension(path).Equals(".xlsx",StringComparison.OrdinalIgnoreCase)){
-                    if(!ProAccessWindow.Ensure(Window))return;
-                    prepareDraft.Stop();engine.StopChat();
-                    var workspace=new ProjectWindow(Window,prefs,engine);workspace.OpenOnLoad(path);workspace.ShowDialog();
+                    await OpenInChat(path);
                 }else LoadFile(path);
             };
-            Window.Closing += (s,e) => { closing = true; idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
+            Window.Closing += (s,e) => { if(!ClosePreview()){e.Cancel=true;return;} closing = true; StopAudio();idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
             Window.Loaded += (s,e) => input.Focus();
             SetupUpdates();
             SetupStudio(engines); SetupHistory();
@@ -158,6 +158,7 @@ namespace Sfera {
         async void PrepareWhileTyping(object sender,EventArgs e){
             prepareDraft.Stop();
             if(closing||work!=null||preparingDraft||art||reading||input.Text.Trim().Length<3||!Store.Ready(Store.Chat(prefs),prefs.Models))return;
+            if(FileTurn(KeyboardLayout.Decode(input.Text))||LocalMusic.Requested(input.Text)||DocumentComparison.Requested(input.Text))return;
             if(!agents&&attached==null&&document==null&&(Calculator.Direct(input.Text)!=null||ReplyFormat.LiteralField(input.Text)!=null))return;
             bool photo=attached!=null||active.Turns.Any(t=>!string.IsNullOrEmpty(t.Image)&&File.Exists(t.Image));
             engine.SelectSlots(agents||Orchestrator.WantsTeam(KeyboardLayout.Decode(input.Text)),active.Turns.Sum(t=>(long)(t.Text??"").Length));
@@ -177,7 +178,7 @@ namespace Sfera {
             if (new ModelSettings(Window, prefs,art).Show()) { engine.StopChat(); status.Text = "Настройки сохранены."; Labels(); }
             input.Focus();
         }
-        void NewChat() { if (work != null || speechWork!=null || voice.Recording) return; archiveView=false; active = new Conversation(); ClearDraft(); RefreshList(); ShowChat(); }
+        void NewChat() { if (work != null || speechWork!=null || voice.Recording || !ClosePreview()) return; archiveView=false; active = new Conversation(); ClearDraft(); RefreshList(); ShowChat(); }
         void ClearDraft() { input.Clear(); SetAttachment(null,null); voice.StopSpeech(); SetMode(false); status.Text = ""; input.Focus(); }
         void RefreshList() {
             rebuilding=true;
@@ -283,20 +284,23 @@ namespace Sfera {
             if (!history.Contains(active)) history.Add(active);
             Store.Save(active); RefreshList(); Labels();
         }
+        System.Media.SoundPlayer audioPlayer;
+        void StopAudio(){if(audioPlayer!=null){audioPlayer.Stop();audioPlayer.Dispose();audioPlayer=null;}}
         async Task Send() {
-            if (work != null || reading || speechWork!=null || voice.Recording) return;
-            try{WorkPolicy.RequireAI();}catch(UnauthorizedAccessException ex){status.Text=ex.Message;return;}
+            if (work != null || reading || speechWork!=null || voice.Recording||PaneBusy) return;
             string typed=input.Text.Trim(),request=KeyboardLayout.Decode(typed);
+            bool projectTurn=FileTurn(request);
+            if(!projectTurn)try{WorkPolicy.RequireAI();}catch(UnauthorizedAccessException ex){status.Text=ex.Message;return;}
             if (request.Length==0 && attached==null && document==null) { input.Focus(); return; }
             if (request.Length==0) request=document!=null ? "Кратко изложи содержание документа." : art ? "Создай иллюстрацию по этому изображению, сохрани композицию и цвета." : "Опиши это изображение.";
-            if (!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)) {
+            if (!projectTurn&&!(Orchestrator.DesktopIntent(request)&&!Orchestrator.WantsScreen(request))&&!LocalMusic.Requested(request)&&!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)) {
                 Settings();
                 if (!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)) return;
             }
             var cts=work=new CancellationTokenSource();
             idle.Stop(); prepareDraft.Stop();voice.StopSpeech();
             var buffer=new StringBuilder();
-            var reply=new Turn { Role="assistant", Text="" };
+            var reply=new Turn { Role="assistant", Text="", ProjectOnly=projectTurn };
             TextBlock live=null; StackPanel livePanel=null; bool userSaved=false;
             var timer=new DispatcherTimer { Interval=TimeSpan.FromMilliseconds(65) };
             timer.Tick+=(s,e) => {
@@ -307,24 +311,24 @@ namespace Sfera {
             };
             try {
                 StartProgress();
-                if(attached==null&&document==null&&!ReplyFormat.Field(request)&&Orchestrator.WantsScreen(request))await CaptureIntoDraft(System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(Window).Handle));
+                if(!projectTurn&&WorkPolicy.CaptureAllowed&&attached==null&&document==null&&!ReplyFormat.Field(request)&&Orchestrator.WantsScreen(request))await CaptureIntoDraft(System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(Window).Handle));
                 cts.Token.ThrowIfCancellationRequested();
-                var user=new Turn { Role="user", Text=request, OriginalText=typed.Length>0&&typed!=request?typed:null, Image=SaveAttachment() };
+                var user=new Turn { Role="user", Text=request, ProjectOnly=projectTurn, OriginalText=typed.Length>0&&typed!=request?typed:null, Image=SaveAttachment() };
                 if(document!=null){Documents.Save(document);user.DocumentId=document.Id;user.DocumentName=document.Name;}
                 active.Turns.Add(user);
-                if (active.Turns.Count==1) { var title=Regex.Replace(request,@"\s+"," "); active.Title=title.Length>56 ? title.Substring(0,55)+"…" : title; }
+                if (active.Turns.Count==1) { var title=projectTurn?"Работа с файлами":Regex.Replace(request,@"\s+"," "); active.Title=title.Length>56 ? title.Substring(0,55)+"…" : title; }
                 Persist(); userSaved=true; AddTurn(user); input.Clear(); SetAttachment(null,null);
                 Find<StackPanel>("Welcome").Visibility=Visibility.Collapsed;
-                SetBusy(true); ScrollEnd();
+                StopAudio();SetBusy(true); ScrollEnd();
                 livePanel=new StackPanel { Margin=new Thickness(0,4,0,10) };
                 livePanel.Children.Add(Author("Zarum")); BeginWorkers(livePanel); live=new TextBlock { FontSize=15,TextWrapping=TextWrapping.Wrap };
                 livePanel.Children.Add(live); transcript.Children.Add(livePanel); timer.Start();
                 Action<string> activity = txt => Window.Dispatcher.BeginInvoke(new Action(() => { if (work==cts) Progress(txt); }));
                 Action<string> append=t=>{lock(buffer)buffer.Append(t);};
                 Action<WorkerEvent> eventSink=w=>Window.Dispatcher.Invoke(new Action(()=>{if(!closing&&work==cts)WorkerUpdate(w);}));
-                await RunRequest(active.Turns.ToList(),reply,append,activity,eventSink,cts.Token);
+                await RunRequest(projectTurn?new List<Turn>{user}:active.Turns.Where(t=>!t.ProjectOnly).ToList(),reply,append,activity,eventSink,cts.Token);
                 status.Text="";
-                if(prefs.ConversationVoice&&!cts.IsCancellationRequested){
+                if(prefs.ConversationVoice&&!projectTurn&&!cts.IsCancellationRequested){
                     try{voice.Speak(reply.Text);}catch(Exception ex){status.Text="Озвучивание. "+ex.Message;}
                 }
             } catch(Exception ex) {
@@ -380,9 +384,12 @@ namespace Sfera {
                 BorderBrush=Color(user?"#CEDDCB":"#DDE4DA"),BorderThickness=new Thickness(1),
                 Background=user?Color("#DEECD9"):Brushes.White, Padding=new Thickness(17,11,17,11) };
             var block=new StackPanel(); shell.Child=block; transcript.Children.Add(shell);
-            block.Children.Add(Author(user?"Вы":"Zarum"));
+            block.Children.Add(Author((user?"Вы":"Zarum")+(t.ProjectOnly?" · рабочая папка · только в этом сеансе":"")));
             if(recentWorkers!=null)block.Children.Add(recentWorkers);
-            if(!string.IsNullOrEmpty(t.DocumentName))block.Children.Add(new TextBlock {Text="▤  "+t.DocumentName,FontWeight=FontWeights.SemiBold,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,2,0,6)});
+            if(!string.IsNullOrEmpty(t.DocumentName)){
+                var show=new Button{Content=t.DocumentName,HorizontalAlignment=HorizontalAlignment.Left,ToolTip="Посмотреть текст вложения справа",Margin=new Thickness(0,2,0,5)};
+                show.Click+=(s,e)=>{if(work==null)ReadOnlyPreview(Documents.Load(t.DocumentId));};block.Children.Add(show);
+            }
             if (!string.IsNullOrEmpty(t.Image) && File.Exists(t.Image)) {
                 try {
                     var img=new Image { Source=OpenImage(t.Image,t.Generated?640:320), MaxWidth=t.Generated?420:220, MaxHeight=t.Generated?390:160, Stretch=Stretch.Uniform, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(0,2,0,8) };
@@ -394,9 +401,14 @@ namespace Sfera {
             if (!user) {
                 WorkerHistory(block,t); AddResearchDetails(block,t);
                 var actions=new WrapPanel { Margin=new Thickness(0,3,0,0) }; block.Children.Add(actions);
-                if (!t.Generated) Small(actions,"Копировать",() => Clipboard.SetText(t.Text??""));
-                if(!t.Generated)Small(actions,"Сохранить…",()=>SaveAnswer(t));
+                if (!t.Generated&&(!t.ProjectOnly||WorkPolicy.CaptureAllowed)) Small(actions,"Копировать",() => Clipboard.SetText(t.Text??""));
+                if(!t.Generated&&!t.ProjectOnly)Small(actions,"Сохранить…",()=>SaveAnswer(t));
                 if(!t.Generated)Small(actions,"Озвучить",()=>voice.Speak(t.Text));
+                if(!string.IsNullOrEmpty(t.Audio)&&File.Exists(t.Audio)){
+                    Small(actions,"▶ Слушать",()=>{try{StopAudio();audioPlayer=new System.Media.SoundPlayer(t.Audio);audioPlayer.Play();}catch(Exception ex){status.Text=ex.Message;}});
+                    Small(actions,"Стоп",StopAudio);
+                    Small(actions,"Сохранить WAV…",()=>{var save=new SaveFileDialog{Filter="Музыка WAV|*.wav",FileName="OSTUM — музыка.wav"};if(save.ShowDialog(Window)==true&&!string.Equals(Path.GetFullPath(save.FileName),t.Audio,StringComparison.OrdinalIgnoreCase))try{WorkPolicy.LocalPath(save.FileName);File.Copy(t.Audio,save.FileName,true);}catch(Exception ex){status.Text=ex.Message;}});
+                }
                 if (t.Generated && File.Exists(t.Image)) {
                     Small(actions,"Сохранить PNG…",() => {
                         var dlg=new SaveFileDialog { Filter="Изображение PNG|*.png", FileName="Ostum-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".png" };

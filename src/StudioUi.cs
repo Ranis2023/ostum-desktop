@@ -40,7 +40,7 @@ namespace Sfera {
                 level.Width=Math.Max(voice.Level*74,level.Width*.68);
                 if(elapsed>=TimeSpan.FromMinutes(3)||voice.RecordingError!=null)await Dictate();
             };
-            Window.Closing+=(s,e)=>{recordMeter.Stop();if(speechWork!=null)speechWork.Cancel();voice.Dispose();};
+            Window.Closing+=(s,e)=>{if(e.Cancel)return;recordMeter.Stop();if(speechWork!=null)speechWork.Cancel();voice.Dispose();};
         }
         void ShowMicDevices() {
             if(voice.Recording||speechWork!=null)return;
@@ -73,7 +73,7 @@ namespace Sfera {
         }
         void ShowTools() {
             var menu=new ContextMenu();var host=Find<Button>("Toolbox");menu.PlacementTarget=host;
-            Item(menu,"Автоматический выбор",()=>SetMode(false));Item(menu,"Поручить команде",()=>SetMode(false,true));Item(menu,"Режим рисования",()=>SetMode(true));menu.Items.Add(new Separator());
+            Item(menu,"Автоматический выбор",()=>SetMode(false));Item(menu,"Поручить команде",()=>SetMode(false,true));Item(menu,"Режим рисования",()=>SetMode(true));Item(menu,"Создать инструментальную музыку…",()=>{SetMode(false);if(string.IsNullOrWhiteSpace(input.Text))input.Text="Сгенерируй музыку на 15 секунд для ";input.Focus();input.CaretIndex=input.Text.Length;});menu.Items.Add(new Separator());
             var screens=new MenuItem{Header="Приложить снимок экрана"};menu.Items.Add(screens);
             foreach(var monitor in Forms.Screen.AllScreens) {
                 var chosen=monitor;string label=chosen.DeviceName.Substring(chosen.DeviceName.LastIndexOf('\\')+1)+" · "+chosen.Bounds.Width+" × "+chosen.Bounds.Height;

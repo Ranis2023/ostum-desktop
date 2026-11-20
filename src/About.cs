@@ -112,7 +112,7 @@ namespace Sfera {
         }
         async Task ApplyUpdate(Window dialog){
             if(!installerReady||applyingUpdate||checkingRelease!=null||available==null)return;
-            if(work!=null||reading||speechWork!=null||voice.Recording||attached!=null||document!=null||!string.IsNullOrWhiteSpace(input.Text)){
+            if(work!=null||(chatProject!=null&&chatProject.Pending)||reading||speechWork!=null||voice.Recording||attached!=null||document!=null||!string.IsNullOrWhiteSpace(input.Text)){
                 ShowUpdateStatus("Завершите текущую работу и отправьте или очистите черновик. Затем нажмите «Установить».");return;
             }
             applyingUpdate=true;dialog.IsEnabled=false;

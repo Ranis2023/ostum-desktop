@@ -35,7 +35,7 @@ namespace Sfera {
             var panel=new StackPanel();root.Children.Add(new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});
             panel.Children.Add(Text(w,"Что разрешить в этой папке?","Title"));panel.Children.Add(Text(w,directory,"Hint"));
             var names=new[]{"Только редактор","Локальный анализ","Анализ и обучение"};
-            var help=new[]{"Открывайте Word и Excel и вносите правки вручную. Содержимое доступно только редактору.","Можно задать Zarum вопрос о выбранном абзаце или ячейке. Модель работает на вашем ПК.","Вы сможете дополнительно обучать Zarum на отдельно проверенных вопросах и ответах."};
+            var help=new[]{"Открывайте Word и Excel и вносите правки вручную. Содержимое доступно только редактору.","Zarum может локально читать выбранный абзац, ячейку или отрывки открытого документа и текущего листа для ответа в чате.","Разрешить локальный анализ открытого файла и обучение Zarum на отдельно проверенных вопросах и ответах."};
             int choice=current;
             for(int i=0;i<names.Length;i++){
                 int index=i;var body=new StackPanel();body.Children.Add(Text(w,names[i],"Subhead"));body.Children.Add(Text(w,help[i],"Hint"));

@@ -16,31 +16,33 @@ namespace Sfera {
         T Get<T>(string name) where T:FrameworkElement {return (T)view.FindName(name);}
         void Click(string name,Action fn){Get<Button>(name).Click+=(s,e)=>{if(!busy)Try(fn);};}
         void InitializeWorkspace(){
-            PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.F1){e.Handled=true;WorkspaceUi.Help(this,"projects");}};
-            Click("Help",()=>WorkspaceUi.Help(this,"projects"));Click("AddFolder",PickFolder);Click("PickFolder",PickFolder);Click("PickFile",PickOffice);
-            Click("FolderAccess",()=>{RequireProject();if(WorkPolicy.Rules.Managed)return;int mode=WorkspaceUi.Permission(this,project.Root,project.Training?2:project.Analysis?1:0);if(mode<0||!Discard())return;WorkPolicy.Register(project.Root,mode>=1,mode==2);RefreshProjects(project.Root);status.Text="Доступ к папке обновлён.";});
+            PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.F1){e.Handled=true;WorkspaceUi.Help(DialogHost,"projects");}};
+            Click("Help",()=>WorkspaceUi.Help(DialogHost,"projects"));Click("AddFolder",PickFolder);Click("PickFolder",PickFolder);Click("PickFile",PickOffice);
+            Click("FolderAccess",()=>{RequireProject();if(WorkPolicy.Rules.Managed)return;int mode=WorkspaceUi.Permission(DialogHost,project.Root,project.Training?2:project.Analysis?1:0);if(mode<0||!Discard())return;WorkPolicy.Register(project.Root,mode>=1,mode==2);RefreshProjects(project.Root);status.Text="Доступ к папке обновлён.";});
             Click("ToggleFiles",()=>{drawerOpen=!drawerOpen;LayoutPanels();});Get<Border>("Shade").MouseLeftButtonDown+=(s,e)=>CloseDrawer();
             PreviewKeyDown+=(s,e)=>{if(drawerOpen&&e.Key==System.Windows.Input.Key.Escape){CloseDrawer();e.Handled=true;}};
             Click("Up",()=>{RequireProject();var parent=Directory.GetParent(folder);if(parent!=null&&WorkPolicy.Within(parent.FullName,project.Root)&&Discard()){folder=parent.FullName;Clear();ListFiles();}});
-            Click("FileMenu",FileActions);Click("SearchProject",()=>Run(SearchProject));Click("Templates",CompanyTools);
-            Click("Train",()=>{RequireProject();engine.StopChat();new TrainingWindow(this,project,prefs).ShowDialog();engine.StopChat();});
+            Click("FileMenu",()=>Run(FileActions));Click("SearchProject",()=>Run(SearchProject));Click("Templates",CompanyTools);
+            Click("Train",()=>{RequireProject();engine.StopChat();new TrainingWindow(DialogHost,project,prefs).ShowDialog();engine.StopChat();});
             Click("Sample",()=>Run(Example));Click("Home",()=>{if(Discard()){Clear();status.Text="Выберите другой файл или перетащите его из Проводника.";}});
             Click("Edit",()=>Edit(false));Click("Ask",()=>Run(Analyze));Click("More",More);Click("Save",()=>Run(Save));
-            Click("Uncheck",()=>{foreach(var p in patches)p.Selected=false;changes.Items.Refresh();});
+            Click("Uncheck",()=>{foreach(var p in patches)p.Selected=false;changes.Items.Refresh();if(inlinePatches!=null)inlinePatches.Items.Refresh();});
             patches.CollectionChanged+=(s,e)=>RefreshView();grid.SelectionChanged+=(s,e)=>RefreshView();tabs.SelectionChanged+=(s,e)=>{if(e.OriginalSource==tabs)RefreshView();};
             AllowDrop=true;PreviewDragOver+=DragOverFile;PreviewDrop+=DropFiles;
             PreviewDragLeave+=(s,e)=>{var position=e.GetPosition(this);if(position.X<=1||position.Y<=1||position.X>=ActualWidth-1||position.Y>=ActualHeight-1)Get<Border>("DropOverlay").Visibility=Visibility.Collapsed;};
-            SizeChanged+=(s,e)=>LayoutPanels();
+            view.SizeChanged+=(s,e)=>LayoutPanels(); SizeChanged+=(s,e)=>LayoutPanels();
+            Get<TextBox>("FileFilter").TextChanged+=(s,e)=>FilterNames();
         }
         void CloseDrawer(){drawerOpen=false;LayoutPanels();}
         void LayoutPanels(){
-            bool compact=ActualWidth>0&&ActualWidth<850;if(!compact)drawerOpen=false;
+            double width=view.ActualWidth>0?view.ActualWidth:ActualWidth;bool compact=width>0&&width<850;if(!compact)drawerOpen=false;
             var side=Get<Border>("Sidebar");((ColumnDefinition)view.FindName("SideColumn")).Width=new GridLength(compact?0:255);
             Grid.SetColumnSpan(side,compact?2:1);Panel.SetZIndex(side,compact?3:0);side.Width=compact?255:double.NaN;
             side.HorizontalAlignment=compact?HorizontalAlignment.Left:HorizontalAlignment.Stretch;side.Visibility=compact&&!drawerOpen?Visibility.Collapsed:Visibility.Visible;
             Get<Border>("Shade").Visibility=compact&&drawerOpen?Visibility.Visible:Visibility.Collapsed;
             var toggle=Get<Button>("ToggleFiles");toggle.Visibility=compact?Visibility.Visible:Visibility.Collapsed;toggle.Content=drawerOpen?"Закрыть список":"Папки и файлы";
-            Get<Grid>("DocumentArt").Visibility=ActualWidth<725?Visibility.Collapsed:Visibility.Visible;
+            Get<Grid>("DocumentArt").Visibility=width<725?Visibility.Collapsed:Visibility.Visible;
+            if(inlinePatches!=null)Get<TextBlock>("DocHint").Visibility=width<580?Visibility.Collapsed:Visibility.Visible;
         }
         void RefreshView(){
             bool has=project!=null,doc=opened!=null,word=doc&&opened.kind=="word",editable=doc&&!opened.readOnly;
@@ -48,9 +50,9 @@ namespace Sfera {
             bool training=analysis&&project.Training&&(!rules.Managed||rules.Training);
             Get<TextBlock>("HeadHint").Text=has?(project.Analysis?(analysis?"Выбранные фрагменты можно обсуждать с локальной Zarum.":"Для этой папки доступен редактор документов."):"Только редактор · документы доступны для ручной работы."):"Документы и таблицы на вашем компьютере";
             Get<TextBlock>("FolderName").Text=has?FolderLabel(folder):"Файлы";Get<TextBlock>("FolderName").ToolTip=folder;
-            var empty=Get<TextBlock>("EmptyFiles");empty.Text=has?"В этой папке пока нет файлов. Через «Файлы…» можно создать документ.":"Здесь появятся файлы подключённой папки.";empty.Visibility=files.Items.Count==0?Visibility.Visible:Visibility.Collapsed;
+            var empty=Get<TextBlock>("EmptyFiles");empty.Text=has?(Get<TextBox>("FileFilter").Text.Length>0?"Совпадений нет. Измените фильтр по имени.":"В этой папке пока нет файлов. Через «Файлы…» можно создать документ."):"Здесь появятся файлы подключённой папки.";empty.Visibility=files.Items.Count==0?Visibility.Visible:Visibility.Collapsed;
             Get<TextBlock>("WelcomeTitle").Text=has?"Откройте первый файл":"С чего начать?";
-            Get<TextBlock>("WelcomeHint").Text=has?"Дважды щёлкните документ в списке слева или перетащите его из Проводника.":rules.Managed?"Выберите разрешённую папку в списке слева. Доступ к папкам назначает администратор.":"Подключите папку, чтобы открыть документы и таблицы прямо в OSTUM.";
+            Get<TextBlock>("WelcomeHint").Text=has?"Откройте документ в списке «Папки и файлы» или перетащите его из Проводника.":rules.Managed?"Выберите разрешённую папку в списке слева. Доступ к папкам назначает администратор.":"Подключите папку, чтобы открыть документы и таблицы прямо в OSTUM.";
             Get<TextBlock>("HeadHint").ToolTip="Бессрочный Pro активен на этом компьютере";
             projects.IsEnabled=has&&!busy;sheets.IsEnabled=!busy;Get<Button>("AddFolder").Visibility=rules.Managed?Visibility.Collapsed:Visibility.Visible;
             projects.Visibility=has?Visibility.Visible:Visibility.Collapsed;
@@ -84,7 +86,7 @@ namespace Sfera {
             var known=WorkPolicy.Projects().Where(p=>WorkPolicy.Within(dir,p.Root)).OrderByDescending(p=>WorkPolicy.Full(p.Root).Length).FirstOrDefault();
             if(known==null||registerExact&&!WorkPolicy.Rules.Managed&&!string.Equals(WorkPolicy.Full(dir),WorkPolicy.Full(known.Root),StringComparison.OrdinalIgnoreCase)){
                 if(WorkPolicy.Rules.Managed)throw new UnauthorizedAccessException("Эта папка отсутствует в списке организации. Выберите папку, выданную администратором.");
-                int mode=WorkspaceUi.Permission(this,dir);if(mode<0)return false;
+                int mode=WorkspaceUi.Permission(DialogHost,dir);if(mode<0)return false;
                 WorkPolicy.Register(dir,mode>=1,mode==2);RefreshProjects(dir);
             }else{
                 ProTools.UnderProject(known,dir);
@@ -98,20 +100,24 @@ namespace Sfera {
                 if(dialog.ShowDialog()==Forms.DialogResult.OK)Run(()=>OpenPaths(new[]{dialog.SelectedPath},true));
             }
         }
-        void PickOffice(){var dialog=new OpenFileDialog{Filter="Документы Word и Excel|*.docx;*.xlsx",Title="Открыть документ в рабочем пространстве",InitialDirectory=folder};if(dialog.ShowDialog(this)==true)Run(()=>OpenPaths(dialog.FileNames,false));}
+        void PickOffice(){var dialog=new OpenFileDialog{Filter="Документы Word и Excel|*.docx;*.xlsx",Title="Открыть документ в рабочем пространстве",InitialDirectory=folder};if(dialog.ShowDialog(DialogHost)==true)Run(()=>OpenPaths(dialog.FileNames,false));}
         static string[] FileDrop(IDataObject data){return data.GetDataPresent(DataFormats.FileDrop)?data.GetData(DataFormats.FileDrop) as string[]:null;}
         void DragOverFile(object sender,DragEventArgs e){
-            var paths=FileDrop(e.Data);if(paths==null)return;bool accept=!busy&&paths.Length>0;
+            var paths=FileDrop(e.Data);if(paths==null)return;bool accept=!busy&&paths.Any(CanOpenDrop);
             // The operation opens items in place. Never advertise Move to Explorer.
             var effect=(e.AllowedEffects&DragDropEffects.Link)!=0?DragDropEffects.Link:e.AllowedEffects&DragDropEffects.Copy;
             e.Effects=accept?effect:DragDropEffects.None;Get<Border>("DropOverlay").Visibility=e.Effects!=DragDropEffects.None?Visibility.Visible:Visibility.Collapsed;e.Handled=true;
         }
-        void DropFiles(object sender,DragEventArgs e){var paths=FileDrop(e.Data);if(paths==null)return;e.Handled=true;Get<Border>("DropOverlay").Visibility=Visibility.Collapsed;e.Effects=busy?DragDropEffects.None:(e.AllowedEffects&DragDropEffects.Link)!=0?DragDropEffects.Link:e.AllowedEffects&DragDropEffects.Copy;if(e.Effects!=DragDropEffects.None)Run(()=>OpenPaths(paths,false));}
-        async Task OpenPaths(string[] paths,bool registerExact){
+        static bool CanOpenDrop(string path){
+            try{WorkPolicy.LocalPath(path);return !Reserved(path)&&(Directory.Exists(path)||OfficeFile(path)&&File.Exists(path));}
+            catch(UnauthorizedAccessException){return false;}catch(IOException){return false;}catch(ArgumentException){return false;}
+        }
+        void DropFiles(object sender,DragEventArgs e){var paths=FileDrop(e.Data);if(paths==null)return;e.Handled=true;Get<Border>("DropOverlay").Visibility=Visibility.Collapsed;e.Effects=busy||!paths.Any(CanOpenDrop)?DragDropEffects.None:(e.AllowedEffects&DragDropEffects.Link)!=0?DragDropEffects.Link:e.AllowedEffects&DragDropEffects.Copy;if(e.Effects!=DragDropEffects.None)Run(()=>OpenPaths(paths,false));}
+        internal async Task OpenPaths(string[] paths,bool registerExact){
             ProAccess.Require();if(paths==null||paths.Length==0)return;
             var candidates=new List<string>();foreach(string path in paths){WorkPolicy.LocalPath(path);if(Reserved(path))continue;if(Directory.Exists(path)||(File.Exists(path)&&OfficeFile(path)))candidates.Add(path);}
             if(candidates.Count==0)throw new IOException("Выберите папку, документ Word (.docx) или таблицу Excel (.xlsx).");
-            int index=candidates.Count==1?0:Choose(this,"Вы перетащили несколько элементов. Что открыть?",candidates.ToArray());if(index<0)return;
+            int index=candidates.Count==1?0:Choose(DialogHost,"Вы перетащили несколько элементов. Что открыть?",candidates.ToArray());if(index<0)return;
             string picked=Path.GetFullPath(candidates[index]);bool directory=Directory.Exists(picked);
             if(!Discard()||!SelectLocation(directory?picked:Path.GetDirectoryName(picked),registerExact))return;
             if(directory){status.Text="Папка открыта. Дважды щёлкните документ в списке слева.";return;}
