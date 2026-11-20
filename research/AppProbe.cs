@@ -20,9 +20,10 @@ class AppProbe {
     }
     static bool MatchesJson(string response,string expected){try{return JsonForm(Store.Json().DeserializeObject(response))==JsonForm(Store.Json().DeserializeObject(expected));}catch(ArgumentException){return false;}catch(InvalidOperationException){return false;}}
     static void Isolate(string folder){
-        string models=Store.Load().Models;var t=typeof(Store);
-        foreach(var item in new[]{new[]{"Home",folder},new[]{"Chats",Path.Combine(folder,"chats")},new[]{"Images",Path.Combine(folder,"images")}})t.GetField(item[0]).SetValue(null,item[1]);
-        if(Store.Home!=folder)throw new Exception("Cannot isolate application data");
+        string models=Store.Load().Models;
+        typeof(Store).GetField("Home").SetValue(null,folder);
+        if(Store.Home!=folder||!WorkPolicy.Within(Store.Chats,folder)||!WorkPolicy.Within(Store.Images,folder))
+            throw new Exception("Cannot isolate application data");
         Store.Save(new Preferences{Models=models,Chat="quality",Art="sketch",Think=false,AllowWeb=false,Personalize=false});
     }
     static void OldTurns(Conversation c,ProbeRow row){
