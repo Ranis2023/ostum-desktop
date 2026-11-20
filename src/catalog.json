@@ -1,0 +1,86 @@
+{
+  "files": [
+    {
+      "id": "q9",
+      "name": "zarum-9b-q4_k_m.gguf",
+      "legacyName": "qwen-9b-q4.gguf",
+      "bytes": 5680522464,
+      "sha256": "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/Qwen3.5-9B-Q4_K_M.gguf"
+    },
+    {
+      "id": "v9",
+      "name": "zarum-9b-vision-f16.gguf",
+      "legacyName": "vision-9b-f16.gguf",
+      "bytes": 918166080,
+      "sha256": "f70dc3509053962b0d0d3ee8a7eacebf5d60aa560cad78254ae8698516ae029f",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/mmproj-F16.gguf"
+    },
+    {
+      "id": "zimage",
+      "name": "z-image-turbo-q4.gguf",
+      "bytes": 3864250304,
+      "sha256": "14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd",
+      "url": "https://huggingface.co/leejet/Z-Image-Turbo-GGUF/resolve/c61c0e422dc8b541b7548cf33a4ef8302b0f8085/z_image_turbo-Q4_K.gguf"
+    },
+    {
+      "id": "zte",
+      "name": "z-qwen3-text-encoder.gguf",
+      "bytes": 2497281120,
+      "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+      "url": "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/a06e946bb6b655725eafa393f4a9745d460374c9/Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+    },
+    {
+      "id": "voice",
+      "name": "whisper-base-q8.bin",
+      "bytes": 81768585,
+      "sha256": "c577b9a86e7e048a0b7eada054f4dd79a56bbfa911fbdacf900ac5b567cbb7d9",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q8_0.bin"
+    },
+    {
+      "id": "zvae",
+      "name": "z-image-vae.safetensors",
+      "bytes": 335304388,
+      "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/6fc90a3b1b653e935a0d175e260736de25b84df5/split_files/vae/ae.safetensors"
+    }
+  ],
+  "acceleration": {
+    "libraries": [
+      {
+        "name": "ggml-cuda.dll",
+        "bytes": 787627008,
+        "sha256": "ffaf0ed59488235f6dd431725d926e75a48edbe4c42983c27ce6730771ce9a4d"
+      },
+      {
+        "name": "cublas64_12.dll",
+        "bytes": 100033536,
+        "sha256": "e40202fe4223c1cd2d2dce7beec59e1ed61c7801bd827309183be9b50e358f4c"
+      },
+      {
+        "name": "cublasLt64_12.dll",
+        "bytes": 473551360,
+        "sha256": "2a896460bef60ed57ef32b0875812f355a6984e671d638bb632f5e8c1d7a831f"
+      },
+      {
+        "name": "cudart64_12.dll",
+        "bytes": 553984,
+        "sha256": "d28e42265da7462162a54da6b7a99ea4fa2caf8139d862bb500db875d0b32dfc"
+      }
+    ],
+    "archives": [
+      {
+        "name": "llama-b12547-bin-win-cuda-12.4-x64.zip",
+        "bytes": 364154419,
+        "sha256": "636c60030aa1b9b0c50db34505c92f67a1f1a4560ab08a0c252b0138027c6702",
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12547/llama-b12547-bin-win-cuda-12.4-x64.zip"
+      },
+      {
+        "name": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "bytes": 391443627,
+        "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12547/cudart-llama-bin-win-cuda-12.4-x64.zip"
+      }
+    ]
+  }
+}
