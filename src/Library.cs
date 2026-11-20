@@ -111,8 +111,8 @@ namespace Sfera {
 
     public static class Store {
         public static readonly string Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SferaAI");
-        public static readonly string Chats = Path.Combine(Home, "chats");
-        public static readonly string Images = Path.Combine(Home, "images");
+        public static string Chats {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"chats");}}
+        public static string Images {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"images");}}
         public static readonly Model[] ChatModels = {
             new Model("quality", "Zarum 9B", "Мультимодальная модель OSTUM на основе Qwen3.5-9B. Работает с текстом и фотографиями, поддерживает дообучение через адаптеры LoRA.", "q9", "v9")
         };

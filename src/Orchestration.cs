@@ -87,6 +87,7 @@ namespace Sfera {
             finally{if(File.Exists(temp))File.Delete(temp);}
         }
         public static string ExplicitRequest(string text,Preferences p) {
+            if(WorkPolicy.Rules.Managed)return null;
             if(Regex.IsMatch(text,@"^\s*(покажи (?:мне )?мой рабочий профиль|что ты запомнил[аи]? обо мне)[.?! ]*$",RegexOptions.IgnoreCase)){
                 string profile=ReadText(ProfilePath),derived=ReadText(HistoryPath);
                 return string.IsNullOrEmpty(profile+derived)?"Рабочий профиль пока пуст.":string.Join("\n\n",new[]{profile,derived}.Where(s=>s.Length>0));
