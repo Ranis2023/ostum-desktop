@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("5.2.0.0")]
+[assembly: AssemblyVersion("5.3.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -146,6 +146,7 @@ namespace Sfera {
             };
             Window.Closing += (s,e) => { closing = true; idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
             Window.Loaded += (s,e) => input.Focus();
+            SetupUpdates();
             SetupStudio(engines); SetupHistory();
             Find<Image>("SidebarMark").Source=Window.Icon;
             Find<TextBlock>("AppVersion").Text="Desktop  "+Brand.Version;

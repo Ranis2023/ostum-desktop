@@ -55,6 +55,8 @@ namespace Sfera {
         public bool Think { get; set; }
         public bool Personalize { get; set; }
         public bool AllowWeb { get; set; }
+        public bool CheckForUpdates { get; set; }
+        public bool DownloadUpdates { get; set; }
         public bool ConversationVoice { get; set; }
         public string MicrophoneId { get; set; }
         public bool? Drawing { get; set; }
@@ -63,7 +65,7 @@ namespace Sfera {
         [System.Web.Script.Serialization.ScriptIgnore] public string ProjectScope {get;set;}
         public Preferences() {
             Models = Path.Combine(Store.Home, "library", "models");
-            Chat = "quality"; Art = "studio"; Personalize=true; AllowWeb=false;
+            Chat = "quality"; Art = "studio"; Personalize=true; AllowWeb=false; CheckForUpdates=true; DownloadUpdates=true;
         }
     }
 
@@ -210,14 +212,23 @@ namespace Sfera {
     }
 
     public static class Downloads {
-        static readonly HttpClient Client = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
-        static async Task Fetch(ModelFile f, string partial, Action<long> progress, CancellationToken token) {
+        static readonly HttpClient Client = CreateClient();
+        static HttpClient CreateClient(){
+            var protocols=ServicePointManager.SecurityProtocol;
+            if(protocols!=SecurityProtocolType.SystemDefault&&(protocols&SecurityProtocolType.Tls12)==0)
+                ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
+            return new HttpClient {Timeout=TimeSpan.FromSeconds(90)};
+        }
+        static async Task Fetch(ModelFile f, string partial, Action<long> progress, CancellationToken token, bool refresh) {
             WorkPolicy.RequireNetwork();
             using (var target = new FileStream(partial, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, 131072, true)) {
                 long start = target.Length;
                 if (start > f.bytes) { target.SetLength(0); start = 0; }
                 if (start == f.bytes) return;
-                using (var request = new HttpRequestMessage(HttpMethod.Get, f.url + "?download=true")) {
+                var url=new UriBuilder(f.url);
+                if(url.Host.Equals("huggingface.co",StringComparison.OrdinalIgnoreCase))
+                    url.Query="download=true"+(refresh?"&attempt="+Guid.NewGuid().ToString("N"):"");
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url.Uri)) {
                     if (start > 0) request.Headers.Range = new RangeHeaderValue(start, null);
                     using (var res = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false)) {
                         res.EnsureSuccessStatusCode();
@@ -225,7 +236,12 @@ namespace Sfera {
                             var range = res.Content.Headers.ContentRange;
                             if (range == null || range.From != start || range.Length != f.bytes) throw new IOException("Сервер вернул неверный диапазон файла.");
                             target.Position = start;
-                        } else { target.SetLength(0); target.Position = 0; }
+                        } else {
+                            long? length=res.Content.Headers.ContentLength;
+                            if(res.StatusCode!=HttpStatusCode.OK || (length.HasValue && length.Value!=f.bytes))
+                                throw new IOException("Сервер вернул файл другого размера.");
+                            target.SetLength(0); target.Position = 0;
+                        }
                         using (var input = await res.Content.ReadAsStreamAsync().ConfigureAwait(false))
                         using (token.Register(() => input.Dispose())) {
                             var data = new byte[131072];
@@ -277,36 +293,37 @@ namespace Sfera {
             foreach (var file in files) {
                 token.ThrowIfCancellationRequested();
                 string final = file.PathIn(directory), partial = final + ".part";
-                bool existing = file.Present(directory);
-                if(existing){
+                if(file.Present(directory)){
                     update("Проверка "+file.name,(double)done/total);
                     try{await Task.Run(()=>Verify(final,file,token),token).ConfigureAwait(false);done+=file.bytes;continue;}
                     catch(InvalidDataException){
                         WorkPolicy.RequireNetwork();
                         if(!root.StartsWith(@"\\")&&new DriveInfo(root).AvailableFreeSpace<file.bytes+reserve)throw new IOException("Для восстановления модели нужно "+Store.Size(file.bytes+reserve)+" свободного места.");
-                        existing=false;
                     }
                 }
-                if (!existing) {
-                    for (int attempt = 0; ; attempt++) {
-                        try {
-                            update("Загрузка " + file.name, (double)done / total);
-                            await Fetch(file, partial, n => update("Загрузка " + file.name, (double)(done + n) / total), token).ConfigureAwait(false);
-                            break;
-                        } catch (Exception ex) {
-                            token.ThrowIfCancellationRequested();
-                            if (attempt >= 2 || !(ex is IOException || ex is HttpRequestException || ex is TaskCanceledException || ex is ObjectDisposedException)) throw;
-                        }
-                        await Task.Delay(1200 * (attempt + 1), token).ConfigureAwait(false);
+                bool repaired=false;
+                for (int attempt=0; ; attempt++) {
+                    try {
+                        update("Загрузка " + file.name, (double)done/total);
+                        await Fetch(file,partial,n=>update("Загрузка "+file.name,(double)(done+n)/total),token,attempt>0||repaired).ConfigureAwait(false);
+                        update("Проверка "+file.name,(double)(done+file.bytes)/total);
+                        await Task.Run(()=>Verify(partial,file,token),token).ConfigureAwait(false);
+                        break;
+                    }catch(InvalidDataException){
+                        File.Delete(partial);
+                        if(repaired)throw;
+                        repaired=true;
+                        update("Повторная загрузка после проверки · "+file.name,(double)done/total);
+                        continue;
+                    }catch(Exception ex){
+                        token.ThrowIfCancellationRequested();
+                        if(!(ex is IOException||ex is HttpRequestException||ex is TaskCanceledException||ex is ObjectDisposedException))throw;
+                        if(attempt>=2)throw new IOException(file.name+" · "+(ex.GetBaseException() is TaskCanceledException?"Истекло время ожидания сервера.":ex.GetBaseException().Message),ex);
+                        update("Повторная попытка · "+file.name,(double)done/total);
                     }
+                    await Task.Delay(1200*(attempt+1),token).ConfigureAwait(false);
                 }
-                update("Проверка " + file.name, (double)(done + file.bytes) / total);
-                try { await Task.Run(() => Verify(partial, file, token), token).ConfigureAwait(false); }
-                catch (InvalidDataException) {
-                    File.Delete(partial);
-                    throw;
-                }
-                if (!existing) { if (File.Exists(final)) File.Replace(partial, final, null); else File.Move(partial, final); }
+                if (File.Exists(final)) File.Replace(partial, final, null); else File.Move(partial, final);
                 done += file.bytes;
             }
         }

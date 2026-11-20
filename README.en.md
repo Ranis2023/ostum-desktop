@@ -12,6 +12,10 @@ Download and run **Ostum-Desktop-Setup.exe**. On a new PC, the standard installa
 
 For an air-gapped PC, prepare the full **offline ISO or USB folder** on a connected machine, bring it to the target PC and run the installer from that media. GitHub Releases hosts the network installer. The weights come from the model sources during setup, or from the prepared offline media. [Offline build instructions](README.md#полная-установка-без-интернета) · [Model catalogue](src/catalog.json)
 
+## Release notifications
+
+Starting with 5.3, OSTUM checks GitHub after launch and every six hours. A button in the main window shows the new version. When minimized, OSTUM also sends one Windows notification per release. The app can download the installer in the background and check its published SHA-256 before you click to install and restart. Chats, Pro access and the model library are retained. Click the OSTUM logo to change either preference. Managed installations keep external requests disabled. For 5.2 and earlier, install 5.3 once using the Windows download above.
+
 ## What you can do
 
 | Task | How it works |

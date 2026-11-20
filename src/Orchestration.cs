@@ -40,7 +40,8 @@ namespace Sfera {
             bool imageAction=Match(t,@"\bнарисуй(?:те)?\b|\bизобрази(?:те)?\b|сгенерируй(?:те)?|(?:созда|сдела)(?:й|йте|ть) (?:готов\w* |нов\w* |итогов\w* |финальн\w* )?(?:картин|иллюстр|афиш|открытк|изображ|плакат|постер|баннер|обложк)");
             bool compound=Match(t,@"сначала|затем|после (?:поиска|анализа)|потом")||imageAction&&(team||explicitWeb||fresh);
             var r=new Route{answer="text",team=team,web=enabled&&(explicitWeb||fresh),query=""};
-            if(!forceArt&&!team&&!explicitWeb&&!fresh&&!imageAction&&!compound&&(ChatContext.IsRecall(t)||ReplyFormat.Object(t)))return r;
+            bool shortText=!enabled&&last.Image==null&&Match(t,@"(?:ответь|верни|назови|укажи) (?:только |ровно )?(?:одн(?:им словом|ой фразой|им предложением)|цифрой|числом)\b");
+            if(!forceArt&&!team&&!explicitWeb&&!fresh&&!imageAction&&!compound&&!change&&(ChatContext.IsRecall(t)||ReplyFormat.Object(t)||shortText))return r;
             bool explicitRoute=!compound&&(explicitWeb||team&&!enabled||(!fresh&&(Routine(t)||Agents.HasArithmetic(t)||last.Image!=null&&Match(t,@"^(опиши|что (?:это|изображено)|прочитай текст|describe)"))));
             if(forceArt||((create||change)&&!compound)) {r.answer="image";r.reference=last.Image!=null||change||Match(t,@"вариац|предыдущ|по (?:фото|образцу|референсу)");}
             else if(!explicitRoute) {

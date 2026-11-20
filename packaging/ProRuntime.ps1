@@ -43,7 +43,32 @@ Copy-Item -LiteralPath (Join-Path $root 'src/office.py') -Destination $toolsDir 
 $archive=Join-Path $Build 'OstumTools.zip'
 $next=$archive+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
 try{
-    [IO.Compression.ZipFile]::CreateFromDirectory($toolsDir,$next,[IO.Compression.CompressionLevel]::Fastest,$false)
+    $zip=[IO.Compression.ZipFile]::Open($next,[IO.Compression.ZipArchiveMode]::Create)
+    $level=[IO.Compression.CompressionLevel]::Fastest
+    try {
+        # Read Python and NumPy directly from the pinned distributions, independently of local bytecode caches.
+        foreach($distribution in @($py,$np)){
+            $package=[IO.Compression.ZipFile]::OpenRead($distribution)
+            try{
+                foreach($member in $package.Entries){
+                    if(!$member.Name){continue}
+                    $entry=$zip.CreateEntry(('python/'+$member.FullName),$level)
+                    $entry.LastWriteTime=$member.LastWriteTime
+                    $inputStream=$member.Open()
+                    try{$outputStream=$entry.Open();try{$inputStream.CopyTo($outputStream)}finally{$outputStream.Dispose()}}
+                    finally{$inputStream.Dispose()}
+                }
+            }finally{$package.Dispose()}
+        }
+        foreach($file in (Get-ChildItem -LiteralPath $speech -Recurse -File | Sort-Object FullName)){
+            $name='speech/'+$file.FullName.Substring($speech.Length+1).Replace('\','/')
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$file.FullName,$name,$level)
+        }
+        [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$source,'speech/corresponding-source.zip',$level)
+        foreach($name in @('office.py','training/studio.py','training/bench.py','training/tune.py')){
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,(Join-Path $toolsDir $name),$name,$level)
+        }
+    }finally{$zip.Dispose()}
     Move-Item -LiteralPath $next -Destination $archive -Force
     [IO.File]::WriteAllText($archive+'.sha256',(Get-FileHash -LiteralPath $archive).Hash)
 }finally{if(Test-Path -LiteralPath $next){Remove-Item -LiteralPath $next}}

@@ -69,6 +69,7 @@
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <DockPanel LastChildFill="True"><Button x:Name="ChatActions" DockPanel.Dock="Right" Content="⋯" FontSize="18" Padding="6,1" VerticalAlignment="Center" ToolTip="Действия с диалогом" AutomationProperties.Name="Действия с диалогом"/><Button x:Name="ExpandSidebar" Visibility="Collapsed" DockPanel.Dock="Left" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Margin="0,0,10,0" VerticalAlignment="Center" AutomationProperties.Name="Открыть историю" ToolTip="Открыть историю"/><TextBlock x:Name="ChatTitle" Text="Новый чат" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/></DockPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="UpdateNotice" Visibility="Collapsed" Margin="0,0,12,0" Padding="12,6" Background="#FFE2BF" Foreground="#432D17" FontWeight="SemiBold" ToolTip="Сведения о новой версии и установка"/>
             <Ellipse x:Name="ModelLight" Width="7" Height="7" Fill="#4D856B" Margin="0,0,7,0"/>
             <TextBlock x:Name="ModelLabel" FontSize="12" Foreground="#506457"/>
           </StackPanel>

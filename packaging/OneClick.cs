@@ -16,7 +16,8 @@ using Sfera;
 
 [assembly: AssemblyTitle("Установить Ostum Desktop")]
 [assembly: AssemblyProduct("Ostum Desktop")]
-[assembly: AssemblyVersion("5.2.0.0")]
+[assembly: AssemblyVersion("5.3.0.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace SferaSetup {
     sealed class Bundle : IDisposable {
@@ -117,14 +118,14 @@ namespace SferaSetup {
                         }catch(Exception ex){
                             transfer.Token.ThrowIfCancellationRequested();
                             if(!(ex is IOException||ex is HttpRequestException||ex is TaskCanceledException))throw;
-                            if(remaining()>=before||i==4)throw new IOException("Загрузка прервана. Запустите этот установщик ещё раз для продолжения.",ex);
+                            if(remaining()>=before||i==4)throw new IOException("Не удалось завершить загрузку. "+ex.Message+"\n\nОткройте этот установщик ещё раз, чтобы продолжить с сохранённого места. Журнал: "+Path.Combine(Store.Home,"logs","oneclick.log"),ex);
                         }
                     }
                 }catch(OperationCanceledException){stop.ThrowIfCancellationRequested();report("Открываю версию с установленными моделями",-1);}
                 finally{offerBase(false);}
             }
         }
-        public static void Run(string self,bool check,bool launch,bool offline,CancellationToken stop,CancellationToken skip,Action<string,int> report,Action<bool> offerBase) {
+        public static void Run(string self,bool check,bool launch,bool offline,CancellationToken stop,CancellationToken skip,Action<string,int> report,Action<bool> offerBase,bool updateApp=false) {
             offline=offline||!WorkPolicy.Network||File.Exists(Path.Combine(Path.GetDirectoryName(self),"OSTUM-OFFLINE.txt"));
             string home=Store.Home,logs=Directory.CreateDirectory(Path.Combine(home,"logs")).FullName;
             using(var bundle=new Bundle()){
@@ -153,7 +154,13 @@ namespace SferaSetup {
                     }
                     app=AppFile;if(!MatchingVersion(app))throw new IOException("Windows ещё не завершила замену файлов приложения.");
                     stop.ThrowIfCancellationRequested();
+                    if(updateApp){
+                        report("Приложение обновлено",100);
+                        if(launch)Process.Start(new ProcessStartInfo(app){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(app)});
+                        return;
+                    }
                     var prefs=Store.Load();
+                    if(offline&&!File.Exists(Path.Combine(home,"preferences.json")))prefs.CheckForUpdates=false;
                     string dest=prefs.Models, external=Path.Combine(Path.GetDirectoryName(self),"Models");
                     InstallModels.MigrateManagedNames(dest,stop);
                     if(Directory.Exists(external)){
@@ -195,7 +202,7 @@ namespace SferaSetup {
                 Directory.CreateDirectory(Path.Combine(Store.Home,"logs"));
                 string path=Path.Combine(Store.Home,"logs",check?"installer-verify.log":"oneclick.log");
                 using(var stop=new CancellationTokenSource())using(var skip=new CancellationTokenSource())using(var log=new StreamWriter(path,false,new UTF8Encoding(false)){AutoFlush=true}){
-                    if(silent){try{Install.Run(self,check,!check&&!args.Contains("--no-launch"),offline,stop.Token,skip.Token,(s,n)=>{if(n<=0)log.WriteLine(s);},b=>{});log.WriteLine("OK");return 0;}catch(Exception e){log.WriteLine(e);return 1;}}
+                    if(silent){try{Install.Run(self,check,!check&&!args.Contains("--no-launch"),offline,stop.Token,skip.Token,(s,n)=>{if(n<=0)log.WriteLine(s);},b=>{},args.Contains("--update-app"));log.WriteLine("OK");return 0;}catch(Exception e){log.WriteLine(e);return 1;}}
                     Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
                     using(var form=new Form{Text="Установка Ostum Desktop",Size=new Size(520,254),FormBorderStyle=FormBorderStyle.FixedDialog,StartPosition=FormStartPosition.CenterScreen,MaximizeBox=false,BackColor=Color.FromArgb(248,247,244),Font=new Font("Segoe UI",10),Icon=Icon.ExtractAssociatedIcon(self)}){
                         var title=new Label{Text="Ostum Desktop",Left=24,Top=18,AutoSize=true,Font=new Font("Segoe UI",19,FontStyle.Bold)};
@@ -210,7 +217,7 @@ namespace SferaSetup {
                                 await Task.Run(()=>Install.Run(self,false,true,offline,stop.Token,skip.Token,(label,value)=>{
                                     if(label!=last){log.WriteLine(label);last=label;}
                                     form.BeginInvoke(new Action(()=>{message.Text=label;bar.Style=value<0?ProgressBarStyle.Marquee:ProgressBarStyle.Continuous;if(value>=0)bar.Value=value;}));
-                                },show=>form.BeginInvoke(new Action(()=>useBase.Visible=show))));log.WriteLine("OK");exit=0;
+                                },show=>form.BeginInvoke(new Action(()=>useBase.Visible=show)),args.Contains("--update-app")));log.WriteLine("OK");exit=0;
                             }catch(OperationCanceledException){log.WriteLine("Cancelled");exit=1602;}catch(Exception ex){log.WriteLine(ex);MessageBox.Show(form,ex.Message,"Установка Ostum Desktop",MessageBoxButtons.OK,MessageBoxIcon.Error);}
                             busy=false;form.Close();
                         };

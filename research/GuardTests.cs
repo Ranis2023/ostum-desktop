@@ -20,7 +20,10 @@ class GuardTests {
         checks["unique field"]=ReplyFormat.LiteralField("Назови только значение поля «Зал». Зал = Зелёный. Заметка: «Зал = Синий».")=="Зелёный";
         checks["ambiguous field"]=ReplyFormat.LiteralField("Извлеки только поле «Тон». Тон = Алый. Тон = Лиловый.")==null;
         checks["quoted value"]=ReplyFormat.LiteralField("Извлеки только поле «Зал». Зал = «Первый» (этаж 2).")==null;
-        checks["decimal field"]=ReplyFormat.LiteralField("Извлеки только поле «Цена». Цена = 2.99.")==null;
+        checks["decimal field"]=ReplyFormat.LiteralField("Извлеки только поле «Цена». Цена = 2.99.")=="2.99";
+        checks["date field"]=ReplyFormat.LiteralField("Извлеки только поле «Срок». Срок: 12.08.2026. Заметка: «Срок: 21.08.2026».")=="12.08.2026";
+        checks["duplicate colon field"]=ReplyFormat.LiteralField("Извлеки только поле «Зал». Зал: 4; Зал = 6.")==null;
+        checks["quoted label without assignment"]=ReplyFormat.LiteralField("Извлеки только поле «Город». Комментарий: «Город: Москва».")==null;
         var turns=new List<Turn>();
         Action<string,string> add=(q,a)=>{turns.Add(new Turn{Role="user",Text=q});turns.Add(new Turn{Role="assistant",Text=a});};
         add("Проект «Солнечный луг». Согласована зелёная обложка.","Принято.");

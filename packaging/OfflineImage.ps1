@@ -1,4 +1,4 @@
-param([string]$Kit,[string]$Image)
+param([string]$Kit,[string]$Image,[switch]$PrepareOnly)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 if(!$Kit){$Kit=Join-Path $root 'dist/Ostum-Pro-Offline'}
@@ -19,6 +19,7 @@ foreach($file in $all){
 }
 [IO.File]::WriteAllLines((Join-Path $Kit 'SHA256SUMS.txt'),[string[]]$lines)
 [IO.File]::WriteAllText((Join-Path $Kit 'OSTUM-OFFLINE.txt'),"OSTUM Desktop $kitVersion · Запустите Ostum-Desktop-Setup.exe. Установка с этого носителя работает без сети.",[Text.UTF8Encoding]::new($true))
+if($PrepareOnly){Get-Item -LiteralPath $Kit|Select-Object FullName;return}
 $fs=New-Object -ComObject IMAPI2FS.MsftFileSystemImage
 $fs.FileSystemsToCreate=4
 $fs.FreeMediaBlocks=21000000

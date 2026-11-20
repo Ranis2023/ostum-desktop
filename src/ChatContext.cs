@@ -80,6 +80,24 @@ namespace Sfera {
             if(!boundary.Success)return null;
             string instruction=task.Substring(0,boundary.Index),record=task.Substring(boundary.Index+1);
             string plain=Quoted.Replace(record,"\uFFFC");
+            var labels=Quoted.Matches(instruction);
+            if(labels.Count>1)return null;
+            if(labels.Count==1){
+                string label=labels[0].Value;
+                label=label.Substring(1,label.Length-2).Trim();
+                if(label.Length==0||label.Length>70)return null;
+                string key=@"(?:^|(?<=[;:.!?\r\n]))[ \t]*"+Regex.Escape(label)+@"[ \t]*[:=][ \t]*";
+                var occurrences=Regex.Matches(plain,key,RegexOptions.IgnoreCase);
+                if(occurrences.Count!=1)return null;
+                var entry=occurrences[0];
+                var tail=plain.Substring(entry.Index+entry.Length);
+                // A dot between digits belongs to a decimal or a date, and must not truncate the value.
+                var literal=Regex.Match(tail,@"^(?<value>(?:[^.!?;:\r\n=]|(?<=\d)\.(?=\d)){1,145})(?=[;\r\n]|[.!?](?:\s|$)|$)");
+                if(!literal.Success)return null;
+                string literalValue=literal.Groups["value"].Value.Trim();
+                if(literalValue.Length==0||literalValue.IndexOf('\uFFFC')>=0)return null;
+                return literalValue;
+            }
             var matches=Assign.Matches(plain).Cast<Match>().Where(m=>{
                 string label=m.Groups["key"].Value.Trim();
                 return Regex.IsMatch(instruction,@"(?<![\p{L}\d_])"+Regex.Escape(label)+@"(?![\p{L}\d_])",RegexOptions.IgnoreCase);

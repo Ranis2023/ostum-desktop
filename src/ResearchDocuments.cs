@@ -99,14 +99,13 @@ namespace Sfera {
             }
         }
         public static List<Source> Find(List<Turn> history,string query) {
-            var terms=ResearchText.Words(query);
-            var docs=history.AsEnumerable().Reverse().Where(t=>!string.IsNullOrEmpty(t.DocumentId)).Select(t=>t.DocumentId).Distinct().Take(4).Select(Load).Where(d=>d!=null).ToList();
+            var docs=history.AsEnumerable().Reverse().Select(t=>t.DocumentId).Where(id=>id!=null&&Regex.IsMatch(id,"^[a-f0-9]{32}$")).Distinct().Take(4)
+                .Select(id=>DocumentSearch.Open(Local(id),()=>Load(id))).Where(d=>d!=null).ToList();
+            var perFile=docs.Select(d=>d.Find(query,docs.Count==1?5:3)).ToList();
             var result=new List<Source>();
-            foreach(var d in docs) {
-                var matches=d.Parts.Select((part,i)=>new {part,i,score=ResearchText.Words(part.Text).Count(terms.Contains)}).OrderByDescending(m=>m.score).ThenBy(m=>m.i).Take(docs.Count==1 ? 5 : 2).OrderBy(m=>m.i);
-                foreach(var m in matches)result.Add(new Source {Title=d.Name,Location=m.part.Label+(d.Truncated?" · извлечена часть файла":""),Excerpt=m.part.Text});
-            }
-            return result.Take(6).ToList();
+            for(int rank=0;rank<5&&result.Count<6;rank++)
+                foreach(var file in perFile)if(rank<file.Count&&result.Count<6)result.Add(file[rank]);
+            return result;
         }
     }
     public static class Calculator {
