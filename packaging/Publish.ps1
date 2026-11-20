@@ -29,10 +29,12 @@ if(!$existing){
 }
 & $GitHubCli release upload $tag $exe.FullName $sum.FullName --repo $repo --clobber
 if($LASTEXITCODE){throw 'Asset upload failed. The draft can be resumed.'}
-$draft=& $GitHubCli release view $tag --repo $repo --json assets,isDraft,targetCommitish | ConvertFrom-Json
+$draft=& $GitHubCli release view $tag --repo $repo --json databaseId,isDraft,targetCommitish | ConvertFrom-Json
 if($LASTEXITCODE -or !$draft.isDraft -or $draft.targetCommitish -ne $head){throw 'Draft target changed.'}
+$assets=@(& $GitHubCli api "repos/$repo/releases/$($draft.databaseId)/assets" | ConvertFrom-Json)
+if($LASTEXITCODE){throw 'Could not read the uploaded assets.'}
 foreach($file in @($exe,$sum)){
-    $asset=$draft.assets|Where-Object name -eq $file.Name|Select-Object -First 1
+    $asset=$assets|Where-Object name -eq $file.Name|Select-Object -First 1
     $expected='sha256:'+(Get-FileHash -LiteralPath $file.FullName).Hash.ToLowerInvariant()
     if(!$asset -or $asset.size -ne $file.Length -or $asset.digest -ne $expected){throw "Asset verification failed: $($file.Name)"}
 }
