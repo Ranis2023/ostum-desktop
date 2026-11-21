@@ -1,0 +1,10 @@
+<h2>What the download contains</h2>
+<p>The <a href="$installer">Windows installer</a> for 5.7.0 is 108.3 MiB. It includes the app and local runtimes. A full first installation on a new PC downloads another 13.38 GB in six model files. These cover Zarum 9B and its vision projector, Whisper dictation and Z-Image drawing. Allow at least 20 GB of free SSD space.</p>
+<p>Run the installer directly on a connected PC. This release is unsigned. To check the file, run <code>Get-FileHash .\Ostum-Desktop-Setup.exe -Algorithm SHA256</code> in its download folder and compare the result with <a href="$repo/releases/latest/download/SHA256SUMS.txt">the checksum supplied with that release</a>.</p>
+<h2>Prepare removable media for an isolated PC</h2>
+<ol><li>On a connected workstation, prepare the model library. If the target needs music, download the optional ACE-Step module first. Include the CUDA libraries if the target should use NVIDIA acceleration.</li>
+<li>Use the two PowerShell commands in the <a href="$repo/blob/main/README.md#полная-установка-без-интернета">USB preparation instructions</a> with the matching release. They assemble and check the contents. A full 5.7.0 kit with music and CUDA occupies about 17.6 GB.</li>
+<li>Copy the whole folder to NTFS or exFAT media. Keep <code>Models</code>, <code>Acceleration</code> and <code>OSTUM-OFFLINE.txt</code> next to the EXE. On the disconnected PC, start the installer from that folder.</li></ol>
+<h2>Verify a local session</h2>
+<p>With the target computer offline, open a new chat and request a three-item packing list. Next attach a sample photo and ask for one visible detail. The two requests exercise the language model and the vision projector separately. Meeting transcription also needs the dictation component.</p>
+<p>Free chat works without an account. For the Pro workspace, scan the activation QR with a connected phone and bring the signed response back to the workstation. The first activation requires a verified subscription to the developer’s Telegram channel. <a href="$repo/blob/main/packaging/Company.md">Company deployment guide in Russian</a></p>

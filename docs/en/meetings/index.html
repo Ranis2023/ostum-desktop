@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline meeting transcription with timestamps in OSTUM Desktop</title>
+  <meta name="description" content="Transcribe speech with Whisper, inspect proposed actions from a local model and export the rows you can trace to the recording.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/meetings/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/meetings/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/meetings/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/meetings/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Offline meeting transcription with timestamps in OSTUM Desktop">
+  <meta property="og:description" content="Transcribe speech with Whisper, inspect proposed actions from a local model and export the rows you can trace to the recording.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/meetings/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Turn a recording into reviewed meeting minutes", "description": "Transcribe speech with Whisper, inspect proposed actions from a local model and export the rows you can trace to the recording.", "url": "https://ranis2023.github.io/ostum-desktop/en/meetings/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../meetings/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Meetings</nav><article><h1>Turn a recording into reviewed meeting minutes</h1><p class="dek">Transcribe speech with Whisper, inspect proposed actions from a local model and export the rows you can trace to the recording.</p><h2>Start with two statements</h2>
+<p>Make a short test recording in a language your local speech model supports. Give one person a task and deadline, then record a decision without an owner. For example, say “Ivan will prepare the report by Friday”, pause, then say “We decided to open a new branch”. The difference gives you something concrete to check in the exported minutes.</p>
+<ol><li>Install the dictation module and select a Windows microphone from the arrow next to the dictation button. Type <strong>Открой совещание</strong> in chat. Open your recording or make one from the microphone.</li>
+<li>Click <strong>Распознать</strong> to transcribe with local Whisper. Each utterance has a timestamp. Double-click to correct a word or speaker label. On a single audio channel, the speaker groups are approximate.</li>
+<li>Click <strong>Найти решения и поручения</strong>. The local language model proposes decisions and actions. Inspect the quote and use <strong>Прослушать реплику</strong> to listen to the corresponding moment.</li></ol>
+<figure><img src="../../media/meeting.webp" width="1144" height="511" loading="lazy" alt="Reviewed task and decision with their timestamped Russian quotes"><figcaption>Russian example after transcript review. The branch-opening decision has no assigned owner or deadline.</figcaption></figure>
+<h2>Choose what belongs in the record</h2>
+<p>For the report, check the owner and the words “by Friday”. An actual calendar date may need clarification. For the branch decision, keep the missing details empty unless the recording supplies them. Correct a proposed row, exclude it or add an action manually from a selected utterance.</p>
+<p>Use <strong>Сохранить протокол</strong> to export selected rows to a new text file. Select <strong>Включить стенограмму</strong> to include the transcript. Recordings in a work folder require project permission for local analysis. The destination also has to meet the project’s access rules.</p>
+<p>OSTUM accepts up to four hours of mono or stereo audio. Playback and the source quote remain useful checks even on clean recordings. The app processes audio locally after the required components have been installed.</p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

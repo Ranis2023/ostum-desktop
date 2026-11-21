@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reconcile two Excel workbooks by key with OSTUM Pro</title>
+  <meta name="description" content="Download two small workbooks and reproduce three differences. The rows move, but the product codes still identify each item.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/excel/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/excel/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/excel/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/excel/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Reconcile two Excel workbooks by key with OSTUM Pro">
+  <meta property="og:description" content="Download two small workbooks and reproduce three differences. The rows move, but the product codes still identify each item.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/excel/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Compare two price lists by product code", "description": "Download two small workbooks and reproduce three differences. The rows move, but the product codes still identify each item.", "url": "https://ranis2023.github.io/ostum-desktop/en/excel/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../excel/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Excel · Pro</nav><article><h1>Compare two price lists by product code</h1><p class="dek">Download two small workbooks and reproduce three differences. The rows move, but the product codes still identify each item.</p><h2>Download the two workbooks</h2>
+<p>A supplier sends a revised price list and moves two items. Comparing row 3 with row 3 would put different products side by side. A product code lets you follow the item across both sheets.</p>
+<div class="downloads"><a download href="../../examples/price-before.xlsx">Download the old price list · XLSX</a><a download href="../../examples/price-after.xlsx">Download the new price list · XLSX</a></div>
+<p>Both workbooks contain synthetic data. Place them in one project folder. Reconciliation uses OSTUM Pro, which unlocks permanently for this installation and Windows user after a one-time check of a subscription to the developer’s Telegram channel.</p>
+<h2>Run the comparison</h2>
+<ol><li>Type <strong>Сверь две таблицы Excel</strong> in chat. Select your project folder and review the folder access prompt. The Windows UI is in Russian.</li>
+<li>Choose <code>price-before.xlsx</code> as the original and <code>price-after.xlsx</code> as the new file. On both sides choose the sheet <strong>Прайс</strong> (price list) and key column <strong>Артикул</strong> (product code).</li>
+<li>Review the old and new values and the cell addresses. Choose <strong>Сохранить отчёт</strong> to create a separate XLSX report.</li></ol>
+<h2>Check the three differences</h2>
+<table><thead><tr><th>Product</th><th>Difference</th><th>Evidence</th></tr></thead><tbody><tr><td>A17</td><td>Price goes from 90 to 100 RUB</td><td>Прайс!B2 in both files</td></tr><tr><td>D42</td><td>Row removed</td><td>Прайс!A5 in the old file</td></tr><tr><td>E53</td><td>Row added</td><td>Прайс!A5 in the new file</td></tr></tbody></table>
+<p>A17 is a product identifier here. Its price lives in cell B2. B24 and C31 swapped positions and kept their values. The OSTUM comparison engine returned the three differences above when run on these exact downloads.</p>
+<figure><img src="../../media/excel-reconciliation.webp" width="934" height="451" loading="lazy" alt="The preview shows the old and new prices for product A17"><figcaption>A separate one-row fixture illustrates how a price change appears in the Windows review dialog.</figcaption></figure>
+<h2>Reuse the settings</h2>
+<p>Choose <strong>Сохранить сценарий</strong> to save the sheet and key-column settings in this project. For the next pair, type <strong>Запусти сценарий сверки</strong> and select the new files. If a workbook changes after the preview, run the comparison again before saving the report.</p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

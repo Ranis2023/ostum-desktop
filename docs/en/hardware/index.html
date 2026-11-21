@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zarum 9B on a laptop CPU and RTX 4050 — OSTUM benchmark guide</title>
+  <meta name="description" content="Read three different timing measurements and compare your results with a Ryzen 7 7435HS and an RTX 4050 Laptop GPU.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/hardware/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/hardware/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Zarum 9B on a laptop CPU and RTX 4050 — OSTUM benchmark guide">
+  <meta property="og:description" content="Read three different timing measurements and compare your results with a Ryzen 7 7435HS and an RTX 4050 Laptop GPU.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/hardware/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Benchmark Zarum on your own hardware", "description": "Read three different timing measurements and compare your results with a Ryzen 7 7435HS and an RTX 4050 Laptop GPU.", "url": "https://ranis2023.github.io/ostum-desktop/en/hardware/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../hardware/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Performance</nav><article><h1>Benchmark Zarum on your own hardware</h1><p class="dek">Read three different timing measurements and compare your results with a Ryzen 7 7435HS and an RTX 4050 Laptop GPU.</p><h2>A six-gigabyte laptop GPU in practice</h2>
+<p>The project ran a short Zarum 9B benchmark on a Ryzen 7 7435HS, 16 GB of RAM and an RTX 4050 Laptop GPU with 6 GB of VRAM. The figures describe that laptop and workload. CPU and CUDA used different output lengths.</p>
+<table><thead><tr><th>Mode</th><th>Measurement</th><th>Result</th></tr></thead><tbody><tr><td>CUDA</td><td>Model load</td><td>11.0 s</td></tr><tr><td>CUDA</td><td>First token after loading</td><td>0.25 s</td></tr><tr><td>CUDA</td><td>Generation with 32 output tokens</td><td>13.1 tokens/s</td></tr><tr><td>CPU, eight threads</td><td>Separate run with 24 output tokens</td><td>6.8 tokens/s</td></tr></tbody></table>
+<p>The first answer includes model loading and prompt processing. A following question in the same session can reuse a loaded model. Long chat histories and other applications using the GPU change the time you experience.</p>
+<h2>Measure your workstation</h2>
+<ol><li>Open <strong>Модели и настройки</strong> (model settings). Record the selected model, available system memory and VRAM, and the acceleration mode.</li><li>Choose <strong>Измерить скорость на этом ПК</strong> (benchmark this PC). Record load time, time to first token and generation rate separately.</li><li>Repeat with the same input and context. Then try a longer prompt representative of your work. Keep those timings alongside the short benchmark.</li></ol>
+<p>On a memory-constrained machine, the catalog includes Qwen3.5 2B and 4B. Zarum 9B and its vision projector together take 6.60 GB on disk. The running system also needs memory for context, buffers and Windows. Speech and image generation use separate engines and need their own measurements.</p>
+<p><a href="https://github.com/Ranis2023/ostum-desktop/blob/main/README.en.md#hardware-and-performance">Hardware notes</a> · <a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discuss your measurements</a></p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

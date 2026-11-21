@@ -2,6 +2,8 @@
 
 [Русская версия](README.md) · [Download for Windows x64](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe) · [Releases and SHA-256 checksums](https://github.com/Ranis2023/ostum-desktop/releases)
 
+[Project site and walkthroughs](https://ranis2023.github.io/ostum-desktop/en/) · [Try the Excel example with two sample workbooks](https://ranis2023.github.io/ostum-desktop/en/excel/) · [Project discussions](https://github.com/Ranis2023/ostum-desktop/discussions)
+
 OSTUM runs **Zarum 9B**, a local model based on Qwen3.5-9B, on your own PC. Chat, photo analysis, document reading, dictation and image generation keep working when the network goes down. The interface and built-in help are in Russian.
 
 ![OSTUM Desktop 5.7.0 home screen with Zarum 9B ready for a local chat](assets/5.7/home.png)

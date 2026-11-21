@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Скорость Zarum 9B на CPU и RTX 4050 Laptop — замеры OSTUM</title>
+  <meta name="description" content="Разберите три числа из встроенного теста и сравните их с замерами на Ryzen 7 7435HS и RTX 4050 Laptop.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/hardware/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Скорость Zarum 9B на CPU и RTX 4050 Laptop — замеры OSTUM">
+  <meta property="og:description" content="Разберите три числа из встроенного теста и сравните их с замерами на Ryzen 7 7435HS и RTX 4050 Laptop.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/hardware/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — окно локального протокола совещания">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — окно локального протокола совещания">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Как измерить скорость Zarum на своём ПК", "description": "Разберите три числа из встроенного теста и сравните их с замерами на Ryzen 7 7435HS и RTX 4050 Laptop.", "url": "https://ranis2023.github.io/ostum-desktop/hardware/", "inLanguage": "ru", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">К содержанию</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../"><img src="../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../#guides">Руководства</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../en/hardware/" hreflang="en" lang="en">English</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../">Главная</a><span aria-hidden="true"> / </span>Производительность</nav><article><h1>Как измерить скорость Zarum на своём ПК</h1><p class="dek">Разберите три числа из встроенного теста и сравните их с замерами на Ryzen 7 7435HS и RTX 4050 Laptop.</p><h2>Что ждать от ноутбука с 6 ГБ видеопамяти</h2>
+<p>Для OSTUM мы измерили короткий ответ Zarum 9B на Ryzen 7 7435HS с 16 ГБ ОЗУ и RTX 4050 Laptop 6 ГБ. На этой конфигурации есть и CPU, и ускорение CUDA. Результат помогает оценить порядок скорости для короткого запроса.</p>
+<table><thead><tr><th>Режим</th><th>Что измерили</th><th>Результат</th></tr></thead><tbody><tr><td>CUDA</td><td>Загрузка модели</td><td>11,0 с</td></tr><tr><td>CUDA</td><td>Первый токен после загрузки</td><td>0,25 с</td></tr><tr><td>CUDA</td><td>Генерация 32 выходных токенов</td><td>13,1 токена/с</td></tr><tr><td>CPU, 8 потоков</td><td>Отдельный прогон с 24 выходными токенами</td><td>6,8 токена/с</td></tr></tbody></table>
+<p>При первом вопросе пользователь ждёт и загрузку весов, и начало генерации. Для второго вопроса в той же сессии часть этой работы уже сделана. Длинная история беседы и занятая другим приложением видеокарта могут заметно изменить время.</p>
+<h2>Повторите у себя</h2>
+<ol><li>Откройте <strong>Модели и настройки</strong>. Зафиксируйте выбранную модель, сколько доступно ОЗУ и видеопамяти и какой режим использует приложение.</li><li>Нажмите <strong>Измерить скорость на этом ПК</strong>. Запишите отдельно загрузку, задержку до первого токена и токены в секунду.</li><li>Повторите на том же задании и с тем же контекстом. Затем отдельно попробуйте свой типичный длинный запрос. Так видно, где в вашей работе появляется задержка.</li></ol>
+<p>Если памяти мало, в каталоге можно попробовать Qwen3.5 2B или 4B. Zarum 9B с проектором для зрения занимает 6,60 ГБ на диске. Во время работы нужны ещё память под контекст, буферы и Windows. Скорость рисования и расшифровки следует проверять собственными задачами.</p>
+<p><a href="https://github.com/Ranis2023/ostum-desktop/blob/main/README.md#какой-компьютер-подойдёт">Условия замеров и требования к ПК</a> · <a href="https://github.com/Ranis2023/ostum-desktop/discussions">Обсудить свой результат</a></p>
+</article></main><section class="wrap guide-section"><h2>Другие руководства</h2><div class="guide-grid"><a class="guide-card" href="../offline-install/"><span class="topic">Установка</span><h3>Как установить ИИ на ПК без интернета</h3><p>Что скачает EXE и что перенести на флешке.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../excel/"><span class="topic">Excel · Pro</span><h3>Как сверить два прайса по артикулу</h3><p>Две учебные книги и три расхождения для проверки.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../meetings/"><span class="topic">Совещания</span><h3>Как превратить запись в протокол</h3><p>Проверьте у каждой задачи цитату, ответственного и срок.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Исходный код</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Обсуждения</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<h2>Download the two workbooks</h2>
+<p>A supplier sends a revised price list and moves two items. Comparing row 3 with row 3 would put different products side by side. A product code lets you follow the item across both sheets.</p>
+<div class="downloads"><a download href="${base}examples/price-before.xlsx">Download the old price list · XLSX</a><a download href="${base}examples/price-after.xlsx">Download the new price list · XLSX</a></div>
+<p>Both workbooks contain synthetic data. Place them in one project folder. Reconciliation uses OSTUM Pro, which unlocks permanently for this installation and Windows user after a one-time check of a subscription to the developer’s Telegram channel.</p>
+<h2>Run the comparison</h2>
+<ol><li>Type <strong>Сверь две таблицы Excel</strong> in chat. Select your project folder and review the folder access prompt. The Windows UI is in Russian.</li>
+<li>Choose <code>price-before.xlsx</code> as the original and <code>price-after.xlsx</code> as the new file. On both sides choose the sheet <strong>Прайс</strong> (price list) and key column <strong>Артикул</strong> (product code).</li>
+<li>Review the old and new values and the cell addresses. Choose <strong>Сохранить отчёт</strong> to create a separate XLSX report.</li></ol>
+<h2>Check the three differences</h2>
+<table><thead><tr><th>Product</th><th>Difference</th><th>Evidence</th></tr></thead><tbody><tr><td>A17</td><td>Price goes from 90 to 100 RUB</td><td>Прайс!B2 in both files</td></tr><tr><td>D42</td><td>Row removed</td><td>Прайс!A5 in the old file</td></tr><tr><td>E53</td><td>Row added</td><td>Прайс!A5 in the new file</td></tr></tbody></table>
+<p>A17 is a product identifier here. Its price lives in cell B2. B24 and C31 swapped positions and kept their values. The OSTUM comparison engine returned the three differences above when run on these exact downloads.</p>
+<figure><img src="${base}media/excel-reconciliation.webp" width="934" height="451" loading="lazy" alt="The preview shows the old and new prices for product A17"><figcaption>A separate one-row fixture illustrates how a price change appears in the Windows review dialog.</figcaption></figure>
+<h2>Reuse the settings</h2>
+<p>Choose <strong>Сохранить сценарий</strong> to save the sheet and key-column settings in this project. For the next pair, type <strong>Запусти сценарий сверки</strong> and select the new files. If a workbook changes after the preview, run the comparison again before saving the report.</p>

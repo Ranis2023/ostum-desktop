@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сверка двух файлов Excel по артикулу — учебный пример OSTUM Pro</title>
+  <meta name="description" content="Скачайте две небольшие книги и найдите три расхождения. В примере порядок строк меняется, а сопоставление идёт по артикулу.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/excel/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/excel/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/excel/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/excel/">
+  <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Сверка двух файлов Excel по артикулу — учебный пример OSTUM Pro">
+  <meta property="og:description" content="Скачайте две небольшие книги и найдите три расхождения. В примере порядок строк меняется, а сопоставление идёт по артикулу.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/excel/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — окно локального протокола совещания">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — окно локального протокола совещания">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Как сверить два прайса по артикулу", "description": "Скачайте две небольшие книги и найдите три расхождения. В примере порядок строк меняется, а сопоставление идёт по артикулу.", "url": "https://ranis2023.github.io/ostum-desktop/excel/", "inLanguage": "ru", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">К содержанию</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../"><img src="../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../#guides">Руководства</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../en/excel/" hreflang="en" lang="en">English</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../">Главная</a><span aria-hidden="true"> / </span>Excel · Pro</nav><article><h1>Как сверить два прайса по артикулу</h1><p class="dek">Скачайте две небольшие книги и найдите три расхождения. В примере порядок строк меняется, а сопоставление идёт по артикулу.</p><h2>Две книги для опыта</h2>
+<p>Поставщик прислал обновлённый прайс. Две строки поменялись местами. Если пройти построчно от начала до конца, легко принять перестановку за изменение цены. Артикул позволяет найти тот же товар после перестановки.</p>
+<div class="downloads"><a download href="../examples/price-before.xlsx">Скачать старый прайс · XLSX</a><a download href="../examples/price-after.xlsx">Скачать новый прайс · XLSX</a></div>
+<p>Обе книги — учебные. Положите их в одну рабочую папку. Для сверки нужен OSTUM Pro. Он открывается бессрочно для этой установки и пользователя Windows после первой проверки подписки на канал разработчика.</p>
+<h2>Как запустить сверку</h2>
+<ol><li>В чате напишите <strong>«Сверь две таблицы Excel»</strong> и выберите рабочую папку. Подтвердите предложенный доступ к этой папке.</li>
+<li>Исходной книгой укажите <code>price-before.xlsx</code>, новой — <code>price-after.xlsx</code>. В обеих выберите лист <strong>Прайс</strong> и ключевой столбец <strong>Артикул</strong>.</li>
+<li>Посмотрите старое и новое значения, затем адреса исходных ячеек. Нажмите <strong>Сохранить отчёт</strong> и укажите новое имя XLSX.</li></ol>
+<h2>Три расхождения для проверки</h2>
+<table><thead><tr><th>Артикул</th><th>Результат</th><th>Где проверить</th></tr></thead><tbody><tr><td>A17</td><td>Цена выросла с 90 до 100 ₽</td><td>Прайс!B2 в обеих книгах</td></tr><tr><td>D42</td><td>Строка удалена</td><td>Прайс!A5 в старой книге</td></tr><tr><td>E53</td><td>Строка добавлена</td><td>Прайс!A5 в новой книге</td></tr></tbody></table>
+<p>A17 здесь значение артикула. Адрес его цены — B2. Артикулы B24 и C31 поменялись местами и сохранили свои значения. Эти две перестановки в отчёт не попали. Именно такой результат вернул модуль сверки OSTUM на приложенных файлах.</p>
+<figure><img src="../media/excel-reconciliation.webp" width="934" height="451" loading="lazy" alt="Окно предпросмотра показывает цену 90 и 100 для артикула A17"><figcaption>Отдельный однострочный пример показывает, как выглядит изменение цены в окне OSTUM.</figcaption></figure>
+<h2>Повторить на следующей неделе</h2>
+<p>Кнопка <strong>Сохранить сценарий</strong> запоминает листы и ключевые столбцы для этого проекта. Когда появится новая пара книг с той же структурой, напишите «Запусти сценарий сверки». Исходные файлы выбираются заново. Если другой сотрудник изменил книгу после предпросмотра, обновите сверку до сохранения отчёта.</p>
+</article></main><section class="wrap guide-section"><h2>Другие руководства</h2><div class="guide-grid"><a class="guide-card" href="../offline-install/"><span class="topic">Установка</span><h3>Как установить ИИ на ПК без интернета</h3><p>Что скачает EXE и что перенести на флешке.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../meetings/"><span class="topic">Совещания</span><h3>Как превратить запись в протокол</h3><p>Проверьте у каждой задачи цитату, ответственного и срок.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../hardware/"><span class="topic">Производительность</span><h3>Как измерить скорость Zarum на своём ПК</h3><p>Время загрузки, первый токен и скорость генерации.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Исходный код</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Обсуждения</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

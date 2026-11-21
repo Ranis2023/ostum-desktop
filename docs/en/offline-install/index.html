@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to install OSTUM offline from a USB drive on Windows</title>
+  <meta name="description" content="Prepare the model files on a connected PC, copy the kit to removable media and verify your first offline conversation.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/offline-install/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/offline-install/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/offline-install/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/offline-install/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="How to install OSTUM offline from a USB drive on Windows">
+  <meta property="og:description" content="Prepare the model files on a connected PC, copy the kit to removable media and verify your first offline conversation.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/offline-install/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="OSTUM Desktop 5.7.0 — local meeting minutes with timestamps">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Install OSTUM on a PC without internet access", "description": "Prepare the model files on a connected PC, copy the kit to removable media and verify your first offline conversation.", "url": "https://ranis2023.github.io/ostum-desktop/en/offline-install/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../offline-install/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Installation</nav><article><h1>Install OSTUM on a PC without internet access</h1><p class="dek">Prepare the model files on a connected PC, copy the kit to removable media and verify your first offline conversation.</p><h2>What the download contains</h2>
+<p>The <a href="https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe">Windows installer</a> for 5.7.0 is 108.3 MiB. It includes the app and local runtimes. A full first installation on a new PC downloads another 13.38 GB in six model files. These cover Zarum 9B and its vision projector, Whisper dictation and Z-Image drawing. Allow at least 20 GB of free SSD space.</p>
+<p>Run the installer directly on a connected PC. This release is unsigned. To check the file, run <code>Get-FileHash .\Ostum-Desktop-Setup.exe -Algorithm SHA256</code> in its download folder and compare the result with <a href="https://github.com/Ranis2023/ostum-desktop/releases/latest/download/SHA256SUMS.txt">the checksum supplied with that release</a>.</p>
+<h2>Prepare removable media for an isolated PC</h2>
+<ol><li>On a connected workstation, prepare the model library. If the target needs music, download the optional ACE-Step module first. Include the CUDA libraries if the target should use NVIDIA acceleration.</li>
+<li>Use the two PowerShell commands in the <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/README.md#полная-установка-без-интернета">USB preparation instructions</a> with the matching release. They assemble and check the contents. A full 5.7.0 kit with music and CUDA occupies about 17.6 GB.</li>
+<li>Copy the whole folder to NTFS or exFAT media. Keep <code>Models</code>, <code>Acceleration</code> and <code>OSTUM-OFFLINE.txt</code> next to the EXE. On the disconnected PC, start the installer from that folder.</li></ol>
+<h2>Verify a local session</h2>
+<p>With the target computer offline, open a new chat and request a three-item packing list. Next attach a sample photo and ask for one visible detail. The two requests exercise the language model and the vision projector separately. Meeting transcription also needs the dictation component.</p>
+<p>Free chat works without an account. For the Pro workspace, scan the activation QR with a connected phone and bring the signed response back to the workstation. The first activation requires a verified subscription to the developer’s Telegram channel. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.md">Company deployment guide in Russian</a></p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>
