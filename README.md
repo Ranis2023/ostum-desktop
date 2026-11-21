@@ -190,6 +190,12 @@ MMLU-Pro показывает долю правильных ответов на 
 python training/route.py --out training-output/route
 ```
 
+## Материалы и участие
+
+В русскоязычном разборе показано, как от записи совещания перейти к проверенным поручениям. Для сверки Excel есть две учебные книги и разбор алгоритма на английском. [Протокол совещания в Telegraph](https://telegra.ph/Kak-poluchit-protokol-soveshchaniya-bez-oblaka-i-proverit-kazhdoe-poruchenie-11-21) · [Практикум с прайсами в Telegram](https://t.me/ranisgaliaskarov/236) · [Как работает сверка в DEV Community](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb)
+
+Первый вклад можно сделать со своего Windows-компьютера. Запустите встроенный тест скорости Zarum 9B и дополните опубликованный замер результатом на другом процессоре. [Задача с порядком измерения](https://github.com/Ranis2023/ostum-desktop/issues/2) · [Обсуждения проекта](https://github.com/Ranis2023/ostum-desktop/discussions)
+
 ## Лицензии
 
 Код OSTUM распространяется под [лицензией MIT](LICENSE). Для базовых весов Qwen действует Apache License 2.0. У сторонних движков, весов и библиотек свои условия. Версии, источники и контрольные суммы перечислены в [каталоге моделей](src/catalog.json), [сведениях о компонентах](packaging/Sources.txt) и [сведениях об адаптерах](packaging/Adapter-credits.txt).

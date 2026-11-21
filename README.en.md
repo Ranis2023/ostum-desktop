@@ -65,8 +65,12 @@ Starting with 5.3, OSTUM checks GitHub after launch and every six hours. A butto
 
 **Pro access.** The first verified subscription to the developer's Telegram channel unlocks Pro permanently. To activate an isolated workstation, scan its QR code with a connected phone, start the bot and transfer the signed `.ostumpro` response by USB. The response is bound to the Windows user and workstation. [Developer's channel](https://t.me/ranisgaliaskarov) · [Activation bot](https://t.me/rangoostum_bot) · [Company deployment guide in Russian](packaging/Company.md)
 
+The maintainer's article explains how the Excel tool matches records by key, reports both source cells and handles a workbook that changes after preview. [Read the walkthrough on DEV Community](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb)
+
 ## Hardware and performance
 
 For Zarum 9B, 16 GB of system RAM is a practical starting point. A Ryzen 7 7435HS with 16 GB of RAM and an RTX 4050 Laptop GPU with 6 GB of VRAM measured **13.1 tokens/s** on the short built-in CUDA benchmark. The same CPU measured **6.8 tokens/s** on a separate CPU-only run. Model size, context length, available memory and GPU load affect results. [Test conditions and larger configurations](README.md#какой-компьютер-подойдёт)
+
+If you have a different Windows PC, you can contribute a second CPU measurement using the built-in benchmark. The issue lists the hardware details and timings to record. [Contribute a benchmark](https://github.com/Ranis2023/ostum-desktop/issues/2) · [Project discussions](https://github.com/Ranis2023/ostum-desktop/discussions)
 
 The desktop app is written in C# and WPF for .NET Framework 4.8. OSTUM code is MIT-licensed. Base models, runtimes and third-party components have their own licences. [MIT licence](LICENSE) · [Component sources](packaging/Sources.txt) · [Russian build guide](README.md#сборка-и-развитие)
