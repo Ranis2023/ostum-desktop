@@ -1,5 +1,7 @@
 # OSTUM Desktop — offline AI assistant for Windows
 
+[Doomsday AI — the offline USB field guide](https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/) · [Читать статью на русском](https://ranis2023.github.io/ostum-desktop/doomsday-ai/)
+
 [Русская версия](README.md) · [Download for Windows x64](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe) · [Releases and SHA-256 checksums](https://github.com/Ranis2023/ostum-desktop/releases)
 
 [Project site and walkthroughs](https://ranis2023.github.io/ostum-desktop/en/) · [Try the Excel example with two sample workbooks](https://ranis2023.github.io/ostum-desktop/en/excel/) · [Project discussions](https://github.com/Ranis2023/ostum-desktop/discussions)

@@ -43,7 +43,8 @@ def build():
                          url=canonical, site=SITE, head_title=escape(meta["browser"]), title=escape(title),
                          description=escape(description), kind="website" if key=="home" else "article",
                          locale="ru_RU" if lang=="ru" else "en_US",
-                         card_alt="OSTUM Desktop 5.7.0 — " + ("окно локального протокола совещания" if lang=="ru" else "local meeting minutes with timestamps"))
+                         card_file=meta.get("cover", "social-card.png"),
+                         card_alt=escape(meta.get("cover_alt", "OSTUM Desktop 5.7.0 — " + ("окно локального протокола совещания" if lang=="ru" else "local meeting minutes with timestamps"))))
             content = Template((SOURCE / "content" / lang / (key + ".html")).read_text("utf-8")).substitute(entry)
             cards = []
             for guide, info in pages[lang].items():

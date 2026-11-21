@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Doomsday AI — why keep a local Windows assistant on a USB drive?</title>
+  <meta name="description" content="What belongs on an offline AI drive, what OSTUM Desktop can do on Windows and how to test the kit before you need it.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/doomsday-ai/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/doomsday-ai/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Doomsday AI — why keep a local Windows assistant on a USB drive?">
+  <meta property="og:description" content="What belongs on an offline AI drive, what OSTUM Desktop can do on Windows and how to test the kit before you need it.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/usb-kit.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A USB drive on an orange cord beside a laptop and an unplugged network cable">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="A USB drive on an orange cord beside a laptop and an unplugged network cable">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Doomsday AI", "description": "What belongs on an offline AI drive, what OSTUM Desktop can do on Windows and how to test the kit before you need it.", "url": "https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../doomsday-ai/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Feature</nav><article><h1>Doomsday AI</h1><p class="dek">What belongs on an offline AI drive, what OSTUM Desktop can do on Windows and how to test the kit before you need it.</p><p>Imagine you're on a train, forty minutes from a meeting. Your laptop holds a 47-page contract, a supplier's old price list and a voice message from a colleague. You remember someone changing the delivery date. Where did they put it? The train has just passed the last stretch with reception.</p>
+<p>That's the case for keeping a USB drive with an AI assistant on it. A train journey makes a convincing enough rehearsal for doomsday. So does an office where contracts have to stay on company hardware. OSTUM Desktop was built around that idea. The drive carries the installer, the local model and the tools you chose in advance. The Windows PC does the computing.</p>
+<figure><img src="../../media/usb-kit.jpg" width="1200" height="630" alt="A metal flash drive on an orange cord beside a laptop and an unplugged network cable"><figcaption>AI-generated illustration. You can prepare the kit on your own USB drive.</figcaption></figure>
+<h2>What answers when the connection drops?</h2>
+<p>OSTUM 5.7.0 recommends <strong>Zarum 9B</strong>, its local configuration of Qwen3.5-9B. It uses quantized GGUF weights, a vision projector for images and the llama.cpp runtime. It can run on a CPU or use a compatible GPU. Basic chat requires no account. The app's menus and built-in help are in Russian. The English guides give the original button labels so you can find them.</p>
+<p>Try asking for the delivery deadline in a contract and the paragraph that gives it. Open the paragraph and check the wording yourself. You can attach PDFs, Word documents, plain text and tabular files. Windows OCR reads scanned pages locally. The chat also accepts photos and a one-off screenshot of a selected display. You choose which folders the assistant can access and what it can do there. Windows tools can list windows, minimize a selected one or open Calculator. Older conversations can be searched, archived and deleted.</p>
+<figure><img src="../../media/home.webp" width="1174" height="706" loading="lazy" alt="The Russian-language OSTUM home screen with document, image and task controls"><figcaption>The actual chat window. You can drag a file into a conversation.</figcaption></figure>
+<h2>Give a second reader the same evidence</h2>
+<p>A short request can go straight to the model. For “Find inconsistencies in these terms and quote the relevant passages,” you can ask a team. An analyst and a fact checker work in parallel, a reviewer looks over the results and an editor assembles the answer. Small animated lights show the roles at work. They share one installed language model. Following a quotation back to its source is still the part that makes a conclusion worth using.</p>
+<h2>Turn a recording into minutes you can check</h2>
+<p>Select a microphone to dictate and use the local voice output to hear an answer. If the Whisper component is installed, you can also import a meeting recording. Transcribe it, ask Zarum to extract decisions and action items, and play the sentence behind any proposed assignment. Correct a name, check the due date and select the rows to export. Speakers are approximate on a single mixed audio track. <a href="../../en/meetings/">Try a short meeting example</a></p>
+<figure><img src="../../media/meeting.webp" width="1144" height="511" loading="lazy" alt="The meeting review pane with its source quotations and timestamps"><figcaption>Each suggested item can be checked against a timestamped passage.</figcaption></figure>
+<p>With the local Z-Image-Turbo component you can generate an illustration. An optional ACE-Step download adds instrumental music. Ask for twelve seconds of quiet electronic music, listen to the result and save a WAV file. The music tool supports clips from 10 to 60 seconds. Pack these components before disconnecting.</p>
+<h2>A four-product spreadsheet makes an honest test</h2>
+<p>In the two sample workbooks, product A17 went from 90 to 100 rubles. Two other products swapped positions, one disappeared and another was added. OSTUM Pro matched product codes across both sheets. It reported three differences. Open cell B2 in each workbook to confirm the price. The preview shows the original cell addresses, and saving produces a separate report. A saved recipe lets you repeat the comparison with next week's files. <a href="../../en/excel/">Download both workbooks and reproduce the result</a></p>
+<figure><img src="../../media/excel-reconciliation.webp" width="934" height="451" loading="lazy" alt="Spreadsheet comparison preview showing a price change for product A17"><figcaption>A separate one-row example shows how the old and new prices appear before export.</figcaption></figure>
+<p>The Pro Word and Excel editors sit beside the conversation. Review a proposed change to a paragraph or a cell, select the edits to save, or restore an earlier version. Other workflows compare contract revisions, collate supplier offers, review invoices and create tasks linked to their source paragraph or cell. Due dates can be exported to a calendar.</p>
+<h2>Teach it a workflow on your own PC</h2>
+<p>You can set a working profile immediately. In Pro, a project can also train an output-layer LoRA adapter on 5 to 200 reviewed question-and-answer pairs from at least three independent groups. Training runs locally. A comparison with the base model on held-out examples shows improvements and regressions before you decide whether to enable the adapter in that project. You can import a compatible GGUF from disk or use the model catalogue. Vision needs a matching projector.</p>
+<p>A company policy can restrict folders and disable external connections. In a personal installation, optional web search sends a query online when enabled. New model downloads and the online update service also need connectivity. An isolated workstation can receive an updated installer by USB. F1 opens the built-in offline help. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.md">Administrator's guide in Russian</a></p>
+<h2>Build the drive and rehearse once</h2>
+<ol><li><strong>Start on a connected PC.</strong> OSTUM supports Windows 10 and 11 x64. The 5.7.0 installer is 108.3 MiB. A full first installation downloads six model files totalling 13.38 GB. The optional music component adds 2.71 GB. The release provides an unsigned EXE and its SHA-256 checksum. <a href="https://github.com/Ranis2023/ostum-desktop/releases/tag/v5.7.0">Windows release and checksum</a></li>
+<li><strong>Pack the complete folder.</strong> The project's script collects the installed files in <code>Ostum-Offline</code>. A full 5.7.0 kit with dictation, drawing, music and CUDA takes about 17.6 GB. A 32 GB exFAT or NTFS drive is one practical choice. Copy the folder with its installer, <code>Models</code>, <code>Acceleration</code> and <code>OSTUM-OFFLINE.txt</code>. <a href="../../en/offline-install/">USB preparation instructions</a></li>
+<li><strong>Try it disconnected.</strong> For Zarum 9B, start with 16 GB of RAM and at least 20 GB free on the target SSD. Turn off the network, install from the prepared folder, ask a question, attach a familiar picture and dictate a sentence. For Pro, scan the workstation's QR code with an online phone. After a one-time check of membership in the developer's Telegram channel, carry the signed activation file back to the offline machine. Pro access is permanent for that installation and Windows user.</li></ol>
+<p>Performance depends on the computer. On a Ryzen 7 7435HS laptop with 16 GB RAM and a 6 GB RTX 4050 Laptop GPU, a short CUDA run produced 13.1 tokens per second. Loading the model took 11 seconds. The built-in benchmark measures both on your machine. <a href="../../en/hardware/">Benchmark conditions and measurements</a></p>
+<p>Before putting the flash drive in a drawer, add a manual for an appliance you own. Disconnect the laptop and ask how to change the filter and which page explains it. Checking that one answer against the manual will tell you more about your kit than another afternoon spent collecting installers.</p>
+<p><small>Published by the OSTUM Desktop project. The text and cover were prepared with AI assistance. Features were checked against release 5.7.0, and the workbook example against the project's comparison engine.</small> <a href="https://github.com/Ranis2023/ostum-desktop">OSTUM source code</a></p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>
