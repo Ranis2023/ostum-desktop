@@ -12,6 +12,7 @@ namespace Sfera {
         ResearchDocument document;
         bool reading;
         int attachmentVersion;
+        System.Threading.CancellationTokenSource attachmentRead;
         void ChooseFile(bool documentsOnly=false) {
             var dlg=new OpenFileDialog {Title="Прикрепить файл",Filter="Поддерживаемые файлы|*.pdf;*.docx;*.xlsx;*.txt;*.md;*.csv;*.tsv;*.json;*.log;*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff|Документы|*.pdf;*.docx;*.xlsx;*.txt;*.md;*.csv;*.tsv;*.json;*.log|Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.tif;*.tiff"};
             if(documentsOnly){dlg.Title="Выберите документ для разбора";dlg.FilterIndex=2;}
@@ -25,18 +26,28 @@ namespace Sfera {
             if(!Documents.Supported(path)){LoadPhoto(path);return;}
             if(art)SetMode(false);
             SetAttachment(null,null);int ticket=attachmentVersion;reading=true;
+            var read=attachmentRead=new System.Threading.CancellationTokenSource();
+            Find<StackPanel>("AttachmentBar").Visibility=Find<ContentControl>("DocIcon").Visibility=Visibility.Visible;
+            Find<TextBlock>("AttachName").Text=Path.GetFileName(path);UpdateSendEnabled();
             status.Text="Читаю "+Path.GetFileName(path)+"…";
             try {
-                var result=await Task.Run(()=>Documents.Read(path));
+                var result=await Task.Run(()=>Documents.Read(path,true,read.Token));
                 if(closing||ticket!=attachmentVersion)return;
+                WorkPolicy.CheckFile(path,true);if(!WorkPolicy.GlobalFile(path))return;
                 document=result;ReadOnlyPreview(result,path);
                 Find<StackPanel>("AttachmentBar").Visibility=Visibility.Visible;
-                Find<TextBlock>("DocIcon").Visibility=Visibility.Visible;
+                Find<ContentControl>("DocIcon").Visibility=Visibility.Visible;
                 Find<TextBlock>("AttachName").Text=result.Name;
-                status.Text=result.Truncated?"Вложена начальная часть большого документа.":"";
+                status.Text=result.ScanNotice??(result.Truncated?"Вложена начальная часть большого документа.":result.ScanPictures!=null?"Скан распознан на этом ПК. Выберите строку справа, чтобы увидеть её на изображении страницы.":"");
                 PromptHint();input.Focus();
             } catch(Exception ex) {if(ticket==attachmentVersion&&!closing)status.Text="Не удалось прочитать файл. "+ex.Message;}
-            finally {if(ticket==attachmentVersion)reading=false;}
+            finally {
+                if(attachmentRead==read)attachmentRead=null;read.Dispose();
+                if(ticket==attachmentVersion&&!closing){
+                    reading=false;if(document==null)Find<StackPanel>("AttachmentBar").Visibility=Visibility.Collapsed;
+                    UpdateSendEnabled();
+                }
+            }
         }
         void AddResearchDetails(Panel host,Turn turn) {
             if(turn.Sources!=null&&turn.Sources.Count>0){
@@ -46,7 +57,7 @@ namespace Sfera {
                     string label="["+(i+1)+"] "+source.Title;
                     if(WebResearch.PublicUrl(source.Url,out link)){
                         var u=link;
-                        var b=new Button{Content=new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap},ToolTip=u.AbsoluteUri,HorizontalAlignment=HorizontalAlignment.Left,
+                        var b=new Button{Content=label,ContentTemplate=OstumActionIcons.Tab("external"),ToolTip=u.AbsoluteUri,HorizontalAlignment=HorizontalAlignment.Left,
                             HorizontalContentAlignment=HorizontalAlignment.Left,Padding=new Thickness(6,3,6,3),FontSize=12,Foreground=Color("#285843"),Background=Color("#EDF2EA")};
                         b.Click+=(s,e)=>{try{WorkPolicy.RequireNetwork();Process.Start(new ProcessStartInfo(u.AbsoluteUri){UseShellExecute=true});}catch(Exception ex){status.Text=ex.Message;}};
                         entries.Children.Add(b);
@@ -62,7 +73,7 @@ namespace Sfera {
         }
         void SaveAnswer(Turn turn) {
             var dlg=new SaveFileDialog{Title="Сохранить ответ с источниками",Filter="Markdown|*.md|Текст|*.txt",FileName="Ответ Zarum",AddExtension=true};
-            if(dlg.ShowDialog(Window)==true)File.WriteAllText(dlg.FileName,Agents.Export(turn),new UTF8Encoding(true));
+            if(dlg.ShowDialog(Window)==true){WorkPolicy.LocalPath(dlg.FileName);File.WriteAllText(dlg.FileName,Agents.Export(turn),new UTF8Encoding(true));}
         }
     }
 }

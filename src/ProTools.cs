@@ -77,10 +77,14 @@ namespace Sfera {
         }
         public static async Task<OfficeResult> Office(ProjectRule project,string path,string action,Dictionary<string,object> args,CancellationToken ct){
             UnderProject(project,path);WorkPolicy.LocalPath(Path.Combine(Path.GetDirectoryName(path),".ostum-versions"));
-            var req=args??new Dictionary<string,object>();req["action"]=action;req["path"]=path;
+            if(action=="aggregate"||action=="deadlines"){
+                UnderProject(project,path,true);
+                if(!WorkPolicy.CanAnalyzeDocument(path))throw new UnauthorizedAccessException("Требуется разрешение на локальный анализ документа.");
+            }
+            var req=args==null?new Dictionary<string,object>():new Dictionary<string,object>(args);req["action"]=action;req["path"]=path;
             if(req.ContainsKey("other"))UnderProject(project,(string)req["other"]);
             if(req.ContainsKey("sources"))foreach(var s in (string[])req["sources"])UnderProject(project,s);
-            if(action=="task"||action=="reconcile"||action=="offers"){
+            if(action=="task"||action=="reconcile"||action=="preview_reconcile"||action=="offers"||action=="invoices"){
                 if(!string.Equals(Path.GetExtension(path),".xlsx",StringComparison.OrdinalIgnoreCase))throw new IOException("Для результата выберите файл .xlsx.");
                 var inputs=req.ContainsKey("sources")?(string[])req["sources"]:new[]{(string)req["other"]};
                 var rules=WorkPolicy.Projects();
@@ -88,8 +92,15 @@ namespace Sfera {
                     if(Path.GetFullPath(src).Split(Path.DirectorySeparatorChar).Any(x=>x.StartsWith(".ostum-",StringComparison.OrdinalIgnoreCase)))throw new UnauthorizedAccessException("Выберите обычную рабочую папку.");
                     if(rules.Any(p=>WorkPolicy.Within(src,p.Root)!=WorkPolicy.Within(path,p.Root)))throw new UnauthorizedAccessException("Исходные данные и результат должны принадлежать одному рабочему пространству с одинаковыми правами.");
                 }
+                if(action=="invoices")foreach(string src in inputs){
+                    UnderProject(project,src,true);if(!WorkPolicy.CanAnalyzeDocument(src))throw new UnauthorizedAccessException("Требуется разрешение на анализ источников реестра.");
+                }
             }
-            var result=Store.Json().Deserialize<OfficeResult>(await Python("office.py",null,Store.Json().Serialize(req),ct).ConfigureAwait(false));
+            string request=Store.Json().Serialize(req);
+            bool readOnly=action=="read"||action=="aggregate"||action=="versions"||action=="deadlines"||action=="preview_reconcile";
+            string response=readOnly?await OfficeReader.Read(project,request,ct).ConfigureAwait(false):
+                await Python("office.py",null,request,ct).ConfigureAwait(false);
+            var result=Store.Json().Deserialize<OfficeResult>(response);
             if(result==null||result.error!=null)throw new IOException(result==null?"Редактор не ответил.":result.error);
             if(action!="read"&&action!="versions")WorkPolicy.Audit(action,path);
             return result;
@@ -108,6 +119,9 @@ namespace Sfera {
         public string value{get;set;} public string operation{get;set;} public string Source{get;set;}
     }
     public sealed class OfficeResult {
+        public string[][] differences{get;set;}
+        public int added{get;set;}public int skipped{get;set;}public DueItem[] tasks{get;set;}public string calendar{get;set;}
+        public string number{get;set;} public int numericCount{get;set;} public long areaCount{get;set;}
         public string error{get;set;} public string kind{get;set;} public string sheet{get;set;} public string[] sheets{get;set;}
         public string revision{get;set;} public bool readOnly{get;set;} public OfficeRow[] rows{get;set;}
         public OfficePatch[] patches{get;set;} public string[] versions{get;set;}

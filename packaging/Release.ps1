@@ -1,11 +1,11 @@
-param([switch]$UseExistingBuild)
+param([switch]$UseExistingBuild,[string]$DistributionDirectory)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
+$dist=if($DistributionDirectory){[IO.Path]::GetFullPath($DistributionDirectory)}else{Join-Path $root 'dist'}
 if(!$UseExistingBuild){
-    & (Join-Path $root 'build.ps1')
-    & (Join-Path $PSScriptRoot 'OneClick.ps1')
+    & (Join-Path $root 'build.ps1') -DistributionDirectory $dist
+    & (Join-Path $PSScriptRoot 'OneClick.ps1') -DistributionDirectory $dist
 }
-$dist=Join-Path $root 'dist'
 $setup=Get-Item -LiteralPath (Join-Path $dist 'Ostum-Desktop-Setup.exe')
 $app=Get-Item -LiteralPath (Join-Path $root '.build/OstumDesktop.exe')
 [xml]$wix=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Product.wxs') -Raw -Encoding utf8

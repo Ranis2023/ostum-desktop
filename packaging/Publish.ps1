@@ -1,10 +1,13 @@
-param([string]$GitHubCli='gh',[string]$NotesFile)
+param([string]$GitHubCli='gh',[string]$NotesFile,[string]$DistributionDirectory)
 $ErrorActionPreference='Stop'
 $repo='Ranis2023/ostum-desktop'
 $root=Split-Path -Parent $PSScriptRoot
-$exe=Get-Item -LiteralPath (Join-Path $root 'dist/Ostum-Desktop-Setup.exe')
-$sum=Get-Item -LiteralPath (Join-Path $root 'dist/SHA256SUMS.txt')
+$dist=if($DistributionDirectory){[IO.Path]::GetFullPath($DistributionDirectory)}else{Join-Path $root 'dist'}
+$exe=Get-Item -LiteralPath (Join-Path $dist 'Ostum-Desktop-Setup.exe')
+$sum=Get-Item -LiteralPath (Join-Path $dist 'SHA256SUMS.txt')
 $ver=([version]$exe.VersionInfo.FileVersion).ToString(3)
+[xml]$product=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $PSScriptRoot 'Product.wxs')
+if($product.Wix.Product.Version -ne $ver){throw "Installer version $ver differs from the current project."}
 $tag='v'+$ver
 if(!$NotesFile){$NotesFile=Join-Path $PSScriptRoot ('releases/'+$ver+'.md')}
 if(!(Test-Path -LiteralPath $NotesFile)){throw "Create release notes for $ver."}

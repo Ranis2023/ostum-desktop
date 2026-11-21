@@ -6,7 +6,6 @@
   <Style x:Key="Title" TargetType="TextBlock"><Setter Property="FontSize" Value="26"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Foreground" Value="{StaticResource Ink}"/></Style>
   <Style x:Key="Subhead" TargetType="TextBlock" BasedOn="{StaticResource Title}"><Setter Property="FontSize" Value="16"/></Style>
   <Style x:Key="Hint" TargetType="TextBlock"><Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
-  <Style x:Key="Glyph" TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe MDL2 Assets"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Center"/></Style>
   <Style TargetType="Button">
     <Setter Property="Background" Value="#EEF1EB"/><Setter Property="Foreground" Value="#28302A"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="13,8"/><Setter Property="MinHeight" Value="33"/><Setter Property="Margin" Value="0,2,6,2"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
     <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">

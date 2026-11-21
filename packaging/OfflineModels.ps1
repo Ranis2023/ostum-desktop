@@ -5,11 +5,16 @@ param(
     [switch]$Dictation,
     [switch]$Drawing,
     [switch]$Music,
-    [switch]$Cuda
+    [switch]$Cuda,
+    [string]$InstallerPath,
+    [switch]$OfflineOnly
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $kit=if($OutputFolder){[IO.Path]::GetFullPath($OutputFolder)}else{Join-Path $root 'dist'}
+if($OfflineOnly -and !$OutputFolder){throw 'Choose an output folder for the offline kit.'}
+if(!$InstallerPath){$InstallerPath=Join-Path $root 'dist/Ostum-Desktop-Setup.exe'}
+$setup=(Get-Item -LiteralPath $InstallerPath).FullName
 $dest=Join-Path $kit 'Models'
 [void][IO.Directory]::CreateDirectory($dest)
 $catalog=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'src\catalog.json') | ConvertFrom-Json
@@ -51,6 +56,14 @@ foreach ($file in $files) {
     Write-Output $file.name
 }
 if($Cuda){& (Join-Path $PSScriptRoot 'OfflineAcceleration.ps1') -Destination (Join-Path $kit 'Acceleration')}
-$setup=(Get-Item -LiteralPath (Join-Path $root 'dist/Ostum-Desktop-Setup.exe')).FullName
 $kitSetup=Join-Path $kit 'Ostum-Desktop-Setup.exe'
 if($setup -ne $kitSetup){Copy-Item -LiteralPath $setup -Destination $kitSetup -Force}
+if($OfflineOnly){
+    foreach($id in @('q9','v9')){
+        $weight=$catalog.files|Where-Object id -eq $id
+        $asset=Get-Item -LiteralPath (Join-Path $dest $weight.name)
+        if($asset.Length -ne $weight.bytes){throw ('Missing offline base model: '+$weight.name)}
+    }
+    $version=([version](Get-Item -LiteralPath $kitSetup).VersionInfo.FileVersion).ToString(3)
+    [IO.File]::WriteAllText((Join-Path $kit 'OSTUM-OFFLINE.txt'),("OSTUM Desktop "+$version+" · Запустите Ostum-Desktop-Setup.exe для установки без сети."),[Text.UTF8Encoding]::new($true))
+}

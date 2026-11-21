@@ -72,7 +72,7 @@ namespace Sfera {
         static string FolderLabel(string path){if(string.IsNullOrEmpty(path))return "";return new DirectoryInfo(path).Name;}
         void More(){
             var host=Get<Button>("More");var menu=new ContextMenu {PlacementTarget=host,Placement=PlacementMode.Bottom};
-            Action<string,bool,Action> item=(name,enabled,fn)=>{var mi=new MenuItem{Header=name,IsEnabled=enabled};mi.Click+=(s,e)=>Try(fn);menu.Items.Add(mi);};
+            Action<string,bool,Action> item=(name,enabled,fn)=>{var mi=new MenuItem{Header=name,Icon=OstumActionIcons.Menu(name),IsEnabled=enabled};mi.Click+=(s,e)=>Try(fn);menu.Items.Add(mi);};
             bool edit=opened!=null&&!opened.readOnly,word=opened!=null&&opened.kind=="word";
             item("Создать поручение из фрагмента…",!InRegister&&SelectedRow()!=null,()=>Run(AddTask));
             if(InRegister){item("Открыть источник поручения",SelectedRow()!=null,()=>Run(TaskSource));item("Отметить выполненным",edit&&SelectedRow()!=null,CompleteTask);}

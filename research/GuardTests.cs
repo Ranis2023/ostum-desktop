@@ -10,6 +10,16 @@ class GuardTests {
         checks["numeric precedence"]=Calculator.Direct("Вычисли (7 + 5)^2 / 6")=="24";
         checks["unary power"]=Calculator.Direct("Посчитай −2^2")=="-4";
         checks["locale decimals"]=Calculator.Direct("Посчитай: 1,25 × 8")=="10";
+        checks["included fee"]=Calculator.Direct("Смета 12 480 рублей. Условная ставка сбора 20% уже включена в сумму. Сколько рублей составляет именно сбор?")=="2080 руб.";
+        checks["included fractional fee"]=Calculator.Direct("Итог 101,50 руб. Комиссия 1,5% включена. Какова сумма комиссии? Только число.")=="1,5";
+        checks["fee not included"]=Calculator.Direct("Цена 240 рублей. Сбор 20% не включён. Сколько составляет сбор?")==null;
+        checks["ambiguous fee"]=Calculator.Direct("Есть сметы 120 и 240 рублей. Сбор 20% включён. Сколько составляет сбор?")==null;
+        checks["oversized grouped fee"]=Calculator.Direct("Итог 999 999 999 999 999 999 999 999 999 999 рублей. Сбор 20% включён. Сколько составляет сбор?")==null;
+        checks["fee of total requires context"]=Calculator.Direct("Цена 120 рублей. Сбор 20% включён, он рассчитан от общей суммы. Сколько составляет сбор?")==null;
+        checks["overnight interval"]=Calculator.Direct("Смена длилась с 22:40 до 01:15 следующего дня. Сколько минут это заняло?")=="155 мин.";
+        checks["same day"]=Calculator.Direct("Сколько минут с 08:05 до 09:00? Только число.")=="55";
+        checks["same time next day"]=Calculator.Direct("Сколько минут с 07:00 до 07:00 следующего дня?")=="1440 мин.";
+        checks["break needs context"]=Calculator.Direct("Сколько минут с 08:05 до 09:00 за вычетом перерыва?")==null;
         checks["literal date"]=Calculator.Direct("2026-11-20")==null;
         checks["translation with expression"]=Calculator.Direct("Переведи: осталось 5 + 7 дней.")==null;
         checks["bad syntax"]=Calculator.Direct("2 ** 2")==null;
@@ -25,6 +35,11 @@ class GuardTests {
         checks["duplicate colon field"]=ReplyFormat.LiteralField("Извлеки только поле «Зал». Зал: 4; Зал = 6.")==null;
         checks["quoted label without assignment"]=ReplyFormat.LiteralField("Извлеки только поле «Город». Комментарий: «Город: Москва».")==null;
         var turns=new List<Turn>();
+        string recall="Какой код назывался в этой беседе? Если код не называли, ответь «не указан».";
+        var clean=new List<Turn>{new Turn{Role="user",Text=recall}};
+        checks["empty chat literal fallback"]=ChatContext.EmptyRecall(clean)=="не указан";
+        clean.Insert(0,new Turn{Role="user",Text="Код Г-41."});
+        checks["existing chat retains evidence"]=ChatContext.EmptyRecall(clean)==null;
         Action<string,string> add=(q,a)=>{turns.Add(new Turn{Role="user",Text=q});turns.Add(new Turn{Role="assistant",Text=a});};
         add("Проект «Солнечный луг». Согласована зелёная обложка.","Принято.");
         add("Проект «Солнечный зал». Выбрана красная обложка.","Принято.");

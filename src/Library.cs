@@ -60,9 +60,12 @@ namespace Sfera {
         public bool ConversationVoice { get; set; }
         public string MicrophoneId { get; set; }
         public bool? Drawing { get; set; }
+        public int ImageSide {get;set;}
         public bool? Dictation { get; set; }
         public List<LocalModel> ImportedModels {get;set;}
         [System.Web.Script.Serialization.ScriptIgnore] public string ProjectScope {get;set;}
+        [System.Web.Script.Serialization.ScriptIgnore] public bool PrivateInference {get;set;}
+        [System.Web.Script.Serialization.ScriptIgnore] public string RecoveryNotice {get;set;}
         public Preferences() {
             Models = Path.Combine(Store.Home, "library", "models");
             Chat = "quality"; Art = "studio"; Personalize=true; AllowWeb=false; CheckForUpdates=true; DownloadUpdates=true;
@@ -94,6 +97,7 @@ namespace Sfera {
     }
 
     public sealed class Source {
+        public string DocumentId { get; set; }
         public string Title { get; set; }
         public string Url { get; set; }
         public string Location { get; set; }
@@ -101,6 +105,8 @@ namespace Sfera {
     }
 
     public sealed class Conversation {
+        internal bool HeaderOnly;
+        public string ProjectKey {get;set;}
         public string Id { get; set; }
         public bool Archived { get; set; }
         public string Title { get; set; }
@@ -113,7 +119,7 @@ namespace Sfera {
         public override string ToString() { return Title; }
     }
 
-    public static class Store {
+    public static partial class Store {
         public static readonly string Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SferaAI");
         public static string Chats {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"chats");}}
         public static string Images {get{return Path.Combine(WorkPolicy.Rules.Managed?Path.Combine(Home,"pro"):Home,"images");}}
@@ -140,14 +146,15 @@ namespace Sfera {
         public static bool DictationOn(Preferences p) {return p.Dictation??Files["voice"].Present(p.Models);}
         public static bool Ready(Model m, string dir) { return m.Imported!=null?m.Imported.Available():m.Files.All(id => Files[id].Present(dir)); }
         public static string Size(long bytes) { return (bytes / 1000000000.0).ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("ru-RU")) + " ГБ"; }
-        public static void Write(string path, object value) {
+        public static void Write(string path, object value) {Write(path,value,null);}
+        static void Write(string path, object value,string backup) {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try {
                 File.WriteAllText(tmp, Json().Serialize(value), new UTF8Encoding(false));
                 for(int attempt=0;;attempt++){
                     try{
-                        if(File.Exists(path))File.Replace(tmp,path,null);else File.Move(tmp,path);
+                        if(File.Exists(path))File.Replace(tmp,path,backup);else File.Move(tmp,path);
                         break;
                     }catch(IOException ex){
                         // Another reader can briefly deny rename/delete, including the Windows indexer.
@@ -158,14 +165,25 @@ namespace Sfera {
                 }
             } finally { if (File.Exists(tmp)) File.Delete(tmp); }
         }
+        static Preferences ReadPreferences(string path){
+            if(!File.Exists(path))return null;
+            try{
+                var value=Json().Deserialize<Preferences>(File.ReadAllText(path));
+                if(value==null||string.IsNullOrWhiteSpace(value.Models))return null;
+                value.Chat=Chat(value).Id;value.Art=ArtModels[0].Id;return value;
+            }catch(ArgumentException){return null;}catch(InvalidOperationException){return null;}catch(FormatException){return null;}
+        }
         public static Preferences Load() {
-            string path = Path.Combine(Home, "preferences.json");
-            if (File.Exists(path)) {
-                var existing=Json().Deserialize<Preferences>(File.ReadAllText(path));
-                existing.Chat=Chat(existing).Id;existing.Art=ArtModels[0].Id;
-                return existing;
-            }
-            var p = new Preferences();
+            string path=Path.Combine(Home,"preferences.json"),backup=path+".previous";
+            var existing=ReadPreferences(path);if(existing!=null)return existing;
+            var p=ReadPreferences(backup);
+            if(File.Exists(path)||File.Exists(backup)){
+                bool restored=p!=null;if(!restored)p=new Preferences();
+                p.AllowWeb=p.CheckForUpdates=p.DownloadUpdates=p.ConversationVoice=p.Personalize=false;
+                p.RecoveryNotice=(restored?"Загружена предыдущая копия настроек.":"Настройки повреждены. Включён локальный режим.")+
+                    " Проверьте «Модели и настройки». Сетевые функции отключены.";
+                if(restored)return p;
+            }else p=new Preferences();
             string source = Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\SferaAI\Setup", "ModelSource", null) as string;
             foreach (string dir in new [] { p.Models, source }) {
                 if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) continue;
@@ -175,12 +193,17 @@ namespace Sfera {
             }
             return p;
         }
-        public static void Save(Preferences p) { Write(Path.Combine(Home, "preferences.json"), p); }
+        public static void Save(Preferences p) {
+            string path=Path.Combine(Home,"preferences.json");
+            string backup=ReadPreferences(path)==null?path+".invalid":path+".previous";
+            Write(path,p,backup);
+        }
         static Conversation SavedView(Conversation c){
             if(!c.Turns.Any(t=>t.ProjectOnly))return c;
-            return new Conversation{Id=c.Id,Title=c.Title,Updated=c.Updated,Archived=c.Archived,Turns=c.Turns.Where(t=>!t.ProjectOnly).ToList()};
+            return new Conversation{Id=c.Id,Title=c.Title,Updated=c.Updated,Archived=c.Archived,ProjectKey=c.ProjectKey,Turns=c.Turns.Where(t=>!t.ProjectOnly).ToList()};
         }
         public static void Save(Conversation c) {
+            LoadTurns(c);
             c.Updated=DateTime.Now;if(!WorkPolicy.History)return;
             string path=SavedChatPath(c);
             // A private turn changes only the live conversation. Retain a single empty history entry for archive/delete.
@@ -193,6 +216,7 @@ namespace Sfera {
             return Path.Combine(Chats,c.Id+".json");
         }
         public static void SetArchived(Conversation c,bool value) {
+            LoadTurns(c);
             var path=SavedChatPath(c);bool previous=c.Archived;
             if(!File.Exists(path))throw new FileNotFoundException("Диалог уже отсутствует.");
             c.Archived=value;
@@ -213,17 +237,19 @@ namespace Sfera {
             }
         }
         public static bool DeleteConversation(Conversation c) {
+            LoadTurns(c);
             string path=SavedChatPath(c);
             var candidates=new HashSet<string>(OwnedAttachments(c),StringComparer.OrdinalIgnoreCase);
             var remaining=History();
             bool complete=remaining.Count==Directory.GetFiles(Chats,"*.json").Length;
             foreach(var other in remaining.Where(x=>x.Id!=c.Id))candidates.ExceptWith(OwnedAttachments(other));
             File.Delete(path);
-            if(!complete)return candidates.Count==0;
+            bool indexRemoved=RemoveHeading(Path.GetDirectoryName(path),c.Id);
+            if(!complete)return candidates.Count==0&&indexRemoved;
             foreach(string file in candidates) {
                 try{File.Delete(file);}catch(IOException){complete=false;}catch(UnauthorizedAccessException){complete=false;}
             }
-            return complete;
+            return complete&&indexRemoved;
         }
         public static List<Conversation> History() {
             if(!WorkPolicy.History)return new List<Conversation>();

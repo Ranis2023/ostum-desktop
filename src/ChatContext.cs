@@ -18,6 +18,12 @@ namespace Sfera {
         public static bool IsRecall(string task) {
             return Recall.IsMatch(task) && !Regex.IsMatch(task,@"(?:напомни (?:мне )?(?:через|завтра|кажд)|remind me (?:in|at|tomorrow))",RegexOptions.IgnoreCase);
         }
+        public static string EmptyRecall(List<Turn> history){
+            if(history.Count!=1||history[0].Role!="user"||history[0].Image!=null||history[0].DocumentId!=null)return null;
+            var match=Regex.Match(history[0].Text??"",@"^\s*(?:как\w*|кто|когда|что)\s+[^?«»""\d:\r\n]{1,155}\?\s*если\s+[^,.;?!\r\n]{0,60}?(?:не (?:называл\w*|указан\w*|сообщал\w*|упоминал\w*|был\w*)|нет)[^,.;?!\r\n]{0,18},\s*(?:то\s+)?(?:ответь|напиши|верни)\s+(?:точно\s+|только\s+)?[«""]([^»""\r\n]{1,100})[»""][.! ]*$",RegexOptions.IgnoreCase);
+            if(!match.Success||!Regex.IsMatch(history[0].Text,@"\b(?:в (?:этой|нашей) беседе|в (?:этом|нашем) (?:чате|диалоге)|ранее в переписке)\b",RegexOptions.IgnoreCase))return null;
+            return match.Groups[1].Value;
+        }
         sealed class Hit {
             public int Order;
             public string Text;
@@ -63,6 +69,10 @@ namespace Sfera {
     }
 
     public static class ReplyFormat {
+        public static bool TextOnly(string task){
+            return Regex.IsMatch(task,@"^\s*(?:пожалуйста[, ]+)?(?:напиши|укажи|назови|извлеки|выведи|верни|ответь|пришли|приведи|return|output|respond|write)\s+(?:мне\s+)?(?:только|исключительно|строго|ровно|only)\s+(?!(?:нов\w*\s+|готов\w*\s+)?(?:изображени|картинк|рисун|фото|иллюстр|анимац|видео|трек|аудио|image|picture))",RegexOptions.IgnoreCase)
+                ||Regex.IsMatch(task,@"\b(?:без (?:изображений|картинок|иллюстраций)|только текстом|text only)\b",RegexOptions.IgnoreCase);
+        }
         static readonly Regex JsonRequest=new Regex(@"\b(?:верни(?:те)?|выведи(?:те)?|представь(?:те)?|пришли(?:те)?|сформируй(?:те)?|дай(?:те)?|ответь(?:те)?|return|output|give)\s+(?:(?:только|строго|ровно|ответ|результат|один|как|в|виде|формате|only|a|an|as|valid|single|the|response)\s+){0,6}json\b",RegexOptions.IgnoreCase);
         public static bool Object(string task){
             return JsonRequest.IsMatch(task)&&!Regex.IsMatch(task,@"json[-\s]+(?:массив|array)|(?:массив|array)\s+(?:в\s+)?json|пример\s+json|example\s+json",RegexOptions.IgnoreCase);
@@ -75,6 +85,10 @@ namespace Sfera {
         static readonly Regex Quoted=new Regex(@"«[^»\r\n]*»|“[^”\r\n]*”|""[^""\r\n]*""");
         static readonly Regex Assign=new Regex(@"(?:^|[.?!;:\r\n])\s*(?<key>[\p{L}][\p{L}\d _-]{0,52}?)\s*=\s*(?<value>[^=;\r\n.!?]{1,145}?)(?=[.;!?\r\n]|$)",RegexOptions.Multiline);
         public static string LiteralField(string task){
+            if(TextOnly(task)&&Regex.IsMatch(task,@"^[^.!?\n]{0,100}\b(?:код\w*|артикул\w*|маркировк\w*)\b",RegexOptions.IgnoreCase)){
+                var active=Regex.Matches(task,@"(?:окончательн\w* (?:код|артикул)|актуальн\w* (?:код|артикул)|сейчас действует|итогов\w* (?:код|артикул))\s*(?:[:=—–-]\s*)?([A-ZА-ЯЁ0-9]+[-–][A-ZА-ЯЁ0-9-]+)(?=[.,;\s]|$)",RegexOptions.IgnoreCase).Cast<Match>().Select(m=>m.Groups[1].Value).Distinct().ToArray();
+                if(active.Length==1)return active[0];
+            }
             if(!Field(task))return null;
             var boundary=Regex.Match(task,@"[.!?\r\n]");
             if(!boundary.Success)return null;

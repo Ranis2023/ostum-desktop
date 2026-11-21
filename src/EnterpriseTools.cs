@@ -18,9 +18,13 @@ namespace Sfera {
         void CompanyTools(){
             var host=Get<Button>("Templates");
             var menu=new ContextMenu{PlacementTarget=host,Placement=PlacementMode.Top};
-            Action<string,Action> add=(label,run)=>{var item=new MenuItem{Header=label};item.Click+=(s,e)=>Try(run);menu.Items.Add(item);};
+            Action<string,Action> add=(label,run)=>{var item=new MenuItem{Header=label,Icon=OstumActionIcons.Menu(label)};item.Click+=(s,e)=>Try(run);menu.Items.Add(item);};
             add("Открыть реестр поручений этой папки",()=>Run(OpenRegister));
             add("Сверить две таблицы Excel…",()=>Run(Reconcile));
+            add("Сценарии сверки Excel…",()=>Run(RunRecipe));
+            add("Собрать реестр счетов…",()=>Run(async()=>status.Text=await InvoiceImport()));
+            add("Открыть источник выбранного счёта",()=>Run(InvoiceSource));
+            add("Экспортировать сроки в календарь…",()=>Run(async()=>status.Text=await Deadlines("calendar")));
             menu.Items.Add(new Separator());
             add("Шаблоны и закупочные предложения…",()=>Run(Demos));
             host.ContextMenu=menu;menu.IsOpen=true;
@@ -78,8 +82,11 @@ namespace Sfera {
             AddPatch(k,cell==null?"":cell.value,"Готово","replace","Статус поручения");
             status.Text="Проверьте изменение статуса и нажмите «Сохранить выбранные».";
         }
-        async Task Reconcile(){
+        Task Reconcile(){return Reconcile(null);}
+        async Task Reconcile(ReconcileRecipe recipe){
+            RequireProject();
             if(!Discard())return;
+            status.Text="Сверка отменена.";
             var sources=new string[2];var sheetsToRead=new string[2];var revisions=new string[2];var keys=new string[2];
             for(int i=0;i<2;i++){
                 string side=i==0?"Исходная книга":"Новая книга";
@@ -89,20 +96,26 @@ namespace Sfera {
                 if(i==1&&string.Equals(sources[0],sources[1],StringComparison.OrdinalIgnoreCase))throw new IOException("Выберите две разные книги.");
                 var book=await ProTools.Office(project,sources[i],"read",null,OperationToken);
                 if(book.sheets.Length==0)throw new IOException("В книге нет доступных листов.");
-                int n=book.sheets.Length==1?0:Choose(DialogHost,side+" · выберите лист",book.sheets);if(n<0)return;
+                int n=recipe==null?(book.sheets.Length==1?0:Choose(DialogHost,side+" · выберите лист",book.sheets)):Array.FindIndex(book.sheets,x=>string.Equals(x,recipe.Sheets[i],StringComparison.OrdinalIgnoreCase));
+                if(n<0){if(recipe!=null)throw new IOException(side+" · отсутствует лист «"+recipe.Sheets[i]+"».");return;}
                 sheetsToRead[i]=book.sheets[n];
                 if(book.sheet!=sheetsToRead[i])book=await ProTools.Office(project,sources[i],"read",new Dictionary<string,object>{{"sheet",sheetsToRead[i]}},OperationToken);
                 revisions[i]=book.revision;
                 var headers=book.rows.Where(r=>Regex.IsMatch(r.key,@"^[A-Z]+1$")&&!string.IsNullOrWhiteSpace(r.display)).ToArray();
                 if(headers.Length==0)throw new IOException("В первой строке книги нужны названия столбцов.");
-                int k=Choose(DialogHost,side+" · по какому столбцу сопоставить строки?",headers.Select(r=>r.display+"   ("+r.key+")").ToArray());
+                int k=recipe==null?Choose(DialogHost,side+" · по какому столбцу сопоставить строки?",headers.Select(r=>r.display+"   ("+r.key+")").ToArray()):Array.FindIndex(headers,r=>string.Equals(r.display.Trim(),recipe.Keys[i].Trim(),StringComparison.OrdinalIgnoreCase));
+                if(k<0&&recipe!=null)throw new IOException(side+" · отсутствует столбец «"+recipe.Keys[i]+"».");
                 if(k<0)return;keys[i]=headers[k].display;
             }
-            var save=new SaveFileDialog{InitialDirectory=folder,FileName="Сверка "+DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss")+".xlsx",Title="Сохранить отдельный отчёт",Filter="Отчёт Excel|*.xlsx"};
+            var args=new Dictionary<string,object>{{"sources",sources},{"sheets",sheetsToRead},{"keys",keys},{"revisions",revisions}};
+            var preview=await ProTools.Office(project,sources[0],"preview_reconcile",args,OperationToken);
+            if(!ReviewReconcile(preview.differences,new ReconcileRecipe{Name=recipe==null?null:recipe.Name,Sheets=sheetsToRead,Keys=keys}))return;
+            var save=new SaveFileDialog{InitialDirectory=Path.GetDirectoryName(sources[0]),FileName="Сверка "+DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss")+".xlsx",Title="Сохранить отдельный отчёт",Filter="Отчёт Excel|*.xlsx"};
             if(save.ShowDialog(DialogHost)!=true)return;
             if(File.Exists(save.FileName))throw new IOException("Выберите новое имя. Отчёт сохраняется отдельно.");
-            await ProTools.Office(project,save.FileName,"reconcile",new Dictionary<string,object>{{"sources",sources},{"sheets",sheetsToRead},{"keys",keys},{"revisions",revisions}},OperationToken);
+            await ProTools.Office(project,save.FileName,"reconcile",args,OperationToken);
             folder=Path.GetDirectoryName(save.FileName);ListFiles();await Open(save.FileName,"Сверка");
+            status.Text="Отчёт сверки сохранён · "+Path.GetFileName(save.FileName);
         }
     }
 }

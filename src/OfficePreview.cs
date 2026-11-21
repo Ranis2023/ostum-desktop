@@ -53,9 +53,13 @@ namespace Sfera {
                 var lines=new List<SheetLine>();for(int r=from;r<=Math.Min(maxRow,from+149);r++){var v=new string[size];for(int c=0;c<size;c++){OfficeRow data;if(lookup.TryGetValue(Column(column+c)+r,out data))v[c]=data.display;}lines.Add(new SheetLine{Number=r,Values=v});}
                 grid.ItemsSource=lines;label.Text=Column(column)+from+" – "+Column(column+size-1)+Math.Min(maxRow,from+149);
             };
-            Action<string,Action> button=(s,fn)=>{var b=new Button{Content=s,Padding=new Thickness(7,2,7,2),Margin=new Thickness(2)};b.Click+=(a,e)=>{fn();refresh();};controls.Children.Add(b);};
-            if(maxRow>150){button("↑ 150",()=>from=Math.Max(1,from-150));button("↓ 150",()=>from=Math.Min(1+(maxRow-1)/150*150,from+150));}
-            if(maxCol>32){button("← 32",()=>column=Math.Max(1,column-32));button("→ 32",()=>column=Math.Min(1+(maxCol-1)/32*32,column+32));}
+            Action<string,string,Action> button=(kind,hint,fn)=>{
+                var b=new Button{Content=hint,ContentTemplate=OstumActionIcons.Only,Tag="only:"+kind,ToolTip=hint,MinWidth=32,Padding=new Thickness(5,2,5,2),Margin=new Thickness(2)};
+                System.Windows.Automation.AutomationProperties.SetName(b,hint);
+                b.Click+=(a,e)=>{fn();refresh();};controls.Children.Add(b);
+            };
+            if(maxRow>150){button("up","Предыдущие 150 строк",()=>from=Math.Max(1,from-150));button("down","Следующие 150 строк",()=>from=Math.Min(1+(maxRow-1)/150*150,from+150));}
+            if(maxCol>32){button("back","Предыдущие 32 столбца",()=>column=Math.Max(1,column-32));button("forward","Следующие 32 столбца",()=>column=Math.Min(1+(maxCol-1)/32*32,column+32));}
             controls.Children.Add(label);grid.SelectedCellsChanged+=(s,e)=>{
                 if(grid.SelectedCells.Count==0)return;var cell=grid.SelectedCells[0];var line=cell.Item as SheetLine;if(line==null||cell.Column.DisplayIndex==0)return;
                 string key=cell.Column.Header.ToString()+line.Number;OfficeRow data;select(lookup.TryGetValue(key,out data)?data:new OfficeRow{key=key,value="",display=""});

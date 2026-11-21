@@ -19,7 +19,7 @@ namespace Sfera {
         readonly ComboBox versions=new ComboBox{MinWidth=165};
         readonly TextBlock status=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4)},report=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4)};
         readonly CheckBox reviewed=new CheckBox{Content="Я проверил выбранные пары и разрешаю локальное обучение",Margin=new Thickness(4)};
-        readonly Button train=new Button{Content="Обучить Zarum",Padding=new Thickness(9,5,9,5),Margin=new Thickness(4)};
+        readonly Button train=new Button{ContentTemplate=OstumActionIcons.Label,Content="Обучить Zarum",Padding=new Thickness(9,5,9,5),Margin=new Thickness(4)};
         readonly TabControl tabs=new TabControl();CancellationTokenSource work;string source;
         public TrainingWindow(Window owner,ProjectRule p,Preferences current){
             ProTools.UnderProject(p,p.Root,false,true);
@@ -33,17 +33,17 @@ namespace Sfera {
             foreach(var col in new[]{new[]{"Вопрос","prompt"},new[]{"Ожидаемый ответ","answer"},new[]{"Группа / источник","group"}})
                 pairs.Columns.Add(new DataGridTextColumn{Header=col[0],Binding=new Binding(col[1]){Mode=BindingMode.TwoWay,UpdateSourceTrigger=UpdateSourceTrigger.PropertyChanged},Width=new DataGridLength(col[1]=="group"?1:2,DataGridLengthUnitType.Star)});
             pairs.BeginningEdit+=(s,e)=>reviewed.IsChecked=false;approved.CollectionChanged+=(s,e)=>reviewed.IsChecked=false;
-            data.Children.Add(pairs);tabs.Items.Add(new TabItem{Header="Учебные примеры",Content=data});
+            data.Children.Add(pairs);tabs.Items.Add(new TabItem{Header="Учебные примеры",HeaderTemplate=OstumActionIcons.Tab("learn"),Content=data});
             var validation=new DockPanel();var controls=new StackPanel();DockPanel.SetDock(controls,Dock.Top);validation.Children.Add(controls);var toolbar=new WrapPanel();controls.Children.Add(toolbar);
             toolbar.Children.Add(versions);Button(toolbar,"Применить в проекте",UseVersion);Button(toolbar,"Вернуться к базе",()=>{ProjectTraining.Select(project,null);ShowReport();});Button(toolbar,"Отозвать версию",Revoke);
             controls.Children.Add(report);validation.Children.Add(examples);
             ProjectWindow.Col(examples,"Контрольный вопрос","prompt",2,true);ProjectWindow.Col(examples,"Эталон","expected",1,true);ProjectWindow.Col(examples,"Базовая модель","base",2,true);ProjectWindow.Col(examples,"С адаптером","trained",2,true);
-            tabs.Items.Add(new TabItem{Header="Проверка и версии",Content=validation});versions.SelectionChanged+=(s,e)=>Safe(ShowReport);LoadVersions();
+            tabs.Items.Add(new TabItem{Header="Проверка и версии",HeaderTemplate=OstumActionIcons.Tab("history"),Content=validation});versions.SelectionChanged+=(s,e)=>Safe(ShowReport);LoadVersions();
             status.Text="Данные, отчёт и версии относятся к проекту "+p.Root;
             Closing+=(s,e)=>{if(work!=null){work.Cancel();e.Cancel=true;status.Text="Завершаю локальный процесс…";}};
         }
         void Safe(Action fn){try{fn();}catch(Exception ex){status.Text=ex.Message;}}
-        void Button(Panel panel,string name,Action fn){var b=new Button{Content=name,Margin=new Thickness(4),Padding=new Thickness(9,5,9,5)};b.Click+=(s,e)=>{if(work==null)Safe(fn);};panel.Children.Add(b);}
+        void Button(Panel panel,string name,Action fn){var b=new Button{ContentTemplate=OstumActionIcons.Label,Content=name,Margin=new Thickness(4),Padding=new Thickness(9,5,9,5)};b.Click+=(s,e)=>{if(work==null)Safe(fn);};panel.Children.Add(b);}
         void LoadVersions(){var all=ProjectTraining.Versions(project);versions.ItemsSource=all;versions.SelectedItem=all.FirstOrDefault();}
         AdapterVersion Selection(){var v=versions.SelectedItem as AdapterVersion;if(v==null)throw new IOException("Выберите версию адаптера.");return v;}
         void ShowReport(){
@@ -51,6 +51,8 @@ namespace Sfera {
             var r=ProjectTraining.Report(project,v);
             report.Text=string.Format("Обучение {0} · отложено {1} · ранг {2} · F1 базы {3:P1} · с адаптером {4:P1} · ухудшений {5} · совпадений с обучающими ответами {6}\n{7}",
                 r.training,r.held_out,r.rank,r.baseline,r.adapted,r.regressions,r.verbatim,ProjectTraining.Active(project)==v.Id?"Эта версия активна в проекте.":"Эта версия выключена.");
+            if(r.held_out<5)report.Text+="\nМало контрольных примеров для вывода о качестве. Добавьте независимые примеры из других групп.";
+            if(r.adapted<r.baseline)report.Text+="\nНа контрольных данных базовая модель точнее. Сравните ответы ниже перед применением.";
             examples.ItemsSource=r.cases;
         }
         void Load(){
@@ -75,7 +77,7 @@ namespace Sfera {
             finally{if(work!=null)work.Dispose();work=null;pairs.IsEnabled=reviewed.IsEnabled=true;train.Content="Обучить Zarum";}
         }
         void UseVersion(){var v=Selection();var r=ProjectTraining.Report(project,v);if(r.adapted<=r.baseline||r.regressions>0||r.verbatim>0)
-            if(MessageBox.Show(this,"Проверка не показала устойчивого улучшения. Всё равно применить эту версию в проекте?","Результаты обучения",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
+            if(MessageBox.Show(this,string.Format("На {0} контрольных примерах F1 базы {1:P1}, с адаптером {2:P1}. Сравните ответы во вкладке проверки. Применить эту версию в проекте?",r.held_out,r.baseline,r.adapted),"Результаты обучения",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes)return;
             ProjectTraining.Select(project,v);ShowReport();}
         void Revoke(){var v=Selection();if(MessageBox.Show(this,"Отозвать эту версию для текущего проекта?","Доступ к адаптеру",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;ProjectTraining.Revoke(project,v);LoadVersions();}
     }

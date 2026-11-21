@@ -145,8 +145,8 @@ namespace Sfera {
             preload.Click+=(s,e)=>{prefs.DownloadUpdates=preload.IsChecked==true;Store.Save(prefs);if(!prefs.DownloadUpdates&&automaticCheck&&checkingRelease!=null)checkingRelease.Cancel();};
             var row=new WrapPanel{Margin=new Thickness(0,8,0,0)};body.Children.Add(row);
             var statusLine=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,7,0,0)};
-            var check=new Button{Content="Проверить обновления",Margin=new Thickness(0,3,7,3)};row.Children.Add(check);
-            var installButton=new Button{Margin=new Thickness(0,3,7,3)};row.Children.Add(installButton);
+            var check=new Button{ContentTemplate=OstumActionIcons.Label,Content="Проверить обновления",Margin=new Thickness(0,3,7,3)};row.Children.Add(check);
+            var installButton=new Button{ContentTemplate=OstumActionIcons.Label,Tag="download",Margin=new Thickness(0,3,7,3)};row.Children.Add(installButton);
             row.Children.Add(ButtonFor("Что нового",()=>{if(WorkPolicy.Network)Process.Start(Brand.Repository+"/releases/latest");}));
             row.Children.Add(ButtonFor("Исходный код",()=>{if(WorkPolicy.Network)Process.Start(Brand.Repository);}));
             row.IsEnabled=WorkPolicy.Network;

@@ -82,14 +82,14 @@ namespace Sfera {
             var panel=new DockPanel{Margin=new Thickness(14)};
             var window=WorkspaceUi.Dialog(host,title,510,multi?350:210);window.Content=panel;
             var caption=new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,Margin=gap};DockPanel.SetDock(caption,Dock.Top);panel.Children.Add(caption);
-            var ok=new Button{Content="Продолжить",IsDefault=!multi,HorizontalAlignment=HorizontalAlignment.Right,Padding=new Thickness(12,4,12,4),Margin=gap};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);
+            var ok=new Button{ContentTemplate=OstumActionIcons.Label,Content="Продолжить",IsDefault=!multi,HorizontalAlignment=HorizontalAlignment.Right,Padding=new Thickness(12,4,12,4),Margin=gap};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);
             var input=new TextBox{Text=value,TextWrapping=TextWrapping.Wrap,AcceptsReturn=multi,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};panel.Children.Add(input);
             ok.Click+=(s,e)=>window.DialogResult=true;window.Loaded+=(s,e)=>{input.Focus();input.SelectAll();};return window.ShowDialog()==true?input.Text:null;
         }
         internal static int Choose(Window host,string title,string[] choices){
             var list=new ListBox{ItemsSource=choices,SelectedIndex=choices.Length>0?0:-1,Margin=gap};var panel=new DockPanel{Margin=new Thickness(12)};
             var win=WorkspaceUi.Dialog(host,title,590,360);win.Content=panel;
-            var ok=new Button{Content="Выбрать",IsDefault=true,HorizontalAlignment=HorizontalAlignment.Right,Margin=gap,Padding=new Thickness(12,4,12,4)};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);panel.Children.Add(list);ok.Click+=(s,e)=>win.DialogResult=true;list.MouseDoubleClick+=(s,e)=>win.DialogResult=true;
+            var ok=new Button{ContentTemplate=OstumActionIcons.Label,Content="Выбрать",IsDefault=true,HorizontalAlignment=HorizontalAlignment.Right,Margin=gap,Padding=new Thickness(12,4,12,4)};DockPanel.SetDock(ok,Dock.Bottom);panel.Children.Add(ok);panel.Children.Add(list);ok.Click+=(s,e)=>win.DialogResult=true;list.MouseDoubleClick+=(s,e)=>win.DialogResult=true;
             return win.ShowDialog()==true?list.SelectedIndex:-1;
         }
         static bool OfficeFile(string path){var e=Path.GetExtension(path).ToLowerInvariant();return e==".docx"||e==".xlsx";}
@@ -97,7 +97,7 @@ namespace Sfera {
             public string Path {get;set;} public bool Folder {get;set;}
             public string Name {get{return System.IO.Path.GetFileName(Path);}}
             string Extension {get{return System.IO.Path.GetExtension(Path).ToLowerInvariant();}}
-            public string Mark {get{return Folder?"▸":Extension==".docx"?"W":Extension==".xlsx"?"X":"·";}}
+            public string Mark {get{return Folder?"folder":Extension==".xlsx"?"sheet":Extension==".png"||Extension==".jpg"||Extension==".jpeg"?"photo":"file";}}
             public string Tint {get{return Folder?"#FFE1B7":Extension==".docx"?"#DFEBFF":Extension==".xlsx"?"#DDF2DF":"#EAEDE7";}}
             public string Ink {get{return Folder?"#81531B":Extension==".docx"?"#264D88":Extension==".xlsx"?"#26613A":"#4A544C";}}
             public override string ToString(){return Name;}
@@ -124,7 +124,7 @@ namespace Sfera {
         void ActivateFile(){if(busy)return;var row=files.SelectedItem as Entry;if(row==null)return;if(row.Folder){if(!Discard())return;folder=row.Path;Clear();Try(ListFiles);}else if(OfficeFile(row.Path)&&Discard())Run(()=>Open(row.Path,null));else if(!OfficeFile(row.Path))status.Text="Встроенный редактор открывает DOCX и XLSX. Операции с этим файлом доступны в меню «Файлы…».";}
         async Task Open(string path,string sheet){
             var result=await ProTools.Office(project,path,"read",new Dictionary<string,object>{{"sheet",sheet}},OperationToken);
-            CloseDrawer();
+            CloseDrawer();fileTurns.Clear();fileScope=null;
             file=path;opened=result;patches.Clear();previewSelection=null;grid.ItemsSource=opened.rows;
             Action<OfficeRow> select=r=>{previewSelection=r;grid.SelectedItem=r;RefreshView();status.Text=Path.GetFileName(path)+" · "+r.key+(string.IsNullOrEmpty(r.style)?"":" · "+r.style);};
             page.Content=result.kind=="word"?OfficePreview.Word(result.rows,select):OfficePreview.Sheet(result.rows,select);Filter();tabs.SelectedIndex=filter.Text.Length==0?0:2;

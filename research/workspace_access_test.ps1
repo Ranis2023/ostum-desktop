@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([switch]$ProductivityOnly)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $build=Join-Path $root '.build'
@@ -19,6 +19,7 @@ foreach($file in @('Library.cs','WorkPolicy.cs')){
     [IO.File]::WriteAllText((Join-Path $test $file),$source)
 }
 $resources=@('/resource:'+$public+',issuer-public.xml')
+$resources+=('/resource:'+(Join-Path $root 'src/ScanPages.ps1')+',ScanPages.ps1')
 foreach($file in @('WorkspaceView.xaml','WorkspaceTheme.xaml','ProAccessView.xaml','catalog.json','model-catalog.json','MainWindow.xaml','ModelsWindow.xaml','AgentLights.png','RoutePrompt.txt')){$resources+=('/resource:'+(Join-Path $root ('src/'+$file))+','+$file)}
 $resources+=('/resource:'+(Join-Path $build 'icon.b64')+',icon.b64')
 $refs=@('System.dll','System.Core.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Web.dll','System.Security.dll','System.Data.dll','System.Management.dll','System.Xml.dll','System.Xml.Linq.dll','System.IO.Compression.dll','System.Windows.Forms.dll','System.Xaml.dll','WPF/PresentationCore.dll','WPF/PresentationFramework.dll','WPF/WindowsBase.dll','System.Drawing.dll','netstandard.dll')|ForEach-Object {'/r:'+(Join-Path $fx $_)}
@@ -27,6 +28,7 @@ foreach($dll in @(& (Join-Path $root 'packaging/Libraries.ps1') -Build $build)){
 foreach($n in @('OstumTools.zip','OstumTools.zip.sha256')){New-Item -ItemType HardLink -Path (Join-Path $test $n) -Target (Join-Path $build $n)|Out-Null}
 $files=@(Get-ChildItem -LiteralPath (Join-Path $root 'src') -Filter '*.cs'|Where-Object Name -notin @('Library.cs','WorkPolicy.cs')|ForEach-Object FullName)+@(Join-Path $test 'Library.cs';Join-Path $test 'WorkPolicy.cs';Join-Path $PSScriptRoot 'WorkspaceChecks.cs')
 $exe=Join-Path $test 'WorkspaceChecks.exe'
+$files+=Join-Path $PSScriptRoot 'ProductivityChecks.cs'
 & (Join-Path $fx 'csc.exe') /nologo /platform:x64 /codepage:65001 /target:exe /main:WorkspaceChecks ('/out:'+$exe) @resources @refs @files
 if($LASTEXITCODE){throw 'Workspace acceptance checks failed to compile.'}
 function Sign-Fixture([string]$Body){$sig=$testKey.SignData([Text.Encoding]::ASCII.GetBytes($Body),'SHA256');return $Body+'.'+[Convert]::ToBase64String($sig).TrimEnd('=').Replace('+','-').Replace('/','_')}
@@ -36,8 +38,11 @@ try{
     $fixtures=@((Sign-Fixture $body),(Sign-Fixture ('OP1.'+$device+'.'+($now-604801)+'.'+($now-1))),(Sign-Fixture ('OP1.'+$device+'.'+$now+'.'+($now+604801))),(Sign-Fixture ('OP2.'+$device+'.'+$now+'.permanent')))
     $fixtures+=(Sign-Fixture ('OP2.'+$device+'.'+$now+'.temporary'))
     [IO.File]::WriteAllLines((Join-Path $test 'fixtures.txt'),[string[]]$fixtures)
-    & $exe migrate; if($LASTEXITCODE){throw 'Offline legacy activation migration failed.'}
-    & $exe verify; if($LASTEXITCODE){throw 'Workspace acceptance checks failed.'}
+    if(!$ProductivityOnly){
+        & $exe migrate; if($LASTEXITCODE){throw 'Offline legacy activation migration failed.'}
+        & $exe verify; if($LASTEXITCODE){throw 'Workspace acceptance checks failed.'}
+    }
+    & $exe productivity; if($LASTEXITCODE){throw 'Productivity acceptance checks failed.'}
     & $exe restart; if($LASTEXITCODE){throw 'Offline restart failed.'}
     Write-Output ('Verified UI renders: '+$test)
 } finally{$testKey.Dispose()}

@@ -21,7 +21,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("Ostum Desktop")]
 [assembly: AssemblyProduct("OSTUM")]
-[assembly: AssemblyVersion("5.4.0.0")]
+[assembly: AssemblyVersion("5.7.0.0")]
 [assembly: AssemblyDescription("Автономный ИИ для Windows с локальной моделью Zarum 9B")]
 
 namespace Sfera {
@@ -73,22 +73,25 @@ namespace Sfera {
         T Find<T>(string id) where T:FrameworkElement { return (T)Window.FindName(id); }
         static Brush Color(string hex) { return (Brush)new BrushConverter().ConvertFromString(hex); }
         public Desktop(string engines) {
+
             prefs = Store.Load();
             engine = new Engine(engines);
             idle.Tick += (s,e) => { idle.Stop(); if (work == null) engine.StopChat(); };
-            history = Store.History();
-            Window = (Window)XamlReader.Parse(Store.Resource("MainWindow.xaml"));
+            history = Store.HistoryHeadings();
+            Window = OstumActionIcons.Install((Window)XamlReader.Parse(Store.Resource("MainWindow.xaml")));
             Window.Icon = BitmapFrame.Create(new MemoryStream(Convert.FromBase64String(Store.Resource("icon.b64"))), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             input = Find<TextBox>("Input"); hint = Find<TextBlock>("Placeholder"); status = Find<TextBlock>("Activity");
             list = Find<ListBox>("HistoryList"); scroll = Find<ScrollViewer>("TranscriptScroll"); transcript = Find<StackPanel>("Transcript");
             list.SelectionChanged += (s,e) => {
                 if (rebuilding || work != null || speechWork!=null || (voice!=null&&voice.Recording) || list.SelectedItem == null || list.SelectedItem == active) return;
-                if(!ClosePreview()){list.SelectedItem=active;return;} active = (Conversation)list.SelectedItem; ClearDraft(); ShowChat();
+                var selected=(Conversation)list.SelectedItem;
+                if(!TryLoadChat(selected)||!ClosePreview()){list.SelectedItem=active;return;}
+                active=selected;ClearDraft();ShowChat();
             };
             Find<Button>("NewChat").Click += (s,e) => NewChat();
             Find<Button>("Projects").Click += (s,e)=>{if(work!=null||voice.Recording||speechWork!=null)return;if(!ProAccessWindow.Ensure(Window))return;prepareDraft.Stop();if(chatProject!=null){input.Focus();return;}engine.StopChat();var workspace=new ProjectWindow(Window,prefs,engine);workspace.OfferChat();workspace.ShowDialog();if(workspace.RequestedChat){chatProject=workspace;Find<CheckBox>("UseFileContext").IsChecked=true;DisplayPane(workspace.DockInChat(),true);input.Focus();}};
             Find<Button>("Models").Click += (s,e) => Settings();
-            Find<Button>("ChatMode").Click += (s,e) => SetMode(false);
+            Find<Button>("ChatMode").Click += (s,e) => ShowModes();
             Find<Button>("AgentMode").Click += (s,e) => SetMode(false,true);
             Find<Button>("QuickAgents").Click += (s,e) => SetMode(false,true);
             Find<Button>("ArtMode").Click += (s,e) => SetMode(true);
@@ -98,11 +101,12 @@ namespace Sfera {
             SetupPreview();
             Find<Button>("QuickPhoto").Click += (s,e) => { SetMode(false); ChoosePhoto(); };
             Find<Button>("QuickArt").Click += (s,e) => SetMode(true);
-            Find<Button>("RemoveAttach").Click += (s,e) => SetAttachment(null,null);
+            Find<Button>("RemoveAttach").Click += (s,e) => {if(reading)CancelAttachment();else SetAttachment(null,null);};
             Find<Button>("Send").Click += async (s,e) => { if (work != null) work.Cancel(); else if(voice.Recording||speechWork!=null)await Dictate(); else await Send(); };
             prepareDraft.Tick+=PrepareWhileTyping;
             input.TextChanged += (s,e) => {
                 hint.Visibility = string.IsNullOrEmpty(input.Text) ? Visibility.Visible : Visibility.Collapsed;
+                UpdateSendEnabled();
                 if(input.Text.Trim().Length<3)prepareDraft.Stop();
                 else if(work==null&&!closing&&!preparingDraft&&engine.Backend==null&&!prepareDraft.IsEnabled)prepareDraft.Start();
             };
@@ -120,6 +124,7 @@ namespace Sfera {
                 if(e.Key==Key.F1){e.Handled=true;WorkspaceUi.Help(Window,PreviewOpen?"projects":"start");return;}
                 if(voice.Recording&&e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Shift)==0) {e.Handled=true;if(!e.IsRepeat)await Dictate();return;}
                 if(e.Key==Key.Escape&&(voice.Recording||speechWork!=null)){e.Handled=true;CancelVoice();return;}
+                if(e.Key==Key.Escape&&reading){e.Handled=true;CancelAttachment();return;}
                 if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control && work == null) { NewChat(); e.Handled=true; }
                 if (e.Key == Key.Escape && work != null) { work.Cancel(); e.Handled=true; }
             };
@@ -144,20 +149,21 @@ namespace Sfera {
                     await OpenInChat(path);
                 }else LoadFile(path);
             };
-            Window.Closing += (s,e) => { if(!ClosePreview()){e.Cancel=true;return;} closing = true; StopAudio();idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
+            Window.Closing += (s,e) => { if(!ClosePreview()){e.Cancel=true;return;} closing = true; StopAudio();idle.Stop();prepareDraft.Stop();draftLifetime.Cancel();if(attachmentRead!=null)attachmentRead.Cancel();if (work != null) work.Cancel(); engine.Dispose(); };
             Window.Loaded += (s,e) => input.Focus();
             SetupUpdates();
-            SetupStudio(engines); SetupHistory();
+            SetupStudio(engines); SetupHistory(); SetupTranscript();
             Find<Image>("SidebarMark").Source=Window.Icon;
             Find<TextBlock>("AppVersion").Text="Desktop  "+Brand.Version;
-            active = history.FirstOrDefault(c=>!c.Archived) ?? new Conversation();
+            active = NextChat();
             RefreshList(); ShowChat(); SetMode(false);
             if (!Store.Ready(Store.Chat(prefs), prefs.Models))
                 status.Text = "Откройте «Модели и настройки», чтобы выбрать папку или скачать модели.";
+            if(prefs.RecoveryNotice!=null)status.Text=prefs.RecoveryNotice;
         }
         async void PrepareWhileTyping(object sender,EventArgs e){
             prepareDraft.Stop();
-            if(closing||work!=null||preparingDraft||art||reading||input.Text.Trim().Length<3||!Store.Ready(Store.Chat(prefs),prefs.Models))return;
+            if(closing||meetingOpen||work!=null||preparingDraft||art||reading||input.Text.Trim().Length<3||!Store.Ready(Store.Chat(prefs),prefs.Models))return;
             if(FileTurn(KeyboardLayout.Decode(input.Text))||LocalMusic.Requested(input.Text)||DocumentComparison.Requested(input.Text))return;
             if(!agents&&attached==null&&document==null&&(Calculator.Direct(input.Text)!=null||ReplyFormat.LiteralField(input.Text)!=null))return;
             bool photo=attached!=null||active.Turns.Any(t=>!string.IsNullOrEmpty(t.Image)&&File.Exists(t.Image));
@@ -170,7 +176,7 @@ namespace Sfera {
             catch(System.ComponentModel.Win32Exception){}
             catch(TimeoutException){}
             catch(UnauthorizedAccessException){}
-            finally{preparingDraft=false;if(!closing&&work==null){idle.Stop();idle.Start();}}
+            finally{preparingDraft=false;if(!closing&&!meetingOpen&&work==null){idle.Stop();idle.Start();}}
         }
         void Settings() {
             if (work != null) return;
@@ -194,7 +200,7 @@ namespace Sfera {
             Find<System.Windows.Shapes.Ellipse>("ModelLight").Fill=Color(ready ? "#4D856B" : "#B78246");
             Find<TextBlock>("ModelLabel").ToolTip=ready ? "Модель на этом компьютере"+(!art&&engine.Backend!=null?" · "+engine.Backend:"") : "Файлы модели нужно скачать";
             Find<TextBlock>("ChatTitle").Text=active.Title+(active.Archived?" · архив":"");
-            Find<Button>("ChatActions").IsEnabled=history.Contains(active)&&work==null;
+            Find<Button>("ChatActions").IsEnabled=history.Contains(active)&&CanManageHistory;
         }
         void SetMode(bool image,bool team=false) {
             art=image; agents=team;
@@ -204,11 +210,13 @@ namespace Sfera {
                 bool selected = name==(image?"ArtMode":team?"AgentMode":"ChatMode");
                 var b=Find<Button>(name); b.Background=Color(selected ? "#E1EDDC" : "#EEF2E9"); b.Foreground=Color(selected ? "#2F563B" : "#536258");
             }
-            Find<Button>("ChatMode").Content=team?"Агенты ×":image?"Рисование ×":"Авто";
+            var modeButton=Find<Button>("ChatMode");
+            modeButton.Content=team?"Команда":image?"Рисование":"Авто";
+            System.Windows.Automation.AutomationProperties.SetName(modeButton,"Режим ответа · "+(team?"Команда":image?"Рисование":"Авто"));
             PromptHint();
             Find<Button>("Attach").IsEnabled=work == null;
             if (work == null && !voice.Recording && speechWork==null) Find<Button>("Send").Content=art ? "Нарисовать" : "Отправить";
-            Labels(); input.Focus();
+            UpdateSendEnabled(); Labels(); input.Focus();
         }
         static BitmapSource Scale(BitmapSource img) {
             double factor=Math.Min(1,1440.0/Math.Max(img.PixelWidth,img.PixelHeight));
@@ -237,12 +245,20 @@ namespace Sfera {
         }
         void SetAttachment(BitmapSource src,string name) {
             attachmentVersion++;reading=false;document=null;
+            if(attachmentRead!=null)attachmentRead.Cancel();
             attached=src; attachmentName=name;
-            Find<TextBlock>("DocIcon").Visibility=Visibility.Collapsed;
+            Find<ContentControl>("DocIcon").Visibility=Visibility.Collapsed;
             Find<Image>("AttachPreview").Visibility=src==null?Visibility.Collapsed:Visibility.Visible;
             Find<StackPanel>("AttachmentBar").Visibility=src==null ? Visibility.Collapsed : Visibility.Visible;
             Find<Image>("AttachPreview").Source=src; Find<TextBlock>("AttachName").Text=name ?? "";
-            PromptHint();
+            PromptHint();UpdateSendEnabled();
+        }
+        void CancelAttachment(){
+            SetAttachment(null,null);status.Text="Чтение файла отменено.";input.Focus();
+        }
+        void UpdateSendEnabled(){
+            Find<Button>("Send").IsEnabled=work!=null||speechWork!=null||(voice!=null&&voice.Recording)||
+                (!reading&&(!string.IsNullOrWhiteSpace(input.Text)||attached!=null||document!=null));
         }
         void PromptHint() {
             hint.Text = art ? (attached == null ? "Опишите картинку, которую хотите создать…" : "Опишите вариацию по этому изображению…") :
@@ -265,35 +281,39 @@ namespace Sfera {
             enc.Frames.Add(BitmapFrame.Create(attached)); using (var output=File.Create(path)) enc.Save(output);
             return path;
         }
-        void ShowChat() {
-            Labels(); transcript.Children.Clear();
-            foreach (var t in active.Turns) AddTurn(t);
-            Find<StackPanel>("Welcome").Visibility=active.Turns.Count==0 ? Visibility.Visible : Visibility.Collapsed;
-            ScrollEnd();
-        }
-        void ScrollEnd() { Window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(() => scroll.ScrollToEnd())); }
         void SetBusy(bool busy) {
-            Find<Button>("ChatActions").IsEnabled=!busy&&history.Contains(active);Find<Button>("ArchiveSwitch").IsEnabled=!busy;
-            foreach (string name in new [] {"Models","NewChat","ChatMode","AgentMode","ArtMode","QuickAgents","QuickPhoto","QuickArt","RemoveAttach"})
-                Find<Button>(name).IsEnabled=!busy;
-            list.IsEnabled=!busy; Find<Button>("Attach").IsEnabled=!busy;Find<CheckBox>("WebSearch").IsEnabled=!busy;
+            Find<Button>("ChatActions").IsEnabled=!busy&&CanManageHistory&&history.Contains(active);Find<Button>("ArchiveSwitch").IsEnabled=!busy&&WorkPolicy.History;
+            foreach (string name in new [] {"Models","NewChat","ChatMode","AgentMode","ArtMode","QuickDocument","QuickAgents","QuickPhoto","QuickArt","Projects","PreviewToggle","UseFileContext","ClosePreview","RemoveAttach"})
+                Find<FrameworkElement>(name).IsEnabled=!busy;
+            list.IsEnabled=!busy; Find<Button>("Attach").IsEnabled=!busy;Find<CheckBox>("WebSearch").IsEnabled=!busy&&WorkPolicy.Network;
             Find<Button>("Microphone").IsEnabled=Find<Button>("MicDevices").IsEnabled=Find<Button>("Toolbox").IsEnabled=!busy;
-            var b=Find<Button>("Send"); b.Content=busy ? "Стоп" : (art ? "Нарисовать" : "Отправить"); b.Background=Color(busy ? "#965355" : "#304B3B");
+            var b=Find<Button>("Send"); b.Content=busy ? "Стоп" : (art ? "Нарисовать" : "Отправить"); b.Background=Color(busy ? "#91494C" : "#304B3B");
+            b.ToolTip=busy?"Остановить ответ · Esc":"Enter — отправить, Shift+Enter — новая строка";UpdateSendEnabled();
         }
         void Persist() {
+            Store.Save(active);
             if (!history.Contains(active)) history.Add(active);
-            Store.Save(active); RefreshList(); Labels();
+            RefreshList(); Labels();
         }
         System.Media.SoundPlayer audioPlayer;
         void StopAudio(){if(audioPlayer!=null){audioPlayer.Stop();audioPlayer.Dispose();audioPlayer=null;}}
+        bool CanAnswerWithoutWeights(string request){
+            if(!art&&attached==null&&document==null&&LocalMusic.Requested(request))return true;
+            if(Orchestrator.DesktopIntent(request)&&!Orchestrator.WantsScreen(request))return true;
+            if(art||agents||attached!=null)return false;
+            if(DocumentComparison.Requested(request))return true;
+            return document==null&&(Calculator.Direct(request)!=null||ReplyFormat.LiteralField(request)!=null);
+        }
         async Task Send() {
             if (work != null || reading || speechWork!=null || voice.Recording||PaneBusy) return;
+            if(OpenChatUtility(input.Text))return;
+            if(nextHiddenTurn>=0)ShowChat();
             string typed=input.Text.Trim(),request=KeyboardLayout.Decode(typed);
             bool projectTurn=FileTurn(request);
             if(!projectTurn)try{WorkPolicy.RequireAI();}catch(UnauthorizedAccessException ex){status.Text=ex.Message;return;}
             if (request.Length==0 && attached==null && document==null) { input.Focus(); return; }
             if (request.Length==0) request=document!=null ? "Кратко изложи содержание документа." : art ? "Создай иллюстрацию по этому изображению, сохрани композицию и цвета." : "Опиши это изображение.";
-            if (!projectTurn&&!(Orchestrator.DesktopIntent(request)&&!Orchestrator.WantsScreen(request))&&!LocalMusic.Requested(request)&&!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)) {
+            if (!projectTurn&&!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)&&!CanAnswerWithoutWeights(request)) {
                 Settings();
                 if (!Store.Ready(art?Store.Art(prefs):Store.Chat(prefs),prefs.Models)) return;
             }
@@ -305,9 +325,8 @@ namespace Sfera {
             var timer=new DispatcherTimer { Interval=TimeSpan.FromMilliseconds(65) };
             timer.Tick+=(s,e) => {
                 if (live==null) return;
-                string now; lock(buffer) now=buffer.ToString();
-                if (now.Length==0 || live.Text==now) return;
-                bool bottom=scroll.ScrollableHeight-scroll.VerticalOffset < 90; live.Text=now; if(bottom) ScrollEnd();
+                string now; lock(buffer){if(buffer.Length==live.Text.Length)return;now=buffer.ToString();}
+                bool bottom=NearEnd;live.Text=now;if(bottom)QueueEnd(false);
             };
             try {
                 StartProgress();
@@ -315,9 +334,16 @@ namespace Sfera {
                 cts.Token.ThrowIfCancellationRequested();
                 var user=new Turn { Role="user", Text=request, ProjectOnly=projectTurn, OriginalText=typed.Length>0&&typed!=request?typed:null, Image=SaveAttachment() };
                 if(document!=null){Documents.Save(document);user.DocumentId=document.Id;user.DocumentName=document.Name;}
+                string previousTitle=active.Title;var previousTime=active.Updated;
+                if(projectTurn&&active.Turns.Count==0&&chatProject!=null)active.ProjectKey=chatProject.CurrentProjectKey;
                 active.Turns.Add(user);
                 if (active.Turns.Count==1) { var title=projectTurn?"Работа с файлами":Regex.Replace(request,@"\s+"," "); active.Title=title.Length>56 ? title.Substring(0,55)+"…" : title; }
-                Persist(); userSaved=true; AddTurn(user); input.Clear(); SetAttachment(null,null);
+                try{Persist();}
+                catch{
+                    active.Turns.Remove(user);active.Title=previousTitle;active.Updated=previousTime;
+                    throw;
+                }
+                userSaved=true; AddTurn(user); input.Clear(); SetAttachment(null,null);
                 Find<StackPanel>("Welcome").Visibility=Visibility.Collapsed;
                 StopAudio();SetBusy(true); ScrollEnd();
                 livePanel=new StackPanel { Margin=new Thickness(0,4,0,10) };
@@ -341,13 +367,15 @@ namespace Sfera {
             } finally {
                 timer.Stop();
                 if (!closing) {
+                    bool follow=NearEnd;
                     var recentWorkers=FinishWorkers(reply);
                     if (livePanel!=null) transcript.Children.Remove(livePanel);
                     if (userSaved) {
                         active.Turns.Add(reply); AddTurn(reply,recentWorkers);
                         try { Persist(); } catch(Exception ex) { status.Text="Не удалось сохранить историю. " + ex.Message; }
                     }
-                    EndProgress(); SetBusy(false); ScrollEnd(); input.Focus();
+                    EndProgress();work=null;SetBusy(false);
+                    if(follow){TrimRecentTurns();QueueEnd(false);}
                 }
                 work=null; cts.Dispose(); if (!closing) idle.Start();
             }
@@ -378,16 +406,19 @@ namespace Sfera {
                 VerticalScrollBarVisibility=ScrollBarVisibility.Disabled, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, FocusVisualStyle=null };
         }
         void AddTurn(Turn t,WrapPanel recentWorkers=null) {
+            transcript.Children.Add(TurnCard(t,recentWorkers));
+        }
+        Border TurnCard(Turn t,WrapPanel recentWorkers) {
             bool user=t.Role=="user";
             var shell=new Border { HorizontalAlignment=user ? HorizontalAlignment.Right : HorizontalAlignment.Stretch,
                 MaxWidth=user?650:820, Margin=new Thickness(user?36:0,4,user?0:18,12), CornerRadius=user?new CornerRadius(17,17,4,17):new CornerRadius(4,18,18,18),
                 BorderBrush=Color(user?"#CEDDCB":"#DDE4DA"),BorderThickness=new Thickness(1),
                 Background=user?Color("#DEECD9"):Brushes.White, Padding=new Thickness(17,11,17,11) };
-            var block=new StackPanel(); shell.Child=block; transcript.Children.Add(shell);
+            var block=new StackPanel(); shell.Child=block;
             block.Children.Add(Author((user?"Вы":"Zarum")+(t.ProjectOnly?" · рабочая папка · только в этом сеансе":"")));
             if(recentWorkers!=null)block.Children.Add(recentWorkers);
             if(!string.IsNullOrEmpty(t.DocumentName)){
-                var show=new Button{Content=t.DocumentName,HorizontalAlignment=HorizontalAlignment.Left,ToolTip="Посмотреть текст вложения справа",Margin=new Thickness(0,2,0,5)};
+                var show=new Button{Content=t.DocumentName,ContentTemplate=OstumActionIcons.Tab("file"),HorizontalAlignment=HorizontalAlignment.Left,ToolTip="Посмотреть текст вложения справа",Margin=new Thickness(0,2,0,5)};
                 show.Click+=(s,e)=>{if(work==null)ReadOnlyPreview(Documents.Load(t.DocumentId));};block.Children.Add(show);
             }
             if (!string.IsNullOrEmpty(t.Image) && File.Exists(t.Image)) {
@@ -405,22 +436,23 @@ namespace Sfera {
                 if(!t.Generated&&!t.ProjectOnly)Small(actions,"Сохранить…",()=>SaveAnswer(t));
                 if(!t.Generated)Small(actions,"Озвучить",()=>voice.Speak(t.Text));
                 if(!string.IsNullOrEmpty(t.Audio)&&File.Exists(t.Audio)){
-                    Small(actions,"▶ Слушать",()=>{try{StopAudio();audioPlayer=new System.Media.SoundPlayer(t.Audio);audioPlayer.Play();}catch(Exception ex){status.Text=ex.Message;}});
+                    Small(actions,"Слушать",()=>{try{StopAudio();audioPlayer=new System.Media.SoundPlayer(t.Audio);audioPlayer.Play();}catch(Exception ex){status.Text=ex.Message;}});
                     Small(actions,"Стоп",StopAudio);
                     Small(actions,"Сохранить WAV…",()=>{var save=new SaveFileDialog{Filter="Музыка WAV|*.wav",FileName="OSTUM — музыка.wav"};if(save.ShowDialog(Window)==true&&!string.Equals(Path.GetFullPath(save.FileName),t.Audio,StringComparison.OrdinalIgnoreCase))try{WorkPolicy.LocalPath(save.FileName);File.Copy(t.Audio,save.FileName,true);}catch(Exception ex){status.Text=ex.Message;}});
                 }
                 if (t.Generated && File.Exists(t.Image)) {
                     Small(actions,"Сохранить PNG…",() => {
                         var dlg=new SaveFileDialog { Filter="Изображение PNG|*.png", FileName="Ostum-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".png" };
-                        if(dlg.ShowDialog(Window)==true && !string.Equals(Path.GetFullPath(dlg.FileName),Path.GetFullPath(t.Image),StringComparison.OrdinalIgnoreCase)) File.Copy(t.Image,dlg.FileName,true);
+                        if(dlg.ShowDialog(Window)==true && !string.Equals(Path.GetFullPath(dlg.FileName),Path.GetFullPath(t.Image),StringComparison.OrdinalIgnoreCase)){WorkPolicy.LocalPath(dlg.FileName);File.Copy(t.Image,dlg.FileName,true);}
                     });
                     Small(actions,"Обсудить",() => { if (work==null) { SetMode(false); LoadPhoto(t.Image); } });
                     Small(actions,"Вариация",() => { if (work==null) { SetMode(true); LoadPhoto(t.Image); } });
                 }
             }
+            return shell;
         }
         void Small(Panel row,string title,Action action) {
-            var b=new Button { Content=title,FontSize=11,Padding=new Thickness(7,3,7,3),Background=Color("#F0F3ED"),Foreground=Color("#526455"),Margin=new Thickness(0,2,6,0) };
+            var b=new Button { Content=title,ContentTemplate=OstumActionIcons.For(title),FontSize=11,Padding=new Thickness(7,3,7,3),Background=Color("#F0F3ED"),Foreground=Color("#526455"),Margin=new Thickness(0,2,6,0) };
             b.Click+=(s,e) => { try { action(); } catch (Exception ex) { status.Text=ex.Message; } }; row.Children.Add(b);
         }
     }

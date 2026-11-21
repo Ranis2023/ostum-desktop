@@ -8,8 +8,17 @@ using System.Windows.Input;
 namespace Sfera {
     public sealed partial class Desktop {
         bool archiveView;
+        bool TryLoadChat(Conversation chat){
+            try{if(!Store.AccessibleChat(chat.ProjectKey))throw new UnauthorizedAccessException("Проект недоступен.");Store.LoadTurns(chat);return true;}
+            catch(Exception ex){status.Text="Не удалось открыть диалог. "+ex.Message;return false;}
+        }
+        Conversation NextChat(){
+            return history.Where(c=>c.Archived==archiveView).OrderByDescending(c=>c.Updated).FirstOrDefault(TryLoadChat)??new Conversation();
+        }
         bool CanManageHistory {get{return WorkPolicy.History&&work==null&&speechWork==null&&!voice.Recording;}}
         void SetupHistory() {
+            var search=Find<Button>("HistorySearch");search.IsEnabled=WorkPolicy.History;search.Click+=(s,e)=>SearchHistory();
+            Window.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.F&&Keyboard.Modifiers==(ModifierKeys.Control|ModifierKeys.Shift)){e.Handled=true;SearchHistory();}};
             var switcher=Find<Button>("ArchiveSwitch");
             switcher.Click+=(s,e)=>{if(!CanManageHistory)return;archiveView=!archiveView;RefreshList();};
             var actions=Find<Button>("ChatActions");
@@ -28,6 +37,7 @@ namespace Sfera {
             if(!CanManageHistory||chat==null||!history.Contains(chat))return;
             var menu=new ContextMenu{PlacementTarget=anchor,Placement=atPointer?PlacementMode.MousePoint:PlacementMode.Bottom};
             Item(menu,chat.Archived?"Вернуть из архива":"Архивировать диалог",()=>ChangeHistory(chat,false));
+            Item(menu,"Назначить проект…",()=>AssignChatProject(chat));
             menu.Items.Add(new Separator());Item(menu,"Удалить диалог…",()=>ChangeHistory(chat,true));
             menu.IsOpen=true;
         }
@@ -41,7 +51,7 @@ namespace Sfera {
                     clean=Store.DeleteConversation(chat);history.Remove(chat);
                 }else{if(chat==active&&!ClosePreview())return;Store.SetArchived(chat,!chat.Archived);}
                 if(chat==active&&(delete||(input.Text.Length==0&&attached==null&&document==null))) {
-                    active=history.Where(c=>c.Archived==archiveView).OrderByDescending(c=>c.Updated).FirstOrDefault()??new Conversation();
+                    active=NextChat();
                     ShowChat();
                 }
                 RefreshList();Labels();

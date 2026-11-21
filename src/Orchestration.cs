@@ -42,7 +42,10 @@ namespace Sfera {
             bool compound=Match(t,@"сначала|затем|после (?:поиска|анализа)|потом")||imageAction&&(team||explicitWeb||fresh);
             var r=new Route{answer="text",team=team,web=enabled&&(explicitWeb||fresh),query=""};
             bool shortText=!enabled&&last.Image==null&&Match(t,@"(?:ответь|верни|назови|укажи) (?:только |ровно )?(?:одн(?:им словом|ой фразой|им предложением)|цифрой|числом)\b");
-            if(!forceArt&&!team&&!explicitWeb&&!fresh&&!imageAction&&!compound&&!change&&(ChatContext.IsRecall(t)||ReplyFormat.Object(t)||shortText))return r;
+            bool written=!imageAction&&Match(t,@"^\s*(?:пожалуйста[, ]+)?(?:напиши|составь|подготовь)\s+(?:мне\s+)?(?:(?:кратк\w*|коротк\w*|готов\w*|делов\w*|черновик)\s+){0,3}(?:письм\w*|ответ\w*|текст\w*|резюме|инструкци\w*|сообщени\w*|список)\b");
+            bool textOutput=ReplyFormat.Object(t)||ReplyFormat.TextOnly(t)||written;
+            if(!forceArt&&textOutput&&!explicitWeb&&!fresh)return r;
+            if(!forceArt&&!team&&!explicitWeb&&!fresh&&!imageAction&&!compound&&!change&&(ChatContext.IsRecall(t)||shortText))return r;
             bool explicitRoute=!compound&&(explicitWeb||team&&!enabled||(!fresh&&(Routine(t)||Agents.HasArithmetic(t)||last.Image!=null&&Match(t,@"^(опиши|что (?:это|изображено)|прочитай текст|describe)"))));
             if(forceArt||((create||change)&&!compound)) {r.answer="image";r.reference=last.Image!=null||change||Match(t,@"вариац|предыдущ|по (?:фото|образцу|референсу)");}
             else if(!explicitRoute) {
@@ -55,7 +58,7 @@ namespace Sfera {
                         r.missingReference=Match(t,@"(?:на |эт[уаои]\w* |исходн\w* |предыдущ\w* |прошл\w* |приложен\w* )(?:фото|рисунк|картин|баннер|афиш|макет|изображ|снимк|снимок|обложк)");
                         code="A";
                     }
-                    r.answer=code.Length==1&&"BCGHI".Contains(code)?"image":"text";
+                    r.answer=!textOutput&&code.Length==1&&"BCGHI".Contains(code)?"image":"text";
                     r.reference=code=="C"||last.Image!=null;r.team|=code=="E"||code=="F"||code=="H"||code=="I";
                     r.web=enabled&&(r.web||code=="D"||code=="F"||code=="G"||code=="I");
                 }catch(Exception ex){ct.ThrowIfCancellationRequested();if(!(ex is IOException||ex is HttpRequestException||ex is ArgumentException||ex is InvalidOperationException))throw;
@@ -93,6 +96,15 @@ namespace Sfera {
             if(Regex.IsMatch(text,@"^\s*(покажи (?:мне )?мой рабочий профиль|что ты запомнил[аи]? обо мне)[.?! ]*$",RegexOptions.IgnoreCase)){
                 string profile=ReadText(ProfilePath),derived=ReadText(HistoryPath);
                 return string.IsNullOrEmpty(profile+derived)?"Рабочий профиль пока пуст.":string.Join("\n\n",new[]{profile,derived}.Where(s=>s.Length>0));
+            }
+            var forget=Regex.Match(text,@"^\s*(?:забудь|удали)\s+(?:мо[еёю]\s+)?(?:предпочтение|заметку|запись)(?:\s+(?:из рабочего профиля\s+)?(?:про|о|об|с текстом)\s+|\s*[:«""]\s*|\s+)(?<query>[^.!?\r\n]+)",RegexOptions.IgnoreCase);
+            if(forget.Success){
+                string query=forget.Groups["query"].Value.Trim(' ','«','»','"');
+                var lines=ReadText(ProfilePath).Split('\n').ToList();
+                var hits=lines.Where(l=>l.StartsWith("Моя заметка: ",StringComparison.OrdinalIgnoreCase)&&query.Length>0&&l.IndexOf(query,StringComparison.OrdinalIgnoreCase)>=0).ToList();
+                if(hits.Count==0)return "Такой заметки в рабочем профиле нет.";
+                if(hits.Count>1)return "Уточните текст одной заметки:\n"+string.Join("\n",hits);
+                lines.Remove(hits[0]);WriteProfile(string.Join("\n",lines));return "Удалила из рабочего профиля одну заметку.";
             }
             var m=Regex.Match(text,@"^\s*(?:запомни (?:на будущее|для следующих (?:чатов|бесед)|мо[её] предпочтение)\s*[:,—-]\s*|запомни,? что (?=я |мне |мой |моя |мо[её] |мои ))(?<note>.+)$",RegexOptions.IgnoreCase|RegexOptions.Singleline);
             if(!m.Success)return null;

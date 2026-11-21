@@ -36,7 +36,7 @@ namespace Sfera {
         static void Merge(List<Source> dest,IEnumerable<Source> incoming) {
             foreach(var s in incoming) {
                 if(dest.Count>=8)break;
-                if(!dest.Any(d=>s.Url!=null ? d.Url==s.Url : d.Title==s.Title&&d.Location==s.Location&&d.Excerpt==s.Excerpt))dest.Add(s);
+                if(!dest.Any(d=>s.Url!=null ? d.Url==s.Url : d.DocumentId==s.DocumentId&&d.Title==s.Title&&d.Location==s.Location&&d.Excerpt==s.Excerpt))dest.Add(s);
             }
         }
         static async Task Search(string query,List<Source> dest,Action<string> step,CancellationToken ct) {
@@ -96,6 +96,11 @@ namespace Sfera {
             await Task.WhenAll(localRead,publicRead).ConfigureAwait(false);
             IncludeDocuments(localRead.Result,sources,stage);Merge(sources,publicSources);
             ct.ThrowIfCancellationRequested();
+            string receipt=hasDocuments&&!online&&photo==null?DocumentFacts.ReceiptAnswer(task,history,sources):null;
+            if(!team&&!online&&hasDocuments){
+                string cited=receipt??DocumentFacts.Answer(task,history,sources);
+                if(cited!=null){stage("Проверяющий сверил цитаты с вложениями");return cited;}
+            }
             string draft="",critique="";
             if(team) {
                 stage("Аналитик и проверяющий работают параллельно");
@@ -111,6 +116,7 @@ namespace Sfera {
                     await Task.WhenAll(analysis,facts).ConfigureAwait(false);
                     draft=analysis.Result+"\nНезависимая проверка:\n"+facts.Result;
                 }
+                if(receipt!=null){stage("Проверены сумма и код по исходному документу");return receipt;}
                 stage("Рецензент проверяет выводы");
                 string check=await Workers.Track(worker,"review","Рецензент","Сверяет решение и независимую проверку",()=>engine.Role(prefs,"Ты независимый рецензент. Найди конкретные ошибки в черновике и несоответствия источникам. Верни JSON: critique (до двух коротких замечаний на русском), extra_query (короткий дополнительный запрос только при пробеле и доступном веб-поиске), calculation (одно числовое выражение для перепроверки, если нужно), document_keywords (до пяти слов для повторного поиска по вложению, если оно есть), claim (один краткий проверяемый тезис черновика, когда есть пронумерованные материалы). Для ненужных действий верни пустые строки. "+EvidenceRules,
                     Bundle(task,recent,sources,math,online)+"\nЧерновик:\n"+draft,null,250,false,quiet,status,ct,Schema("critique","extra_query","calculation","document_keywords","claim"))).ConfigureAwait(false);

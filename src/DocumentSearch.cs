@@ -96,7 +96,7 @@ namespace Sfera {
                     int space=excerpt.LastIndexOf(' ',start,Math.Min(35,start+1));if(space>=0)start=space+1;
                     excerpt=(start==0?"":"…")+excerpt.Substring(start);
                 }
-                return new Source{Title=document.Name,Location=part.Label+(document.Truncated?" · извлечена часть файла":""),Excerpt=excerpt};
+                return new Source{DocumentId=document.Id,Title=document.Name,Location=part.Label+(document.Truncated?" · извлечена часть файла":""),Excerpt=excerpt};
             }).ToList();
         }
     }

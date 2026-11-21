@@ -23,15 +23,17 @@ namespace Sfera {
         T Find<T>(string id) where T:FrameworkElement { return (T)window.FindName(id); }
         public ModelSettings(Window owner, Preferences p,bool wantDrawing=false,bool wantVoice=false) {
             prefs = p;
-            window = (Window)XamlReader.Parse(Store.Resource("ModelsWindow.xaml"));
+            window = OstumActionIcons.Install((Window)XamlReader.Parse(Store.Resource("ModelsWindow.xaml")));
             window.Resources.MergedDictionaries.Add(owner.Resources); window.Owner = owner;
             Find<Button>("DeveloperChannel").Click+=(s,e)=>Brand.OpenChannel(window);
             Find<Button>("ProSubscription").Click+=(s,e)=>ProAccessWindow.Manage(window);
+            Find<Button>("Storage").Click+=(s,e)=>{if(transfer==null){StorageWindow.Show(window,prefs);Refresh();}};
             art = Find<CheckBox>("ArtChoice"); voice=Find<CheckBox>("VoiceChoice");
             thinking = Find<CheckBox>("Thinking"); folder = Find<TextBox>("Folder");
             browse = Find<Button>("Browse"); apply = Find<Button>("Apply"); dismiss = Find<Button>("Dismiss");
             notice = Find<TextBlock>("Notice"); progress = Find<ProgressBar>("Progress");
             art.IsChecked=wantDrawing||Store.DrawingOn(p);voice.IsChecked=wantVoice||Store.DictationOn(p);
+            Find<ComboBox>("ImageSize").SelectedIndex=p.ImageSide==384?0:p.ImageSide==512?1:2;
             folder.Text = p.Models; thinking.IsChecked = p.Think;
             SetupLibrary();
             art.Click+=(s,e)=>Refresh();voice.Click+=(s,e)=>Refresh();
@@ -81,7 +83,8 @@ namespace Sfera {
                 next.ImportedModels=library.Where(m=>m.Imported!=null).Select(m=>m.Imported).ToList();
                 next.Chat=Chosen.Id;
                 next.Models=folder.Text;next.Think=thinking.IsChecked==true;next.Drawing=art.IsChecked==true;next.Dictation=voice.IsChecked==true;
-                Store.Save(next);
+                next.ImageSide=new[]{384,512,1024}[Find<ComboBox>("ImageSize").SelectedIndex];
+                Store.Save(next);prefs.ImageSide=next.ImageSide;
                 prefs.Chat=next.Chat;prefs.ImportedModels=next.ImportedModels;prefs.Art=next.Art;prefs.Models=next.Models;prefs.Think=next.Think;prefs.Drawing=next.Drawing;prefs.Dictation=next.Dictation;
                 success = true;
             } catch (Exception ex) {

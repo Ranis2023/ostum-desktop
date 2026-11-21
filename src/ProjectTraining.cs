@@ -86,8 +86,10 @@ namespace Sfera {
             string data=Path.Combine(directory,"approved.json");
             try{
                 Store.Write(data,rows);
-                var args=new[]{"--model",weight,"--engine",Path.Combine(AppDomain.CurrentDomain.BaseDirectory,@"engines\llama-b12547"),"--data",data,"--out",directory};
-                await ProTools.Python(@"training\studio.py",args,null,ct,progress).ConfigureAwait(false);
+                string stock=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,@"engines\llama-b12547");
+                var args=new List<string>{"--model",weight,"--engine",Acceleration.Ready?Acceleration.Folder:stock,"--data",data,"--out",directory};
+                if(Acceleration.Ready)args.AddRange(new[]{"--fallback-engine",stock});
+                await ProTools.Python(@"training\studio.py",args.ToArray(),null,ct,progress).ConfigureAwait(false);
                 ProTools.UnderProject(p,directory,false,true);ct.ThrowIfCancellationRequested();
                 if(!File.Exists(Path.Combine(directory,"evaluation.json"))||!File.Exists(Path.Combine(directory,"adapter.gguf")))throw new IOException("Обучение не завершилось.");
                 Store.Write(Manifest(p,id),new AdapterVersion{Id=id,Created=DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),Owner=Sid,Root=p.Root,Source=source,BaseHash=Store.Files["q9"].sha256});

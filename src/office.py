@@ -200,6 +200,8 @@ class Office:
                         display=(start+datetime.timedelta(days=float(raw))).isoformat(sep=" ").removesuffix(" 00:00:00")
                     except (ArithmeticError,ValueError): pass
                 kind="formula" if f else "text" if typ in ("inlineStr","s","str") else typ or "n"
+                if f and (not v or f[0].getAttribute("ca") in ("1","true")):
+                    display="Требуется пересчёт в Excel"
                 result.append(dict(key=k,value="="+text(f[0]) if f else raw,display=display,kind=kind,style=format_name,comment=""))
         if len(result)>MAX_ROWS: raise ValueError("Лимит редактора — 25 000 заполненных ячеек или абзацев за одно открытие.")
         return result
@@ -346,7 +348,9 @@ class Office:
             for row in patches:self.change_cell(sheet,row)
             book=self.part("xl/workbook.xml",True);calc=sub(book,X,"calcPr")
             (calc[0] if calc else element(book.documentElement,X,"calcPr")).setAttribute("fullCalcOnLoad","1")
-            self.recalculate(sheet)
+            changed={row["key"].upper() for row in patches if row.get("operation")!="format"}
+            if changed:
+                self.recalculate(sheet,changed)
         fd, tmp=tempfile.mkstemp(prefix=".ostum-",suffix=".tmp",dir=self.path.parent);os.close(fd)
         try:
             with zipfile.ZipFile(tmp,"w",zipfile.ZIP_DEFLATED) as out:
@@ -359,45 +363,140 @@ class Office:
         finally:
             Path(tmp).unlink(missing_ok=True)
 
-    def recalculate(self,sheet):
-        root=self.part(self.sheets[sheet],True)
-        cells={c.getAttribute("r"):c for c in sub(root,X,"c")}
-        cache={}
+    def recalculate(self,sheet,changed):
+        # Follow references from changed inputs. Preserve Excel's original XML and
+        # cached type/value for every independent formula, including unsupported ones.
+        cells={}
+        formulas={}
+        for name,part in self.sheets.items():
+            for cell in sub(self.part(part),X,"c"):
+                key=(name,cell.getAttribute("r"))
+                cells[key]=cell
+                fs=children(cell,X,"f")
+                if fs:formulas[key]=fs[0]
+        lookup={name.casefold():name for name in self.sheets}
+        dependents=collections.defaultdict(set)
+        areas=collections.defaultdict(list)
+        affected={(sheet,k) for k in changed}
+        opaque=set()
+        defined={n.getAttribute("name").casefold() for n in sub(self.part("xl/workbook.xml"),X,"definedName")}
+        for key,f in formulas.items():
+            expression=text(f)
+            reference_text=re.sub(r'"(?:[^"]|"")*"','',expression)
+            # Preserve Excel's cached values for indirect, shared and named
+            # dependencies. Mark them and their consumers for Excel's calculation.
+            if (f.getAttribute("t") in ("shared","array","dataTable") or
+                re.search(r"\b(?:INDIRECT|OFFSET)\s*\(|\[|\$?[A-Z]{1,3}:\$?[A-Z]{1,3}\b|\d+:\d+|[A-Z0-9_]+:[A-Z0-9_]+!",reference_text,re.I) or
+                defined.intersection(w.casefold() for w in re.findall(r"[\w.]+",reference_text))):
+                opaque.add(key)
+            for m in CELL_REF.finditer(reference_text):
+                name=lookup.get((m[1] or m[2] or key[0]).replace("''","'").casefold())
+                if name is None:continue
+                start=m[3].replace("$","").upper()
+                if not m[4]:dependents[name,start].add(key)
+                else:areas[name].append((rect(start,m[4].replace("$","").upper()),key))
+        affected.update(opaque)
+        queue=collections.deque(affected)
+        while queue:
+            current=queue.popleft()
+            r,c=address(current[1])
+            hits=set(dependents[current])
+            hits.update(key for (top,left,bottom,right),key in areas[current[0]] if top<=r<=bottom and left<=c<=right)
+            for hit in hits-affected:
+                affected.add(hit)
+                queue.append(hit)
+        memo={}
         def calc(key,trail):
-            if key in cache:return cache[key]
-            if len(trail)>64 or key in trail:raise ValueError()
-            cell=cells.get(key)
-            if cell is None:return 0
-            fs=children(cell,X,"f")
-            if not fs:
-                vs=children(cell,X,"v")
-                if cell.getAttribute("t") not in ("","n","b"):raise ValueError()
-                return float(text(vs[0])) if vs else 0
-            expression=text(fs[0]).upper().replace("$","")
+            if key in memo:return memo[key]
+            if key in opaque:raise ValueError("Требуется пересчёт в Excel.")
+            if key not in affected or key not in formulas:return cell_value(cells.get(key))
+            if key in trail or len(trail)>64:raise ValueError()
+            expression=text(formulas[key]).upper().replace("$","")
             if len(expression)>512:raise ValueError()
-            def value(k):return calc(k,trail|{key})
+            def value(k):return calc((key[0],k),trail|{key})
             def totals(m):
-                a,b=address(m[2]),address(m[3])
-                if (b[0]-a[0]+1)*(b[1]-a[1]+1)>4096:raise ValueError()
-                nums=[value(column(c)+str(r)) for r in range(a[0],b[0]+1) for c in range(a[1],b[1]+1)]
-                return str({"SUM":sum,"AVERAGE":lambda x:sum(x)/len(x),"MIN":min,"MAX":max}[m[1]](nums))
-            expression=re.sub(r"(SUM|AVERAGE|MIN|MAX)\(([A-Z]+[0-9]+):([A-Z]+[0-9]+)\)",totals,expression)
-            syntax=ast.parse(expression,mode="eval").body
+                top,left,bottom,right=rect(m[2],m[3])
+                if (bottom-top+1)*(right-left+1)>MAX_ROWS:raise ValueError()
+                def numbers():
+                    for r in range(top,bottom+1):
+                        for c in range(left,right+1):
+                            try:yield value(column(c)+str(r))
+                            except FormulaError:
+                                if m[1]!="COUNT":raise
+                return "("+str(aggregate(m[1],numbers())[0])+")"
+            expression=re.sub(r"\b(SUM|AVERAGE|MIN|MAX|COUNT)\(\s*([A-Z]+[0-9]+)\s*:\s*([A-Z]+[0-9]+)\s*\)",totals,expression)
             def visit(n):
-                if isinstance(n,ast.Constant) and type(n.value) in (float,int):return float(n.value)
-                if isinstance(n,ast.Name) and re.fullmatch(r"[A-Z]{1,3}[1-9]\d*",n.id):return value(n.id)
+                if isinstance(n,ast.Constant) and type(n.value) in (int,float):return D(str(n.value))
+                if isinstance(n,ast.Name) and re.fullmatch(r"[A-Z]{1,3}[1-9]\d*",n.id):
+                    v=value(n.id)
+                    if v is None:return D(0)
+                    if isinstance(v,bool):return D(int(v))
+                    if not isinstance(v,D):raise ValueError()
+                    return v
                 if isinstance(n,ast.UnaryOp) and isinstance(n.op,(ast.UAdd,ast.USub)):return (-1 if isinstance(n.op,ast.USub) else 1)*visit(n.operand)
                 ops={ast.Add:operator.add,ast.Sub:operator.sub,ast.Mult:operator.mul,ast.Div:operator.truediv}
-                if isinstance(n,ast.BinOp) and type(n.op) in ops:return ops[type(n.op)](visit(n.left),visit(n.right))
+                if isinstance(n,ast.BinOp) and type(n.op) in ops:
+                    left,right=visit(n.left),visit(n.right)
+                    if isinstance(n.op,ast.Div) and right==0:raise FormulaError("#DIV/0!")
+                    return ops[type(n.op)](left,right)
                 raise ValueError()
-            cache[key]=visit(syntax);return cache[key]
-        for k,c in cells.items():
-            if children(c,X,"f"):
-                for old in children(c,X,"v"):c.removeChild(old)
-                try:
-                    v=calc(k,set())
-                    if -1e308<v<1e308:element(c,X,"v",format(v,".15g"))
-                except (ValueError,ArithmeticError,SyntaxError,RecursionError):pass
+            result=visit(ast.parse(expression,mode="eval").body)
+            memo[key]=result
+            return result
+        for key in affected & formulas.keys():
+            cell=cells[key]
+            self.dirty.add(self.sheets[key[0]])
+            if key in opaque:
+                formulas[key].setAttribute("ca","1")
+                continue
+            try:result=format(calc(key,set()),".15g")
+            except FormulaError as exc:result=str(exc)
+            except (ZeroDivisionError,decimal.DivisionByZero):result="#DIV/0!"
+            except (ValueError,ArithmeticError,SyntaxError,RecursionError):result=None
+            if result is None:
+                formulas[key].setAttribute("ca","1")
+                continue
+            for old in children(cell,X,"v"):cell.removeChild(old)
+            if formulas[key].hasAttribute("ca"):formulas[key].removeAttribute("ca")
+            if cell.hasAttribute("t"):cell.removeAttribute("t")
+            if result is not None:
+                if result.startswith("#"):cell.setAttribute("t","e")
+                element(cell,X,"v",result)
+
+
+CELL_REF=re.compile(r"(?<![\w.])(?:(?:'((?:[^']|'')+)'|([\w.]+))!)?(\$?[A-Z]{1,3}\$?[1-9]\d{0,6})(?::(\$?[A-Z]{1,3}\$?[1-9]\d{0,6}))?(?![\w.(])",re.I)
+
+
+class FormulaError(Exception):
+    pass
+
+
+def rect(a,b):
+    r,c=address(a);s,d=address(b)
+    return min(r,s),min(c,d),max(r,s),max(c,d)
+
+
+def cell_value(cell):
+    if cell is None:return None
+    typ=cell.getAttribute("t")
+    vs=children(cell,X,"v")
+    fs=children(cell,X,"f")
+    if fs and (not vs or fs[0].getAttribute("ca") in ("1","true")):raise ValueError("Для формулы нужен пересчёт в Excel.")
+    if typ=="e":raise FormulaError(text(vs[0]))
+    if typ=="b":return bool(vs and text(vs[0])=="1")
+    if typ not in ("","n"):return ""
+    return D(text(vs[0])) if vs and text(vs[0]) else None
+
+
+def aggregate(op,values):
+    nums=[v for v in values if isinstance(v,D)]
+    if op=="AVERAGE" and not nums:raise FormulaError("#DIV/0!")
+    if op=="COUNT":return D(len(nums)),len(nums)
+    if op=="AVERAGE":return sum(nums)/len(nums),len(nums)
+    if op=="MIN":return min(nums,default=D(0)),len(nums)
+    if op=="MAX":return max(nums,default=D(0)),len(nums)
+    if op!="SUM":raise ValueError("Неизвестная операция диапазона.")
+    return sum(nums,D(0)),len(nums)
 
 
 def versions(path):
@@ -504,6 +603,81 @@ def offers(sources):
 
 TASK_HEADERS=["Поручение","Ответственный","Срок","Статус","Файл","Лист","Фрагмент","Текст источника"]
 TASK_FILE="Поручения OSTUM.xlsx"
+INVOICE_FILE="Реестр счетов OSTUM.xlsx"
+INVOICE_HEADERS=["Номер","Дата","Сумма","Валюта","Источник","Страница / фрагмент","SHA-256 источника"]
+
+
+def table_records(book,sheet,headers):
+    if sheet not in book.sheets:raise ValueError("Неверное имя листа реестра.")
+    cells=collections.defaultdict(dict)
+    for cell in book.rows(sheet):
+        r,c=address(cell["key"]);cells[r][c]=cell["display"]
+    if [cells[1].get(c) for c in range(1,len(headers)+1)]!=headers:raise ValueError("Заголовки реестра изменены.")
+    return [(r,[values.get(c,"") for c in range(1,len(headers)+1)]) for r,values in sorted(cells.items()) if r>1]
+
+
+def add_invoices(path,req):
+    if path.name!=INVOICE_FILE:raise ValueError("Выберите реестр счетов OSTUM.")
+    book=Office(path) if path.exists() else None
+    try:
+        existing=table_records(book,"Счета",INVOICE_HEADERS) if book else []
+        known={r[-1] for _,r in existing}
+        nextrow=max((n for n,_ in existing),default=1)+1
+        fresh=[];skipped=0
+        for record in req["records"]:
+            name=record["Source"]
+            if Path(name).name!=name or name in (".","..") or ":" in name:raise ValueError("Недопустимое имя источника.")
+            source=path.parent/name
+            if source.is_symlink() or source.is_junction() or digest(source)!=record["Hash"]:raise ValueError("Источник изменился. Повторите импорт.")
+            if record["Hash"] in known:skipped+=1;continue
+            try:value=D((record.get("Amount") or "").replace(" ","").replace(",","."))
+            except decimal.InvalidOperation:raise ValueError("Проверьте сумму счёта "+name) from None
+            if not value.is_finite() or not (record.get("Number") or "").strip() or not (record.get("Currency") or "").strip():raise ValueError("Проверьте номер, валюту и сумму.")
+            date=record.get("Date") or ""
+            if date:datetime.date.fromisoformat(date)
+            fresh.append([record["Number"],date,value,record["Currency"],name,record["Location"],record["Hash"]])
+            known.add(record["Hash"])
+        if (nextrow+len(fresh)-1)*len(INVOICE_HEADERS)>MAX_ROWS:raise ValueError("Лимит размера реестра превышен.")
+        if fresh and book:
+            patches=[dict(key=column(c)+str(r),value=str(v),operation="replace" if c==3 else "literal")
+                     for r,row in enumerate(fresh,nextrow) for c,v in enumerate(row,1)]
+            book.commit(patches,"Счета",book.revision)
+        elif fresh:write_new(path,[INVOICE_HEADERS]+fresh,sheet="Счета")
+        return dict(added=len(fresh),skipped=skipped)
+    finally:
+        if book:book.z.close()
+
+
+def active_tasks(book,period,today):
+    items=[]
+    sunday=today+datetime.timedelta(days=6-today.weekday())
+    for row,record in table_records(book,"Поручения",TASK_HEADERS):
+        title,owner,due,status,source,sheet,key,_=record
+        if not title or not due or status.strip().casefold() in ("готово","выполнено","завершено","отменено"):continue
+        try:day=datetime.date.fromisoformat(due)
+        except ValueError:raise ValueError("Проверьте дату срока в строке "+str(row)) from None
+        if period=="overdue" and day>=today or period=="week" and not today<=day<=sunday:continue
+        items.append(dict(title=title,owner=owner,due=due,source=source,location=(sheet+"!" if sheet else "")+key,row=row))
+    return sorted(items,key=lambda t:(t["due"],t["row"]))
+
+
+def calendar_bytes(items,register):
+    def escaped(s):return s.replace("\\","\\\\").replace("\r\n","\n").replace("\r","\n").replace("\n","\\n").replace(",","\\,").replace(";","\\;")
+    def fold(line):
+        chunks=[];piece=bytearray()
+        for ch in line:
+            raw=ch.encode()
+            if len(piece)+len(raw)>75:chunks.append(bytes(piece));piece=bytearray(b" ")
+            piece.extend(raw)
+        return b"\r\n".join(chunks+[bytes(piece)])
+    lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//OSTUM//Desktop//RU","CALSCALE:GREGORIAN"]
+    stamp=datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
+    for item in items:
+        identity=str(register.resolve()).casefold()+"\n"+str(item["row"])+"\n"+item["source"]+"\n"+item["location"]
+        uid=hashlib.sha256(identity.encode()).hexdigest()+"@ostum.local"
+        lines.extend(["BEGIN:VTODO","UID:"+uid,"DTSTAMP:"+stamp,"DUE;VALUE=DATE:"+item["due"].replace("-",""),
+                      "SUMMARY:"+escaped(item["title"]),"DESCRIPTION:"+escaped(" · ".join(filter(None,[item["owner"],item["source"],item["location"]]))),"END:VTODO"])
+    return b"\r\n".join(map(fold,lines+["END:VCALENDAR"]))+b"\r\n"
 
 
 def add_task(path,req):
@@ -608,8 +782,20 @@ def execute(req):
         write_new(path,offers(req["sources"]),sheet="Сравнение");return {}
     if op=="reconcile":
         write_new(path,reconcile(req),sheet="Сверка");return {}
+    if op=="preview_reconcile":
+        return {"differences":reconcile(req)}
     if op=="task":
         add_task(path,req);return {}
+    if op=="invoices":return add_invoices(path,req)
+    if op=="deadlines":
+        if path.name!=TASK_FILE:raise ValueError("Выберите реестр поручений.")
+        book=Office(path)
+        try:
+            items=active_tasks(book,req["period"],datetime.date.fromisoformat(req["today"]))
+            result=dict(tasks=items)
+            if req.get("calendar"):result["calendar"]=calendar_bytes(items,path).decode()
+            return result
+        finally:book.z.close()
     if op=="versions":
         folder,key=versions(path)
         return {"versions":sorted((p.name for p in folder.glob(key+"-*"+path.suffix)),reverse=True)}
@@ -627,6 +813,17 @@ def execute(req):
     try:
         sheet=req.get("sheet") or next(iter(book.sheets),"")
         if op=="read":return dict(kind="word" if book.is_word else "excel",sheets=list(book.sheets),sheet=sheet,revision=book.revision,readOnly=book.read_only,rows=book.rows(sheet))
+        if op=="aggregate":
+            if book.is_word or sheet not in book.sheets:raise ValueError("Выберите лист Excel.")
+            if book.revision!=req["revision"]:raise ValueError("Таблица изменилась. Откройте её заново.")
+            top,left,bottom,right=rect(req["first"],req["last"])
+            def values():
+                for cell in sub(book.part(book.sheets[sheet]),X,"c"):
+                    r,c=address(cell.getAttribute("r"))
+                    if top<=r<=bottom and left<=c<=right:yield cell_value(cell)
+            try:value,count=aggregate(req["function"],values())
+            except FormulaError as exc:raise ValueError("Результат Excel: "+str(exc)) from exc
+            return dict(number=format(value,"f"),numericCount=count,areaCount=(bottom-top+1)*(right-left+1))
         if op=="commit":
             book.commit(req["patches"],sheet,req["revision"]);return {}
         if op=="compare":
@@ -640,6 +837,18 @@ def execute(req):
 
 
 if __name__=="__main__":
-    try:print(json.dumps(execute(json.load(sys.stdin)),ensure_ascii=True))
-    except Exception as exc:
-        print(json.dumps({"error":str(exc)},ensure_ascii=True));sys.exit(1)
+    if sys.argv[1:]==["--reader"]:
+        for line in sys.stdin:
+            try:
+                request=json.loads(line)
+                if request["action"] not in ("read","aggregate","versions","deadlines","preview_reconcile"):
+                    raise ValueError("Этот режим предназначен для чтения.")
+                print(json.dumps(execute(request),ensure_ascii=True),flush=True)
+            except Exception as exc:
+                print(json.dumps({"error":str(exc)},ensure_ascii=True),flush=True)
+            finally:
+                request=line=None
+    else:
+        try:print(json.dumps(execute(json.load(sys.stdin)),ensure_ascii=True))
+        except Exception as exc:
+            print(json.dumps({"error":str(exc)},ensure_ascii=True));sys.exit(1)

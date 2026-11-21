@@ -10,10 +10,10 @@ using Microsoft.Win32;
 namespace Sfera {
     internal static class WorkspaceUi {
         internal static Grid View(string name) {
-            return (Grid)XamlReader.Parse(Store.Resource(name).Replace("<!--theme-->",Store.Resource("WorkspaceTheme.xaml")));
+            return OstumActionIcons.Install((Grid)XamlReader.Parse(Store.Resource(name).Replace("<!--theme-->",Store.Resource("WorkspaceTheme.xaml"))));
         }
         internal static void Skin(Window w) {
-            w.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Parse(Store.Resource("WorkspaceTheme.xaml")));
+            OstumActionIcons.Install(w);w.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Parse(Store.Resource("WorkspaceTheme.xaml")));
             w.FontFamily = new FontFamily("Inter, Segoe UI Variable Text, Segoe UI"); w.FontSize=14;
             w.Background=(Brush)new BrushConverter().ConvertFromString("#F4F5F1"); w.UseLayoutRounding=true;
         }
@@ -25,7 +25,7 @@ namespace Sfera {
             return new TextBlock {Text=text,Style=(Style)host.FindResource(style), Margin=new Thickness(0,3,0,5)};
         }
         internal static Button Button(FrameworkElement host,string label,Action click,string style=null) {
-            var b=new Button {Content=label}; if(style!=null)b.Style=(Style)host.FindResource(style); b.Click+=(s,e)=>click();return b;
+            var b=new Button {Content=label,ContentTemplate=OstumActionIcons.For(label)}; if(style!=null)b.Style=(Style)host.FindResource(style); b.Click+=(s,e)=>click();return b;
         }
         internal static int Permission(Window owner, string directory,int current=0) {
             var w=Dialog(owner,"Подключить папку",555,500);var root=new DockPanel{Margin=new Thickness(22)};w.Content=root;

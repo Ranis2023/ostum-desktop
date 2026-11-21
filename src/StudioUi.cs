@@ -19,19 +19,23 @@ namespace Sfera {
         CancellationTokenSource speechWork;
         readonly DispatcherTimer recordMeter=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(70)};
         readonly Stopwatch recordTime=new Stopwatch();
-        readonly List<string> liveStages=new List<string>();
         bool recordingFlow;
+        string meetingEngines;
+        bool meetingOpen;
         void SetupStudio(string engines) {
+            meetingEngines=engines;
             voice=new Voice(engines);
             var net=Find<CheckBox>("WebSearch");net.IsChecked=prefs.AllowWeb&&WorkPolicy.Network;net.IsEnabled=WorkPolicy.Network;
-            RoutedEventHandler saveNet=(s,e)=>{prefs.AllowWeb=net.IsChecked==true;Store.Save(prefs);};
+            Action labelNetwork=()=>{Find<TextBlock>("HomePrivacy").Text=net.IsChecked==true&&net.IsEnabled?"Веб-поиск разрешён":"Локальный режим";};
+            labelNetwork();
+            RoutedEventHandler saveNet=(s,e)=>{prefs.AllowWeb=net.IsChecked==true&&WorkPolicy.Network;labelNetwork();Store.Save(prefs);};
             net.Checked+=saveNet;net.Unchecked+=saveNet;
             Find<Button>("Microphone").Click+=async(s,e)=>await Dictate();
             Find<Button>("MicDevices").Click+=(s,e)=>ShowMicDevices();
             Find<Button>("Toolbox").Click+=(s,e)=>ShowTools();
             Find<Button>("AboutApp").Click+=(s,e)=>About();
-            Find<Button>("CollapseSidebar").Click+=(s,e)=>ToggleSidebar();
-            Find<Button>("ExpandSidebar").Click+=(s,e)=>ToggleSidebar();
+            Find<Button>("CollapseSidebar").Click+=(s,e)=>{historyAutoHidden=false;ToggleSidebar();Find<Button>("ExpandSidebar").Focus();};
+            Find<Button>("ExpandSidebar").Click+=(s,e)=>{historyAutoHidden=false;ToggleSidebar();Find<Button>("CollapseSidebar").Focus();};
             recordMeter.Tick+=async(s,e)=>{
                 if(!voice.Recording){recordMeter.Stop();return;}
                 var elapsed=recordTime.Elapsed;
@@ -56,7 +60,7 @@ namespace Sfera {
             }catch(Exception ex){status.Text="Не удалось получить список микрофонов. "+ex.Message;}
         }
         void AddMicChoice(ItemsControl menu,string label,string id) {
-            var item=new MenuItem{Header=label,IsCheckable=true,IsChecked=string.Equals(id??"",prefs.MicrophoneId??"",StringComparison.OrdinalIgnoreCase)};
+            var item=new MenuItem{Header=label,Icon=OstumActionIcons.Menu(label,"mic"),IsCheckable=true,IsChecked=string.Equals(id??"",prefs.MicrophoneId??"",StringComparison.OrdinalIgnoreCase)};
             item.Click+=(s,e)=>{
                 string old=prefs.MicrophoneId;
                 try{prefs.MicrophoneId=id;Store.Save(prefs);Find<Button>("MicDevices").ToolTip=label;status.Text="Микрофон для диктовки · "+label;}
@@ -67,27 +71,64 @@ namespace Sfera {
         void ToggleSidebar(){
             var col=Find<Grid>("Layout").ColumnDefinitions[0];bool open=col.Width.Value>40;
             col.Width=new GridLength(open?0:215);Find<Button>("ExpandSidebar").Visibility=open?Visibility.Visible:Visibility.Collapsed;
+            Find<Border>("SidebarRoot").Visibility=open?Visibility.Collapsed:Visibility.Visible;
         }
-        static MenuItem Item(ItemsControl menu,string text,Action run) {
-            var item=new MenuItem{Header=text};item.Click+=(s,e)=>run();menu.Items.Add(item);return item;
+        static MenuItem Item(ItemsControl menu,string text,Action run,string kind=null) {
+            var item=new MenuItem{Header=text,Icon=OstumActionIcons.Menu(text,kind)};item.Click+=(s,e)=>run();menu.Items.Add(item);return item;
+        }
+        void ShowModes(){
+            var menu=new ContextMenu{PlacementTarget=Find<Button>("ChatMode"),Placement=PlacementMode.Top};
+            var automatic=Item(menu,"Авто · подобрать инструменты",()=>SetMode(false));
+            var team=Item(menu,"Команда · несколько агентов",()=>SetMode(false,true));
+            var drawing=Item(menu,"Рисование · создать изображение",()=>SetMode(true));
+            foreach(var item in new[]{automatic,team,drawing})item.IsCheckable=true;
+            automatic.IsChecked=!agents&&!art;team.IsChecked=agents;drawing.IsChecked=art;
+            Find<Button>("ChatMode").ContextMenu=menu;menu.IsOpen=true;
         }
         void ShowTools() {
             var menu=new ContextMenu();var host=Find<Button>("Toolbox");menu.PlacementTarget=host;
-            Item(menu,"Автоматический выбор",()=>SetMode(false));Item(menu,"Поручить команде",()=>SetMode(false,true));Item(menu,"Режим рисования",()=>SetMode(true));Item(menu,"Создать инструментальную музыку…",()=>{SetMode(false);if(string.IsNullOrWhiteSpace(input.Text))input.Text="Сгенерируй музыку на 15 секунд для ";input.Focus();input.CaretIndex=input.Text.Length;});menu.Items.Add(new Separator());
-            var screens=new MenuItem{Header="Приложить снимок экрана"};menu.Items.Add(screens);
+            Item(menu,"Найти сообщение…",SearchHistory,"search").IsEnabled=CanManageHistory;
+            Item(menu,"Сценарии сверки Excel…",async()=>{
+                if(work!=null||speechWork!=null||voice.Recording||PaneBusy||!ShowProject())return;
+                try{status.Text=await chatProject.ChatAction(new ChatFileIntent{Action="recipes",Value=""},"",CancellationToken.None);}catch(Exception ex){status.Text=ex.Message;}
+            },"compare");
+            Item(menu,"Совещание · запись и протокол…",OpenMeeting,"record");
+            Item(menu,"Место на диске…",()=>{if(work==null&&speechWork==null&&!PaneBusy&&!voice.Recording)StorageWindow.Show(Window,prefs);},"storage");
+            menu.Items.Add(new Separator());
+            Item(menu,"Создать инструментальную музыку…",()=>{SetMode(false);if(string.IsNullOrWhiteSpace(input.Text))input.Text="Сгенерируй музыку на 15 секунд для ";input.Focus();input.CaretIndex=input.Text.Length;});menu.Items.Add(new Separator());
+            var screens=new MenuItem{Header="Приложить снимок экрана",Icon=OstumActionIcons.Menu("Приложить снимок экрана")};menu.Items.Add(screens);
             foreach(var monitor in Forms.Screen.AllScreens) {
                 var chosen=monitor;string label=chosen.DeviceName.Substring(chosen.DeviceName.LastIndexOf('\\')+1)+" · "+chosen.Bounds.Width+" × "+chosen.Bounds.Height;
-                Item(screens,label,async()=>await CaptureScreen(chosen));
+                Item(screens,label,async()=>await CaptureScreen(chosen),"screen");
             }
             Item(menu,"Окна и приложения…",ShowComputer).IsEnabled=WorkPolicy.CaptureAllowed;screens.IsEnabled=WorkPolicy.CaptureAllowed;
             menu.Items.Add(new Separator());
-            var dialog=new MenuItem{Header="Голосовой диалог",IsCheckable=true,IsChecked=prefs.ConversationVoice,ToolTip="После записи отправлять фразу и читать ответ вслух"};
+            var dialog=new MenuItem{Header="Голосовой диалог",Icon=OstumActionIcons.Menu("Голосовой диалог"),IsCheckable=true,IsChecked=prefs.ConversationVoice,ToolTip="После записи отправлять фразу и читать ответ вслух"};
             dialog.Click+=(s,e)=>{prefs.ConversationVoice=dialog.IsChecked;Store.Save(prefs);if(!dialog.IsChecked)voice.StopSpeech();};
             menu.Items.Add(dialog); Item(menu,"Остановить озвучивание",()=>voice.StopSpeech());
             if(!Store.DictationOn(prefs)||!Store.Files["voice"].Present(prefs.Models))Item(menu,"Подключить диктовку…",async()=>await PrepareVoice());
             menu.Items.Add(new Separator());Item(menu,"Мой рабочий профиль…",ShowProfile).IsEnabled=!WorkPolicy.Rules.Managed;
             Item(menu,"О программе и обновлениях…",About);
             menu.IsOpen=true;
+        }
+        async void OpenMeeting(){
+            if(meetingOpen||work!=null||speechWork!=null||voice.Recording||PaneBusy)return;
+            meetingOpen=true;prepareDraft.Stop();idle.Stop();
+            try{WorkPolicy.RequireAI();if(!await PrepareVoice())return;StopAudio();voice.StopSpeech();
+                new MeetingWindow(Window,prefs,engine,meetingEngines).Show();
+            }catch(Exception ex){status.Text=ex.Message;}finally{meetingOpen=false;if(!closing&&work==null)idle.Start();}
+        }
+        bool OpenChatUtility(string request){
+            if(art||attached!=null||document!=null)return false;
+            string text=(request??"").Trim().TrimEnd('.','!','?').ToLowerInvariant();
+            Action launch;
+            switch(text){
+                case "открой совещание":case "разбери запись совещания":case "запиши совещание":launch=OpenMeeting;break;
+                case "открой хранилище":case "покажи место на диске":launch=()=>StorageWindow.Show(Window,prefs);break;
+                case "найди сообщение":case "открой поиск по сообщениям":launch=SearchHistory;break;
+                default:return false;
+            }
+            input.Clear();prepareDraft.Stop();launch();return true;
         }
         Task<bool> PrepareVoice() {
             if(Store.DictationOn(prefs)&&Store.Files["voice"].Present(prefs.Models))return Task.FromResult(true);
@@ -98,12 +139,17 @@ namespace Sfera {
         }
         void VoiceButtons(bool active,string action) {
             var micButton=Find<Button>("Microphone");
-            micButton.Content=active?"\uE71A":"\uE720";micButton.ToolTip=active?action:"Записать голосовое сообщение";
-            micButton.Background=Color(active?"#F4E1E9":"#F0EEF7");
+            string micAction=!active?"Записать голосовое сообщение":action=="Распознать"?"Завершить запись":"Отменить распознавание";
+            micButton.Content=micButton.ToolTip=micAction;
+            System.Windows.Automation.AutomationProperties.SetName(micButton,micAction);
+            micButton.Background=Color(active?"#F8E2DB":"#E8EEE8");
             var send=Find<Button>("Send");send.Content=active?action:(art?"Нарисовать":"Отправить");
             send.ToolTip=active?action:"Enter — отправить, Shift+Enter — новая строка";
             Find<Button>("MicDevices").IsEnabled=!active;
             Find<Button>("NewChat").IsEnabled=Find<Button>("Models").IsEnabled=list.IsEnabled=!active;
+            foreach(string id in new[]{"Attach","QuickDocument","QuickAgents","QuickPhoto","QuickArt","Projects","PreviewToggle","Toolbox","ChatMode"})
+                Find<Button>(id).IsEnabled=!active;
+            UpdateSendEnabled();
         }
         void MicIdle(){
             recordMeter.Stop();recordTime.Reset();Find<Border>("MicStrip").Visibility=Visibility.Collapsed;
@@ -158,7 +204,7 @@ namespace Sfera {
                 Background=Color("#F8F8FC"),FontFamily=Window.FontFamily,Content=body,Icon=Window.Icon};
         }
         static Button ButtonFor(string text,Action click){
-            var b=new Button{Content=text,Margin=new Thickness(0,3,8,3),Padding=new Thickness(12,7,12,7)};
+            var b=new Button{ContentTemplate=OstumActionIcons.For(text),Content=text,Margin=new Thickness(0,3,8,3),Padding=new Thickness(12,7,12,7)};
             b.Click+=(s,e)=>click();return b;
         }
         void ShowProfile(){
@@ -193,7 +239,7 @@ namespace Sfera {
             root.Children.Add(listWindows);refresh();win.ShowDialog();
         }
         void StartProgress(){
-            liveStages.Clear();Find<WrapPanel>("StageList").Children.Clear();var panel=Find<Border>("RunPanel");panel.Visibility=Visibility.Visible;
+            Find<WrapPanel>("StageList").Children.Clear();var panel=Find<Border>("RunPanel");panel.Visibility=Visibility.Visible;
             var dot=Find<System.Windows.Shapes.Ellipse>("RunDot");
             if(SystemParameters.ClientAreaAnimation){var pulse=new DoubleAnimation(1,.32,TimeSpan.FromMilliseconds(750)){AutoReverse=true,RepeatBehavior=RepeatBehavior.Forever};dot.BeginAnimation(UIElement.OpacityProperty,pulse);}
             Progress("Оркестратор выбирает инструменты");
@@ -213,10 +259,18 @@ namespace Sfera {
             else if(line.StartsWith("Компьютер"))name="Компьютер";
             else if(line.StartsWith("Читаю документ"))name="Документ";
             else if(line.StartsWith("Отвечаю")||line.StartsWith("Составляю ответ")||line.StartsWith("Обдумываю"))name="Ответ";
-            if(name==null||liveStages.LastOrDefault()==name)return;
-            liveStages.Add(name);if(liveStages.Count>8)liveStages.RemoveAt(0);
-            var strip=Find<WrapPanel>("StageList");strip.Children.Clear();
-            for(int i=0;i<liveStages.Count;i++){bool current=i==liveStages.Count-1;strip.Children.Add(new TextBlock{Text=(current?"●  ":"✓  ")+liveStages[i],Foreground=Color(current?"#593FC1":"#4F635D"),FontWeight=current?FontWeights.SemiBold:FontWeights.Normal,FontSize=12,Margin=new Thickness(0,2,14,2)});}
+            if(name==null)return;
+            var strip=Find<WrapPanel>("StageList");
+            int count=strip.Children.Count;
+            if(count>0){
+                var previous=(ContentControl)strip.Children[count-1];
+                if(object.Equals(previous.Content,name))return;
+                previous.ContentTemplate=OstumActionIcons.Tab("check");
+                previous.Foreground=Color("#536559");previous.FontWeight=FontWeights.Normal;
+            }
+            if(count==8)strip.Children.RemoveAt(0);
+            strip.Children.Add(new ContentControl{Content=name,ContentTemplate=OstumActionIcons.Tab("auto"),Focusable=false,
+                Foreground=Color("#35543F"),FontSize=12,FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,1,12,1)});
         }
         void EndProgress(){Find<System.Windows.Shapes.Ellipse>("RunDot").BeginAnimation(UIElement.OpacityProperty,null);Find<Border>("RunPanel").Visibility=Visibility.Collapsed;}
     }

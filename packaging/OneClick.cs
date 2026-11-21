@@ -16,7 +16,7 @@ using Sfera;
 
 [assembly: AssemblyTitle("Установить Ostum Desktop")]
 [assembly: AssemblyProduct("Ostum Desktop")]
-[assembly: AssemblyVersion("5.4.0.0")]
+[assembly: AssemblyVersion("5.7.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace SferaSetup {

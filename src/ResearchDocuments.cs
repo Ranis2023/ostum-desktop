@@ -24,10 +24,14 @@ namespace Sfera {
         }
     }
     public sealed class DocumentPart {
+        public int ScanNumber{get;set;}
+        public double[] Box{get;set;}
         public string Label { get; set; }
         public string Text { get; set; }
     }
     public sealed class ResearchDocument {
+        public Dictionary<string,string> ScanPictures{get;set;}
+        public string ScanNotice{get;set;}
         public string Id { get; set; }
         public string Name { get; set; }
         public List<DocumentPart> Parts { get; set; }
@@ -44,32 +48,55 @@ namespace Sfera {
             var file=Local(id);
             return File.Exists(file) ? Store.Json().Deserialize<ResearchDocument>(File.ReadAllText(file)) : null;
         }
-        public static ResearchDocument Read(string file) {
+        public static ResearchDocument Read(string file){return Read(file,true,System.Threading.CancellationToken.None);}
+        internal static ResearchDocument Read(string file,bool preview,System.Threading.CancellationToken ct) {
             if (!Supported(file)) throw new IOException("Поддерживаются PDF, DOCX и текстовые файлы.");
             var info=new FileInfo(file);
             if (info.Length>32L*1024*1024) throw new IOException("Для вложения выберите файл до 32 МБ.");
             var doc=new ResearchDocument { Id=Guid.NewGuid().ToString("N"), Name=info.Name, Parts=new List<DocumentPart>() };
             int total=0;
-            foreach (var section in Sections(info)) {
+            foreach (var section in Sections(info,doc,preview,ct)) {
+                ct.ThrowIfCancellationRequested();
                 string text=ResearchText.Plain(section.Text);
                 for (int start=0;start<text.Length;) {
                     int size=Math.Min(1150,text.Length-start);
                     if (size<text.Length-start) { int cut=text.LastIndexOf(' ',start+size-1,size); if(cut>start+650)size=cut-start; }
                     if (total+size>MaxChars) {doc.Truncated=true;break;}
-                    if (size>0) {doc.Parts.Add(new DocumentPart {Label=section.Label, Text=text.Substring(start,size)});total+=size;}
+                    if (size>0) {doc.Parts.Add(new DocumentPart {Label=section.Label, Text=text.Substring(start,size),Box=section.Box,ScanNumber=section.ScanNumber});total+=size;}
                     start+=size; while(start<text.Length && text[start]==' ')start++;
                 }
                 if(doc.Truncated) break;
             }
-            if (doc.Parts.Count==0) throw new IOException("В файле нет текстового слоя. Страницу скана можно прикрепить как изображение.");
+            if (doc.Parts.Count==0) throw new IOException(info.Extension.Equals(".pdf",StringComparison.OrdinalIgnoreCase)?"В PDF не найден читаемый текст. "+(doc.ScanNotice??"Попробуйте более чёткий скан."):"Файл пуст или в нём нет текста.");
             return doc;
         }
-        static IEnumerable<DocumentPart> Sections(FileInfo info) {
+        static IEnumerable<DocumentPart> Sections(FileInfo info,ResearchDocument result,bool preview,System.Threading.CancellationToken ct) {
             string ext=info.Extension.ToLowerInvariant();
             if (ext==".pdf") {
-                using (var pdf=PdfDocument.Open(info.FullName)) {
-                    foreach (var page in pdf.GetPages()) yield return new DocumentPart { Label="стр. "+page.Number, Text=ContentOrderTextExtractor.GetText(page) };
+                var content=new SortedDictionary<int,List<DocumentPart>>();
+                var scans=new List<int>();int length=0;
+                using (var pdf=PdfDocument.Open(info.FullName))
+                    foreach (var page in pdf.GetPages()){
+                        ct.ThrowIfCancellationRequested();
+                        string value=ContentOrderTextExtractor.GetText(page);
+                        if(string.IsNullOrWhiteSpace(value)){
+                            if(scans.Count<30)scans.Add(page.Number);else result.ScanNotice="Распознаны первые 30 страниц скана.";
+                        }else{content[page.Number]=new List<DocumentPart>{new DocumentPart{Label="стр. "+page.Number,Text=value}};length+=value.Length;}
+                        if(length>=MaxChars&&page.Number<pdf.NumberOfPages){result.ScanNotice="Извлечена начальная часть PDF.";break;}
+                    }
+                if(scans.Count>0){
+                    ScanPage[] pages;
+                    try{pages=LocalOcr.Read(info.FullName,scans,preview,ct);}
+                    catch(IOException ex){if(content.Count==0)throw;result.ScanNotice=ex.Message;pages=new ScanPage[0];}
+                    foreach(var page in pages){
+                        if(!string.IsNullOrEmpty(page.Picture)){
+                            if(result.ScanPictures==null)result.ScanPictures=new Dictionary<string,string>();
+                            result.ScanPictures[page.Number.ToString(CultureInfo.InvariantCulture)]=page.Picture;
+                        }
+                        content[page.Number]=page.Lines.Select(line=>new DocumentPart{Label="стр. "+page.Number+" · OCR "+page.Language,ScanNumber=page.Number,Box=line.Box,Text=line.Text}).ToList();
+                    }
                 }
+                foreach(var parts in content.Values)foreach(var part in parts)yield return part;
             } else if (ext==".docx") {
                 using (var file=info.OpenRead()) using(var zip=new ZipArchive(file,ZipArchiveMode.Read)) {
                     var entry=zip.GetEntry("word/document.xml");
@@ -133,8 +160,40 @@ namespace Sfera {
             try { return new Parser(expression).Evaluate().ToString("0.############################",CultureInfo.InvariantCulture); }
             catch(FormatException){return null;}catch(ArithmeticException){return null;}
         }
+        static string IncludedFee(string request){
+            const RegexOptions options=RegexOptions.IgnoreCase|RegexOptions.CultureInvariant;
+            const string rate=@"(?<rate>\d{1,3}(?:[.,]\d{1,3})?)\s*%";
+            const string money=@"(?<![\d.,+\-−])(?<total>(?:\d{1,3}(?:[ \u00a0\u202f]\d{3}){1,3}|\d{1,12})(?:[.,]\d{1,2})?)\s*(?:₽|руб(?:лей|ля|ль)?\b\.?)";
+            if(!Regex.IsMatch(request,@"\b(?:сколько\s+(?:рублей\s+)?(?:(?:составляет|составит)\s+)?(?:именно\s+)?(?:сбор|комиссия)|какова\s+сумма\s+(?:сбора|комиссии))\s*[?.!]?\s*(?:только число[.!]?)?\s*$",options))return null;
+            if(!Regex.IsMatch(request,@"\b(?:сбор(?:а)?|комисси[ия])\s*"+rate+@"\s+(?:уже\s+)?включ[её]н",options)||
+               Regex.IsMatch(request,@"[-−]\s*\d|\b(?:без|скидк\w*|переведи|сравни|объясни|распиши|json)\b|\bот\s+(?:общей|полной|итоговой)\s+суммы",options))return null;
+            var totalMatch=Regex.Match(request,money,options);var rateMatch=Regex.Match(request,rate,options);
+            if(!totalMatch.Success||Regex.IsMatch(Regex.Replace(Regex.Replace(request,money,"",options),rate,"",options),@"\d")||
+                totalMatch.NextMatch().Success||rateMatch.NextMatch().Success)return null;
+            decimal total,percent;
+            if(!decimal.TryParse(Regex.Replace(totalMatch.Groups["total"].Value,@"\s","").Replace(',','.'),NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out total)||
+               !decimal.TryParse(rateMatch.Groups["rate"].Value.Replace(',','.'),NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out percent))return null;
+            decimal fee=decimal.Round(total*percent/(100m+percent),2,MidpointRounding.AwayFromZero);
+            return fee.ToString("0.##",CultureInfo.GetCultureInfo("ru-RU"))+(Regex.IsMatch(request,@"только число",options)?"":" руб.");
+        }
         public static string Direct(string request) {
             if(string.IsNullOrWhiteSpace(request)||request.Length>200)return null;
+            const RegexOptions ignore=RegexOptions.IgnoreCase|RegexOptions.CultureInvariant;
+            if(request.IndexOf('%')>=0){
+                string fee=IncludedFee(request);if(fee!=null)return fee;
+            }
+            if(Regex.IsMatch(request,@"(?:сколько\s+минут|(?:посчитай|вычисли|рассчитай)\s+(?:длительность|продолжительность|разниц\w*)\b.*\bминут)",ignore)
+                &&!Regex.IsMatch(request,@"перерыв|обед|вычет|часов\w*\s+пояс|местно\w*\s+врем|переведи|объясни|формул|таблиц|json|utc|gmt|мск",ignore)){
+                const string clock=@"([01]?\d|2[0-3]):([0-5]\d)";
+                var interval=Regex.Match(request,@"\b(?:с|от)\s+"+clock+@"\s+(?:до|по)\s+"+clock+@"(?![:\d])(?:\s+(следующего\s+(?:дня|утра)|на следующий день))?",ignore);
+                if(interval.Success&&!Regex.IsMatch(request.Remove(interval.Index,interval.Length),@"\d|\b(?:дней|суток|через день)\b",ignore)){
+                    int start=60*int.Parse(interval.Groups[1].Value)+int.Parse(interval.Groups[2].Value);
+                    int end=60*int.Parse(interval.Groups[3].Value)+int.Parse(interval.Groups[4].Value);
+                    if(interval.Groups[5].Success)end+=1440;
+                    if(end<start)return "Окончание раньше начала. Уточните, заканчивается ли интервал на следующий день.";
+                    return (end-start).ToString(CultureInfo.InvariantCulture)+(Regex.IsMatch(request,@"только числ|одним числом",ignore)?"":" мин.");
+                }
+            }
             var prefix=Regex.Match(request,@"^\s*(?:сколько(?:\s+будет)?|посчитай(?:те)?|рассчитай(?:те)?|вычисли(?:те)?|calculate|what is)\b\s*:?\s*",RegexOptions.IgnoreCase);
             string expression=request.Substring(prefix.Length).Trim().TrimEnd('?','=').Trim();
             if(expression.Length>160||!Regex.IsMatch(expression,@"[+*/×÷−%^\-]"))return null;

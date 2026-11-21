@@ -30,9 +30,10 @@ namespace Sfera {
         [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr window,int attr,out int value,int size);
         public static List<AppWindow> Windows(IntPtr self) {
             var result=new List<AppWindow>();
+            uint ownId;using(var current=Process.GetCurrentProcess())ownId=(uint)current.Id;
             EnumWindows((hw,st)=>{
                 uint pid;GetWindowThreadProcessId(hw,out pid);int cloaked;
-                if(hw==self||!IsWindowVisible(hw)||pid==(uint)Process.GetCurrentProcess().Id||DwmGetWindowAttribute(hw,14,out cloaked,4)==0&&cloaked!=0)return true;
+                if(hw==self||!IsWindowVisible(hw)||pid==ownId||DwmGetWindowAttribute(hw,14,out cloaked,4)==0&&cloaked!=0)return true;
                 var str=new StringBuilder(512);GetWindowText(hw,str,str.Capacity);
                 if(str.Length>0&&str.ToString()!="Program Manager")result.Add(new AppWindow{Handle=hw,Process=pid,Title=str.ToString()});
                 return true;

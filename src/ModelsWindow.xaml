@@ -9,17 +9,18 @@
         <TextBlock Text="Диалог и распознавание изображений" FontWeight="SemiBold" Margin="0,1,0,6"/>
         <ComboBox x:Name="EngineChoice" AutomationProperties.Name="Активная модель" MinHeight="31"/>
         <WrapPanel Margin="0,7,0,3">
-          <Button x:Name="ImportGGUF" Content="Открыть GGUF с диска…" Padding="8,4" Margin="0,0,5,0"/>
-          <Button x:Name="CatalogButton" Content="Каталог моделей…" Padding="8,4"/>
+          <Button x:Name="ImportGGUF" Tag="file" ContentTemplate="{DynamicResource OstumLabel}" Content="Открыть GGUF с диска…" Padding="8,4" Margin="0,0,5,0"/>
+          <Button x:Name="CatalogButton" Tag="model" ContentTemplate="{DynamicResource OstumLabel}" Content="Каталог моделей…" Padding="8,4"/>
         </WrapPanel>
         <TextBlock x:Name="ChatInfo" TextWrapping="Wrap" FontSize="12" Foreground="#5A665D" Margin="0,4,0,8"/>
         <CheckBox x:Name="Thinking" Content="Обдумывать ответы дольше" Margin="1,2,0,13"/>
         <TextBlock Text="Дополнительные модули" FontWeight="SemiBold" Margin="0,2,0,7"/>
         <CheckBox x:Name="VoiceChoice" Content="Диктовка на русском · Whisper · 82 МБ" Margin="1,2,0,6"/>
         <CheckBox x:Name="ArtChoice" Content="Генерация изображений · Z-Image-Turbo · 6,70 ГБ" Margin="1,2,0,6"/>
+        <DockPanel Margin="1,0,0,6"><TextBlock Text="Размер изображения" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="ImageSize" HorizontalAlignment="Left" Width="205"><ComboBoxItem Content="384 · быстрый эскиз"/><ComboBoxItem Content="512 · предпросмотр"/><ComboBoxItem Content="1024 · полный размер"/></ComboBox></DockPanel>
         <TextBlock Text="Отключённый модуль можно включить позже. Его скачанные файлы сохраняются." TextWrapping="Wrap" FontSize="12" Foreground="#5A665D" Margin="0,1,0,13"/>
         <TextBlock Text="Папка с моделями" FontWeight="SemiBold"/>
-        <DockPanel Margin="0,5,0,4"><Button DockPanel.Dock="Right" x:Name="Browse" Content="Выбрать…" Padding="10,5"/>
+        <DockPanel Margin="0,5,0,4"><Button DockPanel.Dock="Right" x:Name="Browse" Tag="folder" ContentTemplate="{DynamicResource OstumLabel}" Content="Выбрать…" Padding="10,5"/>
           <TextBox x:Name="Folder" AutomationProperties.Name="Папка с моделями" IsReadOnly="True" VerticalContentAlignment="Center" Margin="0,0,7,0" Padding="5,2" BorderBrush="#C8CCC4"/>
         </DockPanel>
         <TextBlock Text="Можно выбрать папку с уже скачанными файлами или диск для загрузки." TextWrapping="Wrap" Foreground="#626B64" FontSize="12"/>
@@ -27,20 +28,21 @@
         <Separator Margin="0,14,0,6"/>
         <TextBlock Text="Что сможет мой компьютер" FontWeight="SemiBold"/>
         <TextBlock x:Name="HardwareInfo" TextWrapping="Wrap" Margin="0,4,0,0" FontSize="12"/>
-          <Button x:Name="MeasureSpeed" Content="Измерить скорость на этом ПК" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="8,4"/>
+          <Button x:Name="MeasureSpeed" Tag="speed" ContentTemplate="{DynamicResource OstumLabel}" Content="Измерить скорость на этом ПК" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="8,4"/>
+          <Button x:Name="Storage" Tag="storage" ContentTemplate="{DynamicResource OstumLabel}" Content="Место на диске…" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="8,4"/>
         <Separator Margin="0,16,0,8"/>
         <TextBlock Text="Поблагодарить разработчика" FontWeight="SemiBold"/>
         <TextBlock Text="Подписка на канал Раниса Галиаскарова открывает рабочие пространства Pro после проверки в Telegram. Базовым чатом можно пользоваться сразу." TextWrapping="Wrap" Margin="0,4,0,5"/>
-        <Button x:Name="DeveloperChannel" Content="Открыть канал в Telegram ↗" HorizontalAlignment="Left" Padding="8,4"/>
-        <Button x:Name="ProSubscription" Content="Бессрочный доступ к OSTUM Pro" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="8,4"/>
+        <Button x:Name="DeveloperChannel" Tag="external" ContentTemplate="{DynamicResource OstumLabel}" Content="Открыть канал в Telegram" HorizontalAlignment="Left" Padding="8,4"/>
+        <Button x:Name="ProSubscription" Tag="lock" ContentTemplate="{DynamicResource OstumLabel}" Content="Бессрочный доступ к OSTUM Pro" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="8,4"/>
       </StackPanel>
     </ScrollViewer>
     <StackPanel Grid.Row="2" Margin="0,8,0,0">
       <TextBlock x:Name="Notice" TextWrapping="Wrap" Margin="0,0,0,6" Foreground="#765138" FontSize="12" MaxHeight="64"/>
       <ProgressBar x:Name="Progress" Visibility="Collapsed" Height="5" Minimum="0" Maximum="1" Margin="0,0,0,8" Foreground="#517564"/>
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button x:Name="Dismiss" Content="Закрыть" Margin="0,0,8,0"/>
-        <Button x:Name="Apply" Content="Применить" Background="#344B40" Foreground="White"/>
+        <Button x:Name="Dismiss" Tag="close" ContentTemplate="{DynamicResource OstumLabel}" Content="Закрыть" Margin="0,0,8,0"/>
+        <Button x:Name="Apply" Tag="check" ContentTemplate="{DynamicResource OstumLabel}" Content="Применить" Background="#344B40" Foreground="White"/>
       </StackPanel>
     </StackPanel>
   </Grid>

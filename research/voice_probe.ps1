@@ -1,10 +1,11 @@
-﻿param([Parameter(Mandatory)][string]$Out)
+﻿param([Parameter(Mandatory)][string]$Out,[string]$Build)
 $ErrorActionPreference='Stop'
 $directory=[IO.Path]::GetFullPath($Out)
 [void][IO.Directory]::CreateDirectory($directory)
 $appDir=Join-Path $env:LOCALAPPDATA 'Programs/Ostum Desktop'
 Add-Type -AssemblyName System.Speech
-[void][Reflection.Assembly]::LoadFrom((Join-Path $appDir 'OstumDesktop.exe'))
+if(!$Build){$Build=$appDir}
+[void][Reflection.Assembly]::LoadFrom((Get-Item -LiteralPath (Join-Path $Build 'OstumDesktop.exe')).FullName)
 $audio=Join-Path $directory 'synthetic.wav'
 $speaker=[Sfera.Voice]::RussianSpeaker()
 try{

@@ -35,7 +35,7 @@ namespace Sfera {
         public async Task<string> Recognize(string wav,string models,CancellationToken token) {
             WorkPolicy.RequireAI();
             string model=Store.Files["voice"].PathIn(models);
-            if(!File.Exists(model))throw new FileNotFoundException("Модель диктовки отсутствует. Откройте «Скачать голосовую модель» в меню инструментов.");
+            if(!File.Exists(model))throw new FileNotFoundException("Откройте «Инструменты» и выберите «Подключить диктовку», чтобы установить голосовую модель.");
             string dir=Path.Combine(binaries,"whisper-b5454"), exe=Path.Combine(dir,"whisper-cli.exe");
             string output=Path.Combine(Path.GetTempPath(),"sfera-"+Guid.NewGuid().ToString("N"));
             var args=new[]{"-m",model,"-f",wav,"-l","ru","-otxt","-of",output,"-nt","-t","5","--no-gpu"};

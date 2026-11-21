@@ -1,10 +1,10 @@
-param([string]$RuntimeCache, [switch]$AppOnly)
+param([string]$RuntimeCache, [switch]$AppOnly, [string]$DistributionDirectory)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $root = $PSScriptRoot
 $build = Join-Path $root '.build'
 $src = Join-Path $root 'src'
-$dist = Join-Path $root 'dist'
+$dist = if($DistributionDirectory){[IO.Path]::GetFullPath($DistributionDirectory)}else{Join-Path $root 'dist'}
 foreach ($dir in @($build,$dist)) { [void][IO.Directory]::CreateDirectory($dir) }
 if (!$RuntimeCache) { $RuntimeCache = Join-Path $build 'runtime' }
 & (Join-Path $root 'packaging\Icon.ps1') -OutputFolder $build
@@ -20,6 +20,7 @@ $options += '/r:'+$speech.FullName
 $libraries=@(& (Join-Path $root 'packaging\Libraries.ps1') -Build $build)
 foreach ($file in $libraries) { $options += '/r:'+$file }
 foreach ($item in @('MainWindow.xaml','ModelsWindow.xaml','WorkspaceView.xaml','WorkspaceTheme.xaml','ProAccessView.xaml','catalog.json','model-catalog.json','RoutePrompt.txt','AgentLights.png')) { $options += '/resource:'+(Join-Path $src $item)+','+$item }
+$options += '/resource:'+(Join-Path $src 'ScanPages.ps1')+',ScanPages.ps1'
 $options += '/resource:'+(Join-Path $root 'subscription/issuer-public.xml')+',issuer-public.xml'
 $options += '/resource:'+(Join-Path $build 'icon.b64')+',icon.b64'
 $files = @(Get-ChildItem -LiteralPath $src -Filter '*.cs' | ForEach-Object FullName)

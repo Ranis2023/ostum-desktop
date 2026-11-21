@@ -1,6 +1,7 @@
 """Train and evaluate a local Zarum output-layer LoRA from approved question/answer pairs."""
 import argparse
 import collections
+import contextlib
 import hashlib
 import json
 import math
@@ -54,10 +55,42 @@ def score(text, target):
     return round(2 * sum((a & b).values()) / max(1, sum(a.values()) + sum(b.values())), 4)
 
 
+@contextlib.contextmanager
+def local_server(args,switches,log):
+    with contextlib.ExitStack() as stack:
+        runtime=args.engine
+        try:server=stack.enter_context(Server(runtime,args.model,switches,log))
+        except (OSError,RuntimeError):
+            if args.fallback_engine is None:raise
+            runtime=args.fallback_engine
+            print("Ускоритель недоступен. Перехожу на встроенный движок.",flush=True)
+            server=stack.enter_context(Server(runtime,args.model,switches,log))
+        print("Локальный движок: "+runtime.name,flush=True)
+        yield server
+
+
+def validation_answer(server,prompt,scale):
+    body=dict(prompt=prompt,n_predict=90,temperature=0,seed=42,cache_prompt=False,stream=True,lora=[dict(id=0,scale=scale)])
+    tokens=[];finished=False
+    # Enforce an idle timeout. A slow but responding CPU can finish the same
+    # validation as a GPU without discarding several minutes of generation.
+    with urllib.request.urlopen(server.request("completion",body),timeout=240) as response:
+        for line in response:
+            if not line.startswith(b"data: "):continue
+            event=line[6:].strip()
+            if event==b"[DONE]":finished=True;break
+            result=json.loads(event)
+            if result.get("error"):raise RuntimeError("Ошибка локальной контрольной генерации.")
+            tokens.append(result.get("content",""));finished=finished or bool(result.get("stop"))
+    if not finished:raise RuntimeError("Локальный движок прервал проверочный ответ.")
+    return "".join(tokens).strip()
+
+
 def main():
     p = argparse.ArgumentParser()
     for name in ("engine", "model", "data", "out"):
         p.add_argument("--"+name, type=Path, required=True)
+    p.add_argument("--fallback-engine",type=Path)
     args = p.parse_args()
     # Training only contacts the authenticated server on 127.0.0.1.
     urllib.request.install_opener(urllib.request.build_opener(urllib.request.ProxyHandler({})))
@@ -70,7 +103,7 @@ def main():
     prefix = ["-c", "1536", "--fit-target", "1024", "-t", str(min(8,max(1,(os.cpu_count() or 4)//2)))]
     features, labels = [], []
     print(f"Обучение: {len(train)} примеров. Отложенная проверка: {len(test)}.", flush=True)
-    with Server(args.engine, args.model, prefix+["--embeddings","--pooling","last","--embd-normalize","-1"], out/"features.log") as srv:
+    with local_server(args,prefix+["--embeddings","--pooling","last","--embd-normalize","-1"],out/"features.log") as srv:
         for i, row in enumerate(train):
             template = srv.template(SYSTEM, row["prompt"])
             prompt = srv.post("tokenize", {"content":template,"parse_special":True,"add_special":False})["tokens"]
@@ -85,7 +118,7 @@ def main():
             print(f"Признаки {i+1}/{len(train)}", flush=True)
     x=np.stack(features).astype(np.float64)
     ids=sorted(set(labels))
-    arch,vocab,w=head_rows(args.model,args.engine,ids)
+    arch,vocab,w=head_rows(args.model,args.fallback_engine or args.engine,ids)
     norm=np.maximum(np.linalg.norm(x,axis=1,keepdims=True),1e-8)
     unit=x/norm
     base=x@w.T
@@ -101,12 +134,12 @@ def main():
     adapter=out/"candidate.gguf"
     lora_file(adapter,arch,a,b,name="OSTUM Pro local answer adapter")
     report=[]
-    with Server(args.engine,args.model,prefix+["--lora",str(adapter),"--lora-init-without-apply"],out/"evaluate.log") as srv:
+    with local_server(args,prefix+["--lora",str(adapter),"--lora-init-without-apply"],out/"evaluate.log") as srv:
         for i,row in enumerate(test):
             prompt=srv.template(SYSTEM,row["prompt"])
             item=dict(prompt=row["prompt"],expected=row["answer"])
             for label,scale in (("base",0),("trained",1)):
-                item[label]=srv.post("completion",dict(prompt=prompt,n_predict=90,temperature=0,seed=42,cache_prompt=False,lora=[dict(id=0,scale=scale)]))["content"].strip()
+                item[label]=validation_answer(srv,prompt,scale)
                 item[label+"_f1"]=score(item[label],row["answer"])
             item["verbatim_training_answer"]=any(len(normalized(r["answer"]))>=32 and normalized(r["answer"]) in normalized(item["trained"]) for r in train)
             report.append(item);print(f"Проверка {i+1}/{len(test)}",flush=True)

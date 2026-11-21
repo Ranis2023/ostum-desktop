@@ -14,7 +14,10 @@ namespace Sfera {
                 var command=ChatFileIntent.Read(request);
                 reply.Text=await Workers.Track(changed,"docs","Документалист",command==null?"Читает открытый файл":"Работает с папкой и документом",async()=>{
                     if(!ShowProject())return "Чтобы открыть локальный редактор в чате, требуется OSTUM Pro.";
-                    return await chatProject.ChatAction(command,request,token,agents||Orchestrator.WantsTeam(request),changed);
+                    string result=await chatProject.ChatAction(command,request,token,agents||Orchestrator.WantsTeam(request),changed);
+                    if(WorkPolicy.History&&string.IsNullOrEmpty(active.ProjectKey)&&chatProject.CurrentProjectKey!=null&&active.Turns.All(t=>t.ProjectOnly))
+                        Store.AssignProject(active,chatProject.CurrentProjectKey);
+                    return result;
                 });
                 reply.Steps=new List<string>{"Оркестратор · рабочая папка · локально"};return;
             }
@@ -45,6 +48,8 @@ namespace Sfera {
                 reply.Steps=new List<string>{"Сверка версий · извлечённый текст двух последних вложений"};return;
             }
             if(!art&&!agents&&user.Image==null&&user.DocumentId==null){
+                string missing=ChatContext.EmptyRecall(turns);
+                if(missing!=null){reply.Text=missing;reply.Steps=new List<string>{"Оркестратор · проверена история текущей беседы"};return;}
                 string value=Calculator.Direct(request);
                 if(value!=null){
                     reply.Text=await Workers.Track(changed,"calc","Калькулятор","Вычисляет выражение",()=>Task.FromResult(value));
@@ -80,7 +85,7 @@ namespace Sfera {
             var trace=new List<string>{"Оркестратор · "+mode+(route.web&&mode!="веб-поиск"?" и веб-поиск":"")};
             if(route.team)engine.TeamMode(true);
             string guidance="";
-            bool exactText=ReplyFormat.Object(request)||field||ChatContext.IsRecall(request);
+            bool exactText=ReplyFormat.Object(request)||ReplyFormat.TextOnly(request)||field||ChatContext.IsRecall(request);
             if((route.answer!="image"||route.team)&&!exactText)guidance=await Task.Run(()=>engine.WorkContext(prefs,request,activity,token));
             bool docs=turns.Any(t=>t.DocumentId!=null);
             if(route.answer=="image") {
@@ -93,10 +98,11 @@ namespace Sfera {
                     string research=await Task.Run(()=>Agents.Run(engine,prefs,turns,route.team,route.web,reply,t=>{},activity,token,route.query,guidance,changed));
                     brief=request+"\nДетали для иллюстрации:\n"+ResearchText.Clip(research,1100);reply.Text=research;
                 }
-                int side=1024,w=side,h=side;
+                int side=prefs.ImageSide==384||prefs.ImageSide==512?prefs.ImageSide:1024,w=side,h=side;
                 if(reference!=null){var im=OpenImage(reference,1024);double k=(double)side/Math.Max(im.PixelWidth,im.PixelHeight);w=Math.Max(256,64*(int)Math.Round(im.PixelWidth*k/64));h=Math.Max(256,64*(int)Math.Round(im.PixelHeight*k/64));}
                 Progress("Генератор создаёт изображение");
-                reply.Image=await Workers.Track(changed,"paint","Художник","Создаёт изображение по описанию",()=>Task.Run(()=>engine.Paint(prefs,brief,reference,w,h,activity,token)));
+                Func<int> cpuChoice=()=>Window.Dispatcher.Invoke(()=>{if(token.IsCancellationRequested)return 0;var choice=System.Windows.MessageBox.Show(Window,"Видеокарта не завершила генерацию. На CPU это может занять несколько минут.\nДа — продолжить "+w+" × "+h+".\nНет — быстрый эскиз до 384.\nОтмена — остановить.","Генерация на процессоре",System.Windows.MessageBoxButton.YesNoCancel,System.Windows.MessageBoxImage.Question,System.Windows.MessageBoxResult.Cancel);return choice==System.Windows.MessageBoxResult.Yes?side:choice==System.Windows.MessageBoxResult.No?384:0;});
+                reply.Image=await Workers.Track(changed,"paint","Художник","Изображение · "+w+" × "+h,()=>Task.Run(()=>engine.Paint(prefs,brief,reference,w,h,activity,token,cpuChoice)));
                 if(string.IsNullOrWhiteSpace(reply.Text))reply.Text="Изображение готово.";reply.Generated=true;
             }else if(route.team||route.web||docs||(!exactText&&Agents.HasArithmetic(request)))
                 reply.Text=await Task.Run(()=>Agents.Run(engine,prefs,turns,route.team,route.web,reply,stream,activity,token,route.query,guidance,changed));

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -15,6 +17,12 @@ using Sfera;
 public static class WorkspaceChecks {
     static readonly string root=AppDomain.CurrentDomain.BaseDirectory;
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    static IEnumerable<T> Visuals<T>(DependencyObject view) where T:DependencyObject{
+        for(int i=0;i<VisualTreeHelper.GetChildrenCount(view);i++){
+            var child=VisualTreeHelper.GetChild(view,i);if(child is T)yield return (T)child;
+            foreach(var next in Visuals<T>(child))yield return next;
+        }
+    }
     static void Denied(Action op){try{op();}catch(UnauthorizedAccessException){return;}throw new Exception("Expected a denial");}
     static object Invoke(object who,string name,params object[] args){return who.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(who,args);}
     static T Find<T>(Window w,string name) where T:FrameworkElement{return (T)((Grid)w.Content).FindName(name);}
@@ -38,6 +46,18 @@ public static class WorkspaceChecks {
         window.Left=-8000;window.Top=-8000;window.ShowActivated=false;window.ShowInTaskbar=false;window.Show();
         try {
             Render(window,"home.png",1100,702);
+            var settings=new ModelSettings(window,new Preferences());
+            var options=(Window)typeof(ModelSettings).GetField("window",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(settings);
+            options.WindowStartupLocation=WindowStartupLocation.Manual;options.Left=-8000;options.Top=-8000;options.ShowInTaskbar=false;options.ShowActivated=false;options.Show();
+            Render(options,"settings.png",660,720);
+            foreach(var b in Visuals<Button>(options).Where(b=>b.Name!=""&&b.IsVisible&&b.Tag is string))
+                Check(Visuals<OstumIcon>(b).Any(i=>OstumIcon.Known(i.Kind)),"Missing settings icon "+b.Name);
+            options.Close();
+            Invoke(app,"StartProgress");Invoke(app,"Progress","Аналитик сверяет числа");
+            var stages=(WrapPanel)window.FindName("StageList");var stage=stages.Children[0];Invoke(app,"Progress","Читаю документ");
+            Invoke(app,"Progress","Читаю документ снова");window.UpdateLayout();
+            Check(stages.Children.Count==3&&stages.Children[0]==stage&&Visuals<OstumIcon>(stage).Any(i=>i.Kind=="check"),"Progress markers flickered or repeated");
+            Invoke(app,"EndProgress");
             foreach(string name in new[]{"QuickDocument","QuickPhoto","QuickArt","QuickAgents","FullHelp"})
                 Check(((Button)window.FindName(name)).IsVisible,"Missing home action "+name);
             Render(window,"home-compact.png",780,550);
@@ -108,6 +128,7 @@ public static class WorkspaceChecks {
             Check(w.Title.Contains(Path.GetFileName(file))&&((OfficeRow)rg.SelectedItem).key=="2","Task failed to reopen its source paragraph");
             var book=Path.Combine(dir,"Смета.xlsx");await ProTools.Office(policy,book,"create",new System.Collections.Generic.Dictionary<string,object>{{"data",new[]{new[]{"Позиция","Сумма"},new[]{"Бумага","120"}}}},CancellationToken.None);
             Drag(w,DragDrop.PreviewDropEvent,book,DragDropEffects.Copy);await Idle(w);Check(Find<ComboBox>(w,"Sheets").Visibility==Visibility.Visible,"Dropped Excel did not open");
+            await RepeatedOffice(policy,book);
             Check(Drag(w,DragDrop.PreviewDropEvent,file,DragDropEffects.Move).Effects==DragDropEffects.None&&Find<ComboBox>(w,"Sheets").Visibility==Visibility.Visible,"Move-only operation accepted");
             var outside=Directory.CreateDirectory(Path.Combine(root,"unapproved")).FullName;
             try{await (Task)Invoke(w,"OpenPaths",new[]{outside},false);throw new Exception("External project opened under company policy");}catch(UnauthorizedAccessException){}
@@ -116,6 +137,63 @@ public static class WorkspaceChecks {
             w.Close();await ChatWorkspace(dir,file,book);
         }
         Console.WriteLine("PASS gate, signature, perpetual grant, device, official bot, empty workspace, compact layout, routed drag and drop, DOCX/XLSX, manual proposal/save, managed folders and offline activation UI");
+    }
+    static Process ParkedReader(){
+        var type=typeof(OfficeReader);var flags=BindingFlags.NonPublic;
+        var reader=type.GetField("idle",flags|BindingFlags.Static).GetValue(null);
+        return reader==null?null:(Process)type.GetField("child",flags|BindingFlags.Instance).GetValue(reader);
+    }
+    static async Task RepeatedOffice(ProjectRule rule,string source){
+        string folder=Directory.CreateDirectory(Path.Combine(rule.Root,"Контроль чтения")).FullName;
+        string book=Path.Combine(folder,"Две строки.xlsx");File.Copy(source,book);
+        var ct=CancellationToken.None;
+        string request=Store.Json().Serialize(new{path=book,action="read"});
+        var ordinary=new List<long>();var repeated=new List<long>();
+        var watch=new Stopwatch();int id=0;
+        for(int i=0;i<=10;i++){
+            watch.Restart();var text=await ProTools.Python("office.py",null,request,ct);
+            long old=watch.ElapsedMilliseconds;var single=Store.Json().Deserialize<OfficeResult>(text);
+            watch.Restart();var read=await ProTools.Office(rule,book,"read",null,ct);long warm=watch.ElapsedMilliseconds;
+            Check(read.revision==single.revision&&read.rows.Length==single.rows.Length,"Reader and singleton disagree");
+            if(i==0)id=ParkedReader().Id;
+            else{ordinary.Add(old);repeated.Add(warm);Check(id==ParkedReader().Id,"Repeated reads spawned a new interpreter");}
+        }
+        var first=await ProTools.Office(rule,book,"read",null,ct);
+        await ProTools.Office(rule,book,"commit",new Dictionary<string,object>{{"sheet",first.sheet},{"revision",first.revision},{"patches",new[]{new{key="B2",value="240"}}}},ct);
+        var changed=await ProTools.Office(rule,book,"read",null,ct);
+        Check(changed.revision!=first.revision&&changed.rows.Any(r=>r.key=="B2"&&r.value=="240"),"Warm reader did not see saved Excel edits");
+        File.Copy(source,book,true);
+        var external=await ProTools.Office(rule,book,"read",null,ct);
+        Check(external.revision==first.revision&&external.rows.Any(r=>r.key=="B2"&&r.value=="120"),"Warm reader missed an external replacement");
+        var concurrent=await Task.WhenAll(Enumerable.Range(0,3).Select(i=>ProTools.Office(rule,book,"read",null,ct)));
+        Check(concurrent.All(r=>r.revision==first.revision),"Concurrent reads mixed responses");
+        var crashed=ParkedReader();crashed.Kill();crashed.WaitForExit();
+        Check((await ProTools.Office(rule,book,"read",null,ct)).revision==first.revision,"Reader did not recover from exit");
+        await ProTools.Office(rule,book,"read",null,ct);
+        var large=Path.Combine(folder,"Длинная таблица.xlsx");
+        var rows=Enumerable.Range(0,3000).Select(i=>new[]{i.ToString(),"Ячейка "+i}).ToArray();
+        await ProTools.Office(rule,large,"create",new Dictionary<string,object>{{"data",rows}},ct);
+        using(var cancel=new CancellationTokenSource()){
+            var pending=ProTools.Office(rule,large,"read",null,cancel.Token);cancel.Cancel();
+            try{await pending;throw new Exception("Cancelled read returned a document");}catch(OperationCanceledException){}
+        }
+        Check((await ProTools.Office(rule,book,"read",null,ct)).revision==first.revision,"Cancelled reader affected the next request");
+        try{await ProTools.Office(rule,book,"aggregate",new Dictionary<string,object>(),ct);throw new Exception("Unauthorized analysis succeeded");}catch(UnauthorizedAccessException){}
+        int beforeSwitch=ParkedReader().Id;var savedPolicy=File.ReadAllBytes(WorkPolicy.PolicyPath);
+        string otherDir=Directory.CreateDirectory(Path.Combine(root,"Other reader project")).FullName;
+        var other=new ProjectRule{Root=otherDir};var otherBook=Path.Combine(otherDir,"Другой.xlsx");File.Copy(source,otherBook);
+        try{
+            Store.Write(WorkPolicy.PolicyPath,new CompanyRules{Managed=true,Projects=new[]{other}});
+            try{await ProTools.Office(rule,book,"read",null,ct);throw new Exception("A revoked project reused its reader");}catch(UnauthorizedAccessException){}
+            var otherResult=await ProTools.Office(other,otherBook,"read",null,ct);
+            Check(otherResult.revision==first.revision&&ParkedReader().Id!=beforeSwitch,"Project switch did not isolate the interpreter");
+            Check(!WorkPolicy.History&&Store.HistoryHeadings().Count==0,"Disabled history exposed headings");
+            await Task.Delay(46000);
+            Check(ParkedReader()==null,"Idle reader was not released");
+        }finally{File.WriteAllBytes(WorkPolicy.PolicyPath,savedPolicy);}
+        Store.Write(Path.Combine(root,"office-reader.json"),new{oneProcessPerReadMs=ordinary,warmReaderMs=repeated,
+            passed=new[]{"identical-result","interpreter-reuse","saved-edit","external-replacement","parallel","crash-recovery","active-cancellation","permission-recheck","project-switch","idle-shutdown"}});
+        Console.WriteLine("PASS Office worker, permission changes, cancellation, external saves and idle shutdown");
     }
     static async Task ChatWorkspace(string dir,string doc,string book){
         string retryFile=Path.Combine(root,"locked-write.json");
@@ -140,6 +218,7 @@ public static class WorkspaceChecks {
         };
         try{
             var reply=await send("Открой документ «"+book+"»");Check(reply.ProjectOnly&&reply.Text.Contains(Path.GetFileName(book)),"Open in chat: "+reply.Text);
+            Check(!WorkPolicy.Network&&!((CheckBox)win.FindName("WebSearch")).IsEnabled,"Web control was enabled after a managed request");
             var liveChat=(Conversation)typeof(Desktop).GetField("active",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(app);
             string historyPath=Path.Combine(Store.Chats,liveChat.Id+".json");
             var persistedAt=File.GetLastWriteTimeUtc(historyPath);
@@ -174,7 +253,10 @@ public static class WorkspaceChecks {
             }
             reply=await send("Найди в документе встреч");Check(reply.Text.Contains("Найдено"),"Find in Word");
             foreach(string path in Directory.GetFiles(Store.Chats,"*.json")){
-                string json=File.ReadAllText(path);Check(!json.Contains("9471")&&!json.Contains("Смета.xlsx")&&!json.Contains("я файл"),"Project material in persisted chat");
+                var saved=Store.Json().Deserialize<Conversation>(File.ReadAllText(path));
+                string content=Store.Json().Serialize(new {saved.Title,saved.Turns});
+                Check(!content.Contains("9471")&&!content.Contains("Смета.xlsx")&&!content.Contains("я файл")&&
+                    (saved.ProjectKey==null||System.Text.RegularExpressions.Regex.IsMatch(saved.ProjectKey,"^[A-F0-9]{64}$")),"Project material in persisted chat");
             }
             var names=(TextBox)viewer.FindName("FileFilter");names.Text="нет-такого-фильтра";Check(((ListBox)viewer.FindName("Files")).Items.Count==0,"File name filter");
             names.Clear();var bad=Path.Combine(root,"unapproved","new.docx");reply=await send("Открой документ «"+bad+"»");Check(!reply.Text.StartsWith("Открыт "),"Unauthorized file opened");
@@ -223,7 +305,7 @@ public static class WorkspaceChecks {
             }
             if(args[0]=="restart"){Check(ProAccess.Active,"Persisted lease missing");Console.WriteLine("PASS offline restart");return 0;}
             var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};var host=new Window{Width=400,Height=300,Left=-9000,Top=-9000,ShowInTaskbar=false,ShowActivated=false,WindowStartupLocation=WindowStartupLocation.Manual};host.Show();int rc=1;
-            app.Dispatcher.BeginInvoke(new Action(async()=>{try{await Exercise(host);rc=0;}catch(Exception ex){Console.Error.WriteLine(ex);}finally{app.Shutdown();}}));app.Run();return rc;
+            app.Dispatcher.BeginInvoke(new Action(async()=>{try{if(args[0]=="productivity")await ProductivityChecks.Run(host);else await Exercise(host);rc=0;}catch(Exception ex){Console.Error.WriteLine(ex);}finally{app.Shutdown();}}));app.Run();return rc;
         }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
     }
 }
