@@ -194,7 +194,7 @@ python training/route.py --out training-output/route
 
 ## Материалы и участие
 
-Обзор «ИИ судного дня» доступен на русском и английском. На сайте можно сменить язык и продолжить читать ту же статью или руководство. [Русская версия на Mataroa](https://ostumdesktop.mataroa.blog/blog/ii-sudnogo-dnya/) · [Русская версия в Telegraph](https://telegra.ph/II-sudnogo-dnya-11-21) · [Обсуждение на двух языках](https://github.com/Ranis2023/ostum-desktop/discussions/3)
+Обзор «ИИ судного дня» доступен на русском и английском. На сайте можно сменить язык и продолжить читать ту же статью или руководство. В авторской статье на vc.ru можно повторить три проверки с инструкцией в PDF, двумя прайсами и записью поручения. [Три опыта на vc.ru](https://vc.ru/ai/3270932-fleshka-s-iskusstvennym-intellektom-ostum-desktop) · [Русская версия на Mataroa](https://ostumdesktop.mataroa.blog/blog/ii-sudnogo-dnya/) · [Русская версия в Telegraph](https://telegra.ph/II-sudnogo-dnya-11-21) · [Обсуждение на двух языках](https://github.com/Ranis2023/ostum-desktop/discussions/3)
 
 | Практикум | Русский | English |
 | --- | --- | --- |

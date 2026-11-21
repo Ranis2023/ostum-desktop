@@ -93,7 +93,7 @@ The office workspace supports invoice duplicate review, spreadsheet range calcul
 
 Project training accepts 5–200 reviewed question-and-answer pairs in at least three independent groups. It trains a local adapter for the output layer of the original Zarum. Compare the base and candidate answers on held-out questions, including regressions, before enabling the candidate in that project. You can disable or revoke an adapter. F1 opens searchable, printable offline help.
 
-The field guide is also available as a public article in both languages. [Doomsday AI on Mataroa](https://ostumdesktop.mataroa.blog/blog/doomsday-ai/) · [Doomsday AI on Telegraph](https://telegra.ph/Doomsday-AI-11-21) · [Bilingual project discussion](https://github.com/Ranis2023/ostum-desktop/discussions/3)
+The field guide is also available as a public article in both languages. The maintainer's Russian article on vc.ru walks through three offline checks using a PDF manual, two price lists and a recorded assignment. [Doomsday AI on Mataroa](https://ostumdesktop.mataroa.blog/blog/doomsday-ai/) · [Doomsday AI on Telegraph](https://telegra.ph/Doomsday-AI-11-21) · [Three checks on vc.ru in Russian](https://vc.ru/ai/3270932-fleshka-s-iskusstvennym-intellektom-ostum-desktop) · [Bilingual project discussion](https://github.com/Ranis2023/ostum-desktop/discussions/3)
 
 ## Choose a local model
 
