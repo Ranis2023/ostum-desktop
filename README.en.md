@@ -78,7 +78,12 @@ Starting with 5.3, OSTUM checks GitHub after launch and every six hours. A butto
 
 **Pro access.** The first verified subscription to the developer's Telegram channel unlocks Pro permanently. To activate an isolated workstation, scan its QR code with a connected phone, start the bot and transfer the signed `.ostumpro` response by USB. The response is bound to the Windows user and workstation. [Developer's channel](https://t.me/ranisgaliaskarov) · [Activation bot](https://t.me/rangoostum_bot) · [Company deployment guide](packaging/Company.en.md)
 
-The maintainer's article explains how the Excel tool matches records by key, reports both source cells and handles a workbook that changes after preview. [Read the walkthrough on DEV Community](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb)
+| Maintainer tutorial | English | Русский |
+| --- | --- | --- |
+| Reproduce three differences across two price lists | [Read the walkthrough on DEV Community](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb) | [Разбор с двумя XLSX](https://ostumdesktop.mataroa.blog/blog/sverka-excel-bez-interneta/) |
+| Trace a meeting decision back to the recording | [Meeting minutes with timestamps](https://ostumdesktop.mataroa.blog/blog/meeting-minutes-you-can-check-against-the-recording/) | [Протокол с цитатами](https://telegra.ph/Kak-poluchit-protokol-soveshchaniya-bez-oblaka-i-proverit-kazhdoe-poruchenie-11-21) |
+
+Get articles from the project blog in your feed reader. [OSTUM blog RSS](https://ostumdesktop.mataroa.blog/rss/)
 
 ## Company documents and local training
 

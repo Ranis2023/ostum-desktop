@@ -196,7 +196,12 @@ python training/route.py --out training-output/route
 
 Обзор «ИИ судного дня» доступен на русском и английском. На сайте можно сменить язык и продолжить читать ту же статью или руководство. [Русская версия на Mataroa](https://ostumdesktop.mataroa.blog/blog/ii-sudnogo-dnya/) · [Русская версия в Telegraph](https://telegra.ph/II-sudnogo-dnya-11-21) · [Обсуждение на двух языках](https://github.com/Ranis2023/ostum-desktop/discussions/3)
 
-В русскоязычном разборе показано, как от записи совещания перейти к проверенным поручениям. Для сверки Excel есть две учебные книги и разбор алгоритма на английском. [Протокол совещания в Telegraph](https://telegra.ph/Kak-poluchit-protokol-soveshchaniya-bez-oblaka-i-proverit-kazhdoe-poruchenie-11-21) · [Практикум с прайсами в Telegram](https://t.me/ranisgaliaskarov/236) · [Как работает сверка в DEV Community](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb)
+| Практикум | Русский | English |
+| --- | --- | --- |
+| Проверить три расхождения в двух прайсах | [Разбор с двумя XLSX](https://ostumdesktop.mataroa.blog/blog/sverka-excel-bez-interneta/) | [Technical walkthrough on DEV](https://dev.to/ranis2023/reconciling-two-excel-workbooks-offline-with-a-local-windows-ai-assistant-17bb) |
+| Сверить поручение с записью совещания | [Протокол с цитатами](https://telegra.ph/Kak-poluchit-protokol-soveshchaniya-bez-oblaka-i-proverit-kazhdoe-poruchenie-11-21) | [Meeting minutes with timestamps](https://ostumdesktop.mataroa.blog/blog/meeting-minutes-you-can-check-against-the-recording/) |
+
+Новые статьи проекта можно читать по RSS. [Лента блога OSTUM](https://ostumdesktop.mataroa.blog/rss/) · [Короткий практикум с прайсами в Telegram](https://t.me/ranisgaliaskarov/236)
 
 Первый вклад можно сделать со своего Windows-компьютера. Запустите встроенный тест скорости Zarum 9B и дополните опубликованный замер результатом на другом процессоре. [Задача с порядком измерения](https://github.com/Ranis2023/ostum-desktop/issues/2) · [Обсуждения проекта](https://github.com/Ranis2023/ostum-desktop/discussions)
 
