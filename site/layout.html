@@ -17,6 +17,7 @@
   <meta property="og:type" content="$kind">
   <meta property="og:site_name" content="OSTUM Desktop">
   <meta property="og:locale" content="$locale">
+  <meta property="og:locale:alternate" content="$other_locale">
   <meta property="og:title" content="$head_title">
   <meta property="og:description" content="$description">
   <meta property="og:url" content="$url">
@@ -32,12 +33,12 @@
   <a class="skip" href="#main">$skip</a>
   <header class="wrap mast">
     <a class="wordmark" href="$home_url"><img src="${base}media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
-    <nav class="head-links" aria-label="Menu">
+    <nav class="head-links" aria-label="$menu">
       <a href="${home_url}#guides">$guides</a><a href="$repo">GitHub</a>
       <a class="language" href="$other_url" hreflang="$other_lang" lang="$other_lang">$other</a>
     </nav>
   </header>
   $body
-  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="$repo">$source</a><a href="$repo/discussions">$community</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="$links"><a href="$repo">$source</a><a href="$repo/discussions">$community</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
 </body>
 </html>

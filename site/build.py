@@ -12,9 +12,9 @@ SITE = "https://ranis2023.github.io/ostum-desktop/"
 REPO = "https://github.com/Ranis2023/ostum-desktop"
 INSTALLER = REPO + "/releases/latest/download/Ostum-Desktop-Setup.exe"
 LANGUAGES = {
-    "ru": dict(home="Главная", guides="Руководства", download="Скачать для Windows", source="Исходный код",
+    "ru": dict(home="Главная", guides="Руководства", download="Скачать для Windows", source="Исходный код", menu="Главное меню", links="Ссылки проекта", locale="ru_RU",
                community="Обсуждения", other="English", more="Другие руководства", skip="К содержанию"),
-    "en": dict(home="Home", guides="Guides", download="Download for Windows", source="Source code",
+    "en": dict(home="Home", guides="Guides", download="Download for Windows", source="Source code", menu="Main menu", links="Project links", locale="en_US",
                community="Discussions", other="Русский", more="More guides", skip="Skip to content"),
 }
 
@@ -42,7 +42,7 @@ def build():
                          ru_url=SITE + route("ru", key), en_url=SITE + route("en", key), other_url=base + route(other, key),
                          url=canonical, site=SITE, head_title=escape(meta["browser"]), title=escape(title),
                          description=escape(description), kind="website" if key=="home" else "article",
-                         locale="ru_RU" if lang=="ru" else "en_US",
+                         other_locale=LANGUAGES[other]["locale"],
                          card_file=meta.get("cover", "social-card.png"),
                          card_alt=escape(meta.get("cover_alt", "OSTUM Desktop 5.7.0 — " + ("окно локального протокола совещания" if lang=="ru" else "local meeting minutes with timestamps"))))
             content = Template((SOURCE / "content" / lang / (key + ".html")).read_text("utf-8")).substitute(entry)

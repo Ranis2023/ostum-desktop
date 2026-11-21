@@ -17,6 +17,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="OSTUM Desktop">
   <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
   <meta property="og:title" content="How to install OSTUM offline from a USB drive on Windows">
   <meta property="og:description" content="Prepare the model files on a connected PC, copy the kit to removable media and verify your first offline conversation.">
   <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/offline-install/">
@@ -32,7 +33,7 @@
   <a class="skip" href="#main">Skip to content</a>
   <header class="wrap mast">
     <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
-    <nav class="head-links" aria-label="Menu">
+    <nav class="head-links" aria-label="Main menu">
       <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
       <a class="language" href="../../offline-install/" hreflang="ru" lang="ru">Русский</a>
     </nav>
@@ -42,12 +43,12 @@
 <p>Run the installer directly on a connected PC. This release is unsigned. To check the file, run <code>Get-FileHash .\Ostum-Desktop-Setup.exe -Algorithm SHA256</code> in its download folder and compare the result with <a href="https://github.com/Ranis2023/ostum-desktop/releases/latest/download/SHA256SUMS.txt">the checksum supplied with that release</a>.</p>
 <h2>Prepare removable media for an isolated PC</h2>
 <ol><li>On a connected workstation, prepare the model library. If the target needs music, download the optional ACE-Step module first. Include the CUDA libraries if the target should use NVIDIA acceleration.</li>
-<li>Use the two PowerShell commands in the <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/README.md#полная-установка-без-интернета">USB preparation instructions</a> with the matching release. They assemble and check the contents. A full 5.7.0 kit with music and CUDA occupies about 17.6 GB.</li>
+<li>Use the two PowerShell commands in the <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/README.en.md#prepare-the-offline-usb-folder">USB preparation instructions</a> with the matching release. They assemble and check the contents. A full 5.7.0 kit with music and CUDA occupies about 17.6 GB.</li>
 <li>Copy the whole folder to NTFS or exFAT media. Keep <code>Models</code>, <code>Acceleration</code> and <code>OSTUM-OFFLINE.txt</code> next to the EXE. On the disconnected PC, start the installer from that folder.</li></ol>
 <h2>Verify a local session</h2>
 <p>With the target computer offline, open a new chat and request a three-item packing list. Next attach a sample photo and ask for one visible detail. The two requests exercise the language model and the vision projector separately. Meeting transcription also needs the dictation component.</p>
-<p>Free chat works without an account. For the Pro workspace, scan the activation QR with a connected phone and bring the signed response back to the workstation. The first activation requires a verified subscription to the developer’s Telegram channel. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.md">Company deployment guide in Russian</a></p>
+<p>Free chat works without an account. For the Pro workspace, scan the activation QR with a connected phone and bring the signed response back to the workstation. The first activation requires a verified subscription to the developer’s Telegram channel. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.en.md">Company deployment guide</a></p>
 </article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/doomsday-ai/"><span class="topic">Feature</span><h3>Doomsday AI</h3><p>A field guide to an AI that travels on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
-  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Project links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
 </body>
 </html>

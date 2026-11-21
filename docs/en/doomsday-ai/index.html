@@ -17,6 +17,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="OSTUM Desktop">
   <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
   <meta property="og:title" content="Doomsday AI — why keep a local Windows assistant on a USB drive?">
   <meta property="og:description" content="What belongs on an offline AI drive, what OSTUM Desktop can do on Windows and how to test the kit before you need it.">
   <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/">
@@ -32,7 +33,7 @@
   <a class="skip" href="#main">Skip to content</a>
   <header class="wrap mast">
     <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
-    <nav class="head-links" aria-label="Menu">
+    <nav class="head-links" aria-label="Main menu">
       <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
       <a class="language" href="../../doomsday-ai/" hreflang="ru" lang="ru">Русский</a>
     </nav>
@@ -56,7 +57,7 @@
 <p>The Pro Word and Excel editors sit beside the conversation. Review a proposed change to a paragraph or a cell, select the edits to save, or restore an earlier version. Other workflows compare contract revisions, collate supplier offers, review invoices and create tasks linked to their source paragraph or cell. Due dates can be exported to a calendar.</p>
 <h2>Teach it a workflow on your own PC</h2>
 <p>You can set a working profile immediately. In Pro, a project can also train an output-layer LoRA adapter on 5 to 200 reviewed question-and-answer pairs from at least three independent groups. Training runs locally. A comparison with the base model on held-out examples shows improvements and regressions before you decide whether to enable the adapter in that project. You can import a compatible GGUF from disk or use the model catalogue. Vision needs a matching projector.</p>
-<p>A company policy can restrict folders and disable external connections. In a personal installation, optional web search sends a query online when enabled. New model downloads and the online update service also need connectivity. An isolated workstation can receive an updated installer by USB. F1 opens the built-in offline help. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.md">Administrator's guide in Russian</a></p>
+<p>A company policy can restrict folders and disable external connections. In a personal installation, optional web search sends a query online when enabled. New model downloads and the online update service also need connectivity. An isolated workstation can receive an updated installer by USB. F1 opens the built-in offline help. <a href="https://github.com/Ranis2023/ostum-desktop/blob/main/packaging/Company.en.md">Administrator's guide</a></p>
 <h2>Build the drive and rehearse once</h2>
 <ol><li><strong>Start on a connected PC.</strong> OSTUM supports Windows 10 and 11 x64. The 5.7.0 installer is 108.3 MiB. A full first installation downloads six model files totalling 13.38 GB. The optional music component adds 2.71 GB. The release provides an unsigned EXE and its SHA-256 checksum. <a href="https://github.com/Ranis2023/ostum-desktop/releases/tag/v5.7.0">Windows release and checksum</a></li>
 <li><strong>Pack the complete folder.</strong> The project's script collects the installed files in <code>Ostum-Offline</code>. A full 5.7.0 kit with dictation, drawing, music and CUDA takes about 17.6 GB. A 32 GB exFAT or NTFS drive is one practical choice. Copy the folder with its installer, <code>Models</code>, <code>Acceleration</code> and <code>OSTUM-OFFLINE.txt</code>. <a href="../../en/offline-install/">USB preparation instructions</a></li>
@@ -65,6 +66,6 @@
 <p>Before putting the flash drive in a drawer, add a manual for an appliance you own. Disconnect the laptop and ask how to change the filter and which page explains it. Checking that one answer against the manual will tell you more about your kit than another afternoon spent collecting installers.</p>
 <p><small>Published by the OSTUM Desktop project. The text and cover were prepared with AI assistance. Features were checked against release 5.7.0, and the workbook example against the project's comparison engine.</small> <a href="https://github.com/Ranis2023/ostum-desktop">OSTUM source code</a></p>
 </article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
-  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Project links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
 </body>
 </html>
