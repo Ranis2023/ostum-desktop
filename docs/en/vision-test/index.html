@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test a local vision model with two meeting notes — OSTUM Desktop</title>
+  <meta name="description" content="Give Zarum 9B the same question and two different images. Download both notes and compare the time and room number with the answers from an RTX 4050 laptop.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/en/vision-test/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/vision-test/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <link rel="sitemap" type="application/xml" href="../../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
+  <meta property="og:title" content="Test a local vision model with two meeting notes — OSTUM Desktop">
+  <meta property="og:description" content="Give Zarum 9B the same question and two different images. Download both notes and compare the time and room number with the answers from an RTX 4050 laptop.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/en/vision-test/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/vision-card-en.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Two sample Russian notes showing different meeting times and room numbers">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="Two sample Russian notes showing different meeting times and room numbers">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Two notes. One question.", "description": "Give Zarum 9B the same question and two different images. Download both notes and compare the time and room number with the answers from an RTX 4050 laptop.", "url": "https://ranis2023.github.io/ostum-desktop/en/vision-test/", "inLanguage": "en", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../../en/"><img src="../../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Main menu">
+      <a href="../../en/#guides">Guides</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../../vision-test/" hreflang="ru" lang="ru">Русский</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../../en/">Home</a><span aria-hidden="true"> / </span>Image reading</nav><article><h1>Two notes. One question.</h1><p class="dek">Give Zarum 9B the same question and two different images. Download both notes and compare the time and room number with the answers from an RTX 4050 laptop.</p><div class="downloads"><a download href="../../examples/vision/note-a.png">Download the first note · PNG</a><a download href="../../examples/vision/note-b.png">Download the second note · PNG</a></div>
+<h2>Try the same question twice</h2>
+<ol><li>Open OSTUM Desktop with Zarum 9B and its vision projector installed. Basic chat is sufficient for this test. For a disconnected PC, prepare the model files in advance. <a href="../../en/offline-install/">Prepare an offline kit</a>.</li>
+<li>Start a conversation. Click <strong lang="ru">Рассмотреть фото</strong> (inspect a photo) or drop <code>note-a.png</code> into the chat. Paste the Russian question below and send it with the picture.</li>
+<li>Click <strong lang="ru">Новый чат</strong> (new chat). Send <code>note-b.png</code> with the identical question. Compare the two numbers in each response with its image. The model may phrase an answer differently on your machine.</li></ol>
+<blockquote lang="ru">Прочитай записку на приложенном изображении. Во сколько встреча и какой номер кабинета? Ответь одной короткой фразой.</blockquote>
+<p>The question asks the model to read the attached note and give the time and room number in one short sentence.</p>
+<h2>What the model read</h2>
+<table><thead><tr><th scope="col">File</th><th scope="col">Actual reply and translation</th><th scope="col">Time to full reply</th></tr></thead><tbody>
+<tr><th scope="row">note-a.png</th><td><span lang="ru">Встреча в 14:40 в кабинете 206.</span><br>The meeting is at 14:40 in room 206.</td><td>38.58 s, including model loading</td></tr>
+<tr><th scope="row">note-b.png</th><td><span lang="ru">Встреча в 09:15, кабинет 314.</span><br>The meeting is at 09:15, room 314.</td><td>15.37 s with the model already loaded</td></tr></tbody></table>
+<p>These are two observations on an RTX 4050 Laptop GPU. We sent just the question and one image in each fresh conversation through the chat method used by OSTUM 5.7.0. Both images use the same typeface. To evaluate handwriting or scanned forms, repeat the test with a sample from that workflow. <a href="../../en/hardware/">Benchmark your own hardware</a>.</p>
+<figure><video class="vision-player" controls playsinline preload="none" width="1080" height="1920" poster="../../media/vision-poster.webp"><source src="../../media/vision-field-test.mp4" type="video/mp4"><track kind="captions" src="../../media/vision-en.vtt" srclang="en" label="English" default><track kind="captions" src="../../media/vision-ru.vtt" srclang="ru" label="Русский"></video><figcaption>The 35-second film shows both notes and replies. Waiting times are shortened. English captions are available. <a href="../../media/vision-field-test.mp4" download>Download the video · MP4, 3.7 MB</a>.</figcaption></figure>
+<h2>Where the images were processed</h2>
+<p>Both the model and vision projector were read from disk. Web search was turned off. The local llama.cpp process used <code>--offline</code> and listened on <code>127.0.0.1</code>. The laptop itself stayed online. The run record contains the model files, application version, prompt, answers and SHA-256 hashes for both notes. <a href="../../examples/vision/vision-results.json">Open the run record · JSON</a>.</p>
+</article></main><section class="wrap guide-section"><h2>More guides</h2><div class="guide-grid"><a class="guide-card" href="../../en/doomsday-ai/"><span class="topic">Feature</span><h3>Doomsday AI</h3><p>A field guide to an AI that travels on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/offline-install/"><span class="topic">Installation</span><h3>Install OSTUM on a PC without internet access</h3><p>Know what to download and what to put on a USB drive.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/excel/"><span class="topic">Excel · Pro</span><h3>Compare two price lists by product code</h3><p>Two sample workbooks and three differences to reproduce.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/meetings/"><span class="topic">Meetings</span><h3>Turn a recording into reviewed meeting minutes</h3><p>Check each action against the original timestamp and quote.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../../en/hardware/"><span class="topic">Performance</span><h3>Benchmark Zarum on your own hardware</h3><p>Measure model loading, time to first token and generation rate.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Project links"><a href="https://github.com/Ranis2023/ostum-desktop">Source code</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Discussions</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>

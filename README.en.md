@@ -8,6 +8,8 @@
 
 OSTUM runs **Zarum 9B**, a local model based on Qwen3.5-9B, on your own PC. Chat, photo analysis, document reading, dictation and image generation keep working when the network goes down. The interface and built-in help are in Russian.
 
+Try Zarum with two meeting notes. Give it the same question twice and check whether it reads the new time and room number. [Download both images and watch the 35-second demo](https://ranis2023.github.io/ostum-desktop/en/vision-test/).
+
 ![OSTUM Desktop 5.7.0 home screen with Zarum 9B ready for a local chat](assets/5.7/home.png)
 
 ## New in 5.7

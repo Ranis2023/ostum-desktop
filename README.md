@@ -6,6 +6,8 @@
 
 Когда пропадает интернет, **Zarum 9B** продолжает отвечать, читать документы и разбирать фотографии прямо на вашем ПК. OSTUM объединяет локальную модель на базе Qwen3.5-9B, параллельных ИИ-агентов, голосовой ввод и генерацию изображений в одном приложении для Windows 10 и 11.
 
+Проверьте, как Zarum читает изображения. Задайте один вопрос к двум запискам с разным временем встречи и номером кабинета. [Скачать обе картинки и посмотреть 35-секундное демо](https://ranis2023.github.io/ostum-desktop/vision-test/).
+
 [Сайт и руководства](https://ranis2023.github.io/ostum-desktop/) · [Пример сверки с двумя XLSX](https://ranis2023.github.io/ostum-desktop/excel/) · [Что нового в 5.7](#что-нового-в-57) · [Требования к ПК](#какой-компьютер-подойдёт) · [Установка с флешки](#полная-установка-без-интернета) · [Для организаций](packaging/Company.md)
 
 **[Скачать OSTUM Desktop для Windows x64](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe)** · [Контрольная сумма](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/SHA256SUMS.txt) · [Все выпуски](https://github.com/Ranis2023/ostum-desktop/releases)

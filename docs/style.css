@@ -67,6 +67,7 @@ article ol,article ul { padding-left: 1.6em; }
 figure { margin: 1.5rem 0; }
 article figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px; }
 figcaption { color: var(--muted); font-size: 14px; margin-top: 7px; }
+.vision-player { display: block; width: min(100%, 21rem); height: auto; aspect-ratio: 9 / 16; border-radius: 12px; background: #182d2a; }
 table { border-collapse: collapse; margin: 12px 0 22px; width: 100%; font-size: .94em; }
 td,th { padding: .6em .45em; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
 th { background: #ecf1e8; }

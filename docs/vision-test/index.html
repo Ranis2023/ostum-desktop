@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Как проверить зрение локального ИИ на двух записках — OSTUM Desktop</title>
+  <meta name="description" content="Скачайте две картинки и задайте Zarum 9B один и тот же вопрос. Сравните время встречи и номер кабинета с ответами OSTUM на ноутбуке с RTX 4050.">
+  <meta name="theme-color" content="#1f332d">
+  <link rel="canonical" href="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <link rel="alternate" hreflang="ru" href="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <link rel="alternate" hreflang="en" href="https://ranis2023.github.io/ostum-desktop/en/vision-test/">
+  <link rel="alternate" hreflang="x-default" href="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+  <link rel="alternate" type="application/atom+xml" title="OSTUM Desktop releases" href="https://github.com/Ranis2023/ostum-desktop/releases.atom">
+  <link rel="icon" href="../media/logo-96.png" type="image/png">
+  <link rel="stylesheet" href="../style.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OSTUM Desktop">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:title" content="Как проверить зрение локального ИИ на двух записках — OSTUM Desktop">
+  <meta property="og:description" content="Скачайте две картинки и задайте Zarum 9B один и тот же вопрос. Сравните время встречи и номер кабинета с ответами OSTUM на ноутбуке с RTX 4050.">
+  <meta property="og:url" content="https://ranis2023.github.io/ostum-desktop/vision-test/">
+  <meta property="og:image" content="https://ranis2023.github.io/ostum-desktop/media/vision-card-ru.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Две учебные записки с разным временем встречи и номерами кабинетов">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image:alt" content="Две учебные записки с разным временем встречи и номерами кабинетов">
+  <script type="application/ld+json">{"@type": "TechArticle", "headline": "Две записки. Один вопрос.", "description": "Скачайте две картинки и задайте Zarum 9B один и тот же вопрос. Сравните время встречи и номер кабинета с ответами OSTUM на ноутбуке с RTX 4050.", "url": "https://ranis2023.github.io/ostum-desktop/vision-test/", "inLanguage": "ru", "author": {"@type": "Organization", "name": "OSTUM Desktop", "url": "https://github.com/Ranis2023/ostum-desktop"}, "@context": "https://schema.org"}</script>
+</head>
+<body>
+  <a class="skip" href="#main">К содержанию</a>
+  <header class="wrap mast">
+    <a class="wordmark" href="../"><img src="../media/logo-96.png" width="34" height="34" alt=""> OSTUM <span>Desktop</span></a>
+    <nav class="head-links" aria-label="Главное меню">
+      <a href="../#guides">Руководства</a><a href="https://github.com/Ranis2023/ostum-desktop">GitHub</a>
+      <a class="language" href="../en/vision-test/" hreflang="en" lang="en">English</a>
+    </nav>
+  </header>
+  <main class="wrap reading" id="main"><nav class="crumb"><a href="../">Главная</a><span aria-hidden="true"> / </span>Анализ изображений</nav><article><h1>Две записки. Один вопрос.</h1><p class="dek">Скачайте две картинки и задайте Zarum 9B один и тот же вопрос. Сравните время встречи и номер кабинета с ответами OSTUM на ноутбуке с RTX 4050.</p><div class="downloads"><a download href="../examples/vision/note-a.png">Скачать первую записку · PNG</a><a download href="../examples/vision/note-b.png">Скачать вторую записку · PNG</a></div>
+<h2>Прочитайте записки вместе с Zarum</h2>
+<ol><li>Откройте OSTUM Desktop и выберите Zarum 9B с поддержкой изображений. Для этого опыта достаточно базового чата. Если вы готовите компьютер без интернета, заранее скопируйте на него веса и зрительный модуль. <a href="../offline-install/">Как подготовить комплект</a>.</li>
+<li>Начните новый чат. Нажмите <strong>Рассмотреть фото</strong> или перетащите <code>note-a.png</code> в чат. Скопируйте вопрос под списком и отправьте его вместе с картинкой.</li>
+<li>Нажмите <strong>Новый чат</strong> и повторите опыт с <code>note-b.png</code> и тем же вопросом. Сверьте оба ответа с изображениями. Смысл здесь в двух числах, поэтому формулировка ответа может отличаться.</li></ol>
+<blockquote>Прочитай записку на приложенном изображении. Во сколько встреча и какой номер кабинета? Ответь одной короткой фразой.</blockquote>
+<h2>Что ответила модель</h2>
+<table><thead><tr><th scope="col">Файл</th><th scope="col">Дословный ответ</th><th scope="col">До полного ответа</th></tr></thead><tbody>
+<tr><th scope="row">note-a.png</th><td>Встреча в 14:40 в кабинете 206.</td><td>38,58 с с загрузкой модели</td></tr>
+<tr><th scope="row">note-b.png</th><td>Встреча в 09:15, кабинет 314.</td><td>15,37 с с уже загруженной моделью</td></tr></tbody></table>
+<p>Это два замера на RTX 4050 Laptop. Мы передавали каждой копии диалога только вопрос и одну картинку через тот же метод обработки сообщений, который использует чат OSTUM 5.7.0. Обе записки набраны одним шрифтом. Для оценки чтения рукописи или сложного скана стоит добавить свой образец. <a href="../hardware/">Как измерить скорость на своём ПК</a>.</p>
+<figure><video class="vision-player" controls playsinline preload="none" width="1080" height="1920" poster="../media/vision-poster.webp"><source src="../media/vision-field-test.mp4" type="video/mp4"><track kind="captions" src="../media/vision-ru.vtt" srclang="ru" label="Русский"><track kind="captions" src="../media/vision-en.vtt" srclang="en" label="English"></video><figcaption>В 35-секундном ролике собраны обе записки и ответы. Время ожидания сокращено. <a href="../media/vision-field-test.mp4" download>Скачать видео · MP4, 3,7 МБ</a>.</figcaption></figure>
+<h2>Где обрабатывались изображения</h2>
+<p>Веса и зрительный модуль читались с диска. Поиск в интернете был выключен, локальный процесс llama.cpp работал с флагом <code>--offline</code> по адресу <code>127.0.0.1</code>. Сам ноутбук оставался подключён к сети. В протоколе указаны версии, файлы модели, текст запроса, ответы и контрольные суммы картинок. <a href="../examples/vision/vision-results.json">Открыть протокол · JSON</a>.</p>
+</article></main><section class="wrap guide-section"><h2>Другие руководства</h2><div class="guide-grid"><a class="guide-card" href="../doomsday-ai/"><span class="topic">Статья</span><h3>ИИ судного дня</h3><p>Что взять с собой, если завтра пропадёт интернет.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../offline-install/"><span class="topic">Установка</span><h3>Как установить ИИ на ПК без интернета</h3><p>Что скачает EXE и что перенести на флешке.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../excel/"><span class="topic">Excel · Pro</span><h3>Как сверить два прайса по артикулу</h3><p>Две учебные книги и три расхождения для проверки.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../meetings/"><span class="topic">Совещания</span><h3>Как превратить запись в протокол</h3><p>Проверьте у каждой задачи цитату, ответственного и срок.</p><span class="arrow" aria-hidden="true">↗</span></a><a class="guide-card" href="../hardware/"><span class="topic">Производительность</span><h3>Как измерить скорость Zarum на своём ПК</h3><p>Время загрузки, первый токен и скорость генерации.</p><span class="arrow" aria-hidden="true">↗</span></a></div></section>
+  <footer class="wrap foot"><span>OSTUM Desktop</span><nav aria-label="Ссылки проекта"><a href="https://github.com/Ranis2023/ostum-desktop">Исходный код</a><a href="https://github.com/Ranis2023/ostum-desktop/discussions">Обсуждения</a><a href="https://t.me/ranisgaliaskarov">Telegram</a></nav></footer>
+</body>
+</html>
