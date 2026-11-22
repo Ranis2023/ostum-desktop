@@ -2,6 +2,8 @@
 
 [Русская версия](Company.md)
 
+The official build uses the project's activation bot. An organization maintaining its own build and signing keys can follow the [English issuer guide](../subscription/README.en.md).
+
 ## Prepare an isolated workstation
 
 1. On a connected preparation machine, assemble the offline USB folder or ISO. The full 5.7 kit with dictation, drawing, music and CUDA uses about 17.6 GB. Compare its checksums with a copy obtained through an organization-approved channel. The installer is unsigned. [Kit contents and commands](../README.en.md#prepare-the-offline-usb-folder)

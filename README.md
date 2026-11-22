@@ -2,7 +2,9 @@
 
 # OSTUM Desktop — автономный ИИ для Windows без лишних действий
 
-[English README](README.en.md) · [Статья «ИИ судного дня»](https://ranis2023.github.io/ostum-desktop/doomsday-ai/) · [Read the article in English](https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/)
+[English README](README.en.md) · [English installation guide](https://ranis2023.github.io/ostum-desktop/en/offline-install/) · [English version history](packaging/releases/HISTORY.en.md)
+
+[Статья «ИИ судного дня»](https://ranis2023.github.io/ostum-desktop/doomsday-ai/) · [Read the article in English](https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/)
 
 Когда пропадает интернет, **Zarum 9B** продолжает отвечать, читать документы и разбирать фотографии прямо на вашем ПК. OSTUM объединяет локальную модель на базе Qwen3.5-9B, параллельных ИИ-агентов, голосовой ввод и генерацию изображений в одном приложении для Windows 10 и 11.
 

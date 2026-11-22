@@ -1,5 +1,7 @@
 # Проверка подписки OSTUM Pro
 
+[English operator guide](README.en.md)
+
 В OSTUM 5.2 первая подтверждённая подписка даёт бессрочный Pro. Приложение генерирует QR локально, телефон открывает личный чат выделенного бота. Изолированная рабочая станция принимает подписанный файл с носителя. [Бот OSTUM](https://t.me/rangoostum_bot) · [Канал Раниса](https://t.me/ranisgaliaskarov) · [Проверка подписки Telegram](https://core.telegram.org/bots/api#getchatmember)
 
 ## Настройка владельцем

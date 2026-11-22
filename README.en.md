@@ -2,7 +2,7 @@
 
 [Doomsday AI — the offline USB field guide](https://ranis2023.github.io/ostum-desktop/en/doomsday-ai/) · [Читать статью на русском](https://ranis2023.github.io/ostum-desktop/doomsday-ai/)
 
-[Русский README](README.md) · [Download for Windows x64](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe) · [Releases and SHA-256 checksums](https://github.com/Ranis2023/ostum-desktop/releases)
+[Русский README](README.md) · [Download for Windows x64](https://github.com/Ranis2023/ostum-desktop/releases/latest/download/Ostum-Desktop-Setup.exe) · [Releases and SHA-256 checksums](https://github.com/Ranis2023/ostum-desktop/releases) · [English version history](packaging/releases/HISTORY.en.md)
 
 [Project site and walkthroughs](https://ranis2023.github.io/ostum-desktop/en/) · [Try the Excel example with two sample workbooks](https://ranis2023.github.io/ostum-desktop/en/excel/) · [Project discussions](https://github.com/Ranis2023/ostum-desktop/discussions)
 
@@ -34,7 +34,7 @@ Try Zarum with two meeting notes. Give it the same question twice and check whet
 
 </details>
 
-This update also brings changes since the 5.4 public release. Version 5.5 added offline OCR for scanned PDFs, invoice review with duplicate detection, spreadsheet range calculations and task calendar exports. Version 5.6 added a local conversation index, faster repeat reads of Office files and improved navigation in long chats. [5.5 changes in Russian](packaging/releases/5.5.0.md) · [5.6 changes in Russian](packaging/releases/5.6.0.md) · [5.7 release notes in English](packaging/releases/5.7.0.md#english-release-notes)
+This update also brings changes since the 5.4 public release. Version 5.5 added offline OCR for scanned PDFs, invoice review with duplicate detection, spreadsheet range calculations and task calendar exports. Version 5.6 added a local conversation index, faster repeat reads of Office files and improved navigation in long chats. [5.5 changes](packaging/releases/HISTORY.en.md#550) · [5.6 changes](packaging/releases/HISTORY.en.md#560) · [5.7 release notes](packaging/releases/5.7.0.md#english-release-notes)
 
 ## Install on Windows 10 or 11
 
@@ -63,7 +63,7 @@ In Pro, click **Файлы** (Files) in the chat header to work with Word and Ex
 
 **Zarum 9B** is the recommended default and takes 6.60 GB including the vision projector. The network installer downloads it during setup. The full USB kit carries both files. [Compare all six catalog models](#choose-a-local-model)
 
-Ask in Russian to generate instrumental music for 10–60 seconds. The optional ACE-Step download is 2.71 GB. Playback and WAV export are available inside the reply. [Release 5.4.0](packaging/releases/5.4.0.md)
+Ask in Russian to generate instrumental music for 10–60 seconds. The optional ACE-Step download is 2.71 GB. Playback and WAV export are available inside the reply. [5.4 release notes in English](packaging/releases/HISTORY.en.md#540)
 
 ## Release notifications
 
@@ -81,6 +81,18 @@ Starting with 5.3, OSTUM checks GitHub after launch and every six hours. A butto
 | Bring another local model | Import a compatible GGUF in model settings. Image understanding requires a matching vision projector and a supported architecture. Run the built-in benchmark to measure performance on your PC. |
 
 **Pro access.** The first verified subscription to the developer's Telegram channel unlocks Pro permanently. To activate an isolated workstation, scan its QR code with a connected phone, start the bot and transfer the signed `.ostumpro` response by USB. The response is bound to the Windows user and workstation. [Developer's channel](https://t.me/ranisgaliaskarov) · [Activation bot](https://t.me/rangoostum_bot) · [Company deployment guide](packaging/Company.en.md)
+
+### Find the controls in the Russian interface
+
+| Label in OSTUM | What it opens |
+| --- | --- |
+| **Файлы** | Files alongside the current chat, including a resizable preview. |
+| **Рабочие пространства Pro** | Project folders, document editing and Pro activation. |
+| **Инструменты → Совещание** | Record or import a meeting, review the transcript and play a timestamp. |
+| **Модели и настройки → Открыть GGUF с диска** | Import a compatible local model file. |
+| **Модели и настройки → Место на диске** | Check storage usage and review eligible components for removal. |
+
+The publisher operates the activation bot. Organizations using the official build can follow the phone-and-USB instructions above. Maintainers of independent builds can read about issuer setup, backup and offline signature verification. [Activation operator guide in English](subscription/README.en.md)
 
 | Maintainer tutorial | English | Русский |
 | --- | --- | --- |
@@ -122,4 +134,4 @@ If you have a different Windows PC, you can contribute a second CPU measurement 
 
 To back up personal chats, archives, preferences and the work profile, close OSTUM and copy `%LOCALAPPDATA%\SferaAI`. Also copy your model library if it lives on another drive. For project files, versions and trained adapters, see the [company data locations](packaging/Company.en.md#where-data-is-stored).
 
-The desktop app uses C#, WPF and .NET Framework 4.8. From the repository root in PowerShell, run `.\build.ps1 -AppOnly` for the UI or `.\packaging\Release.ps1` to build and check the installer, MSI and checksums. The first build needs access to its dependencies. OSTUM code uses the MIT licence. Base models, runtimes and third-party components have their own licences. [MIT licence](LICENSE) · [Component sources](packaging/Sources.txt)
+The desktop app uses C#, WPF and .NET Framework 4.8. From the repository root in PowerShell, run `.\build.ps1 -AppOnly` for the UI or `.\packaging\Release.ps1` to build and check the installer, MSI and checksums. The first build needs access to its dependencies. OSTUM code uses the MIT licence. Base models, runtimes and third-party components have their own licences. [MIT licence](LICENSE) · [Component sources and licences](packaging/Sources.en.md)
