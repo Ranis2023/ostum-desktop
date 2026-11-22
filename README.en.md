@@ -51,6 +51,8 @@ To build the fully equipped USB kit, first install the standard set on a connect
 
 The second command checks the full kit and writes its checksums. To create an ISO as well, run it again without `-PrepareOnly`. [Kit builder](packaging/OfflineModels.ps1) · [ISO builder](packaging/OfflineImage.ps1)
 
+After copying, check the USB drive itself. The PowerShell checker for 5.7.0 pins the release digests. It checks all 15 files in the full kit or the three needed for chat and photos, and names any file to copy again. [English walkthrough and checker](https://gist.github.com/Ranis2023/09103b687eea1f457368782f25628e38#file-01-english-md)
+
 ## Chat, files and music
 
 In Pro, click **Файлы** (Files) in the chat header to work with Word and Excel beside the conversation. Drag the divider to resize the preview. OSTUM asks for access to a new folder. Try **«Измени ячейку B2 на 1450»** to change cell B2 to 1450. Review the original and proposed values, then save the selected changes. The **В чат** button returns the open document and pending edits from the workspace to chat. File-related chat messages stay in the current session.
