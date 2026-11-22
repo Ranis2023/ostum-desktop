@@ -58,9 +58,27 @@ def build():
                 schema = {"@type":"SoftwareApplication","name":"OSTUM Desktop","applicationCategory":"ProductivityApplication",
                           "operatingSystem":"Windows 10/11 x64","downloadUrl":INSTALLER,"url":canonical,"softwareVersion":meta["version"]}
             else:
-                body = '<main class="wrap reading" id="main"><nav class="crumb"><a href="'+home+'">'+words["home"]+'</a><span aria-hidden="true"> / </span>'+escape(meta["topic"])+'</nav><article><h1>'+escape(title)+'</h1><p class="dek">'+escape(description)+'</p>'+content+'</article></main><section class="wrap guide-section"><h2>'+words["more"]+'</h2>'+guide_grid+'</section>'
                 schema = {"@type":"TechArticle","headline":title,"description":description,"url":canonical,"inLanguage":lang,
                           "author":{"@type":"Organization","name":"OSTUM Desktop","url":REPO}}
+                byline = ""
+                if credit := meta.get("byline"):
+                    byline = (
+                        f'<p class="byline"><a rel="author" href="{escape(credit["profile"])}">{escape(credit["name"])}</a>'
+                        f' · <time datetime="{escape(credit["published"])}">{escape(credit["date_label"])}</time></p>'
+                    )
+                    schema.update({
+                        "@type": "BlogPosting",
+                        "author": {"@type": "Person", "name": credit["name"], "url": credit["profile"]},
+                        "datePublished": credit["published"],
+                        "image": SITE + "media/" + meta["cover"],
+                        "mainEntityOfPage": {"@type": "WebPage", "@id": canonical},
+                    })
+                body = (
+                    f'<main class="wrap reading" id="main"><nav class="crumb"><a href="{home}">{words["home"]}</a>'
+                    f'<span aria-hidden="true"> / </span>{escape(meta["topic"])}</nav><article><h1>{escape(title)}</h1>'
+                    f'<p class="dek">{escape(description)}</p>{byline}{content}</article></main>'
+                    f'<section class="wrap guide-section"><h2>{words["more"]}</h2>{guide_grid}</section>'
+                )
             schema["@context"] = "https://schema.org"
             entry.update(body=body, structured=json.dumps(schema, ensure_ascii=False).replace("<","\\u003c"))
             (destination/"index.html").write_text(template.substitute(entry), encoding="utf-8", newline="\n")

@@ -59,6 +59,7 @@ h1,h2,h3 { line-height: 1.12; }
 .crumb { display: flex; gap: 9px; padding: 28px 0 18px; border-top: 1px solid var(--rule); }
 .reading h1 { font: 500 clamp(39px,5vw,68px)/1.02 var(--serif); letter-spacing: -.045em; max-width: 21ch; margin-bottom: .35em; }
 .dek { font-size: clamp(19px,2vw,24px); line-height: 1.45; color: var(--muted); }
+.byline { margin: .6em 0 1.5em; color: var(--muted); font-size: .875rem; }
 article h2 { font-size: clamp(23px,2.4vw,31px); letter-spacing: -.035em; margin: 1.45em 0 .52em; }
 article p,article li { max-width: 73ch; }
 article li { margin: .4em 0; }
